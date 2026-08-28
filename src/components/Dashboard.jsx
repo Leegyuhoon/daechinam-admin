@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 import {
   Users,
   Building2,
@@ -10,7 +10,8 @@ import {
   ClipboardList,
   PackageCheck,
   Crown,
-  Timer
+  Timer,
+  ListChecks
 } from 'lucide-react'
 import { api } from '../lib/api'
 import { hoursOf } from '../lib/hours'
@@ -57,6 +58,16 @@ const timeAgo = (iso) => {
   return `${Math.floor(diffMin / 1440)}일 전`
 }
 
+const formatTime = (iso) => {
+  if (!iso) return '—'
+  return new Date(iso).toLocaleTimeString('ko-KR', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    timeZone: 'Asia/Seoul'
+  })
+}
+
 export default function Dashboard() {
   const [state, setState] = useState({
     loading: true,
@@ -93,6 +104,11 @@ export default function Dashboard() {
     ...longShiftRecords.map((r) => ({ ...r, kind: '장시간 근무' }))
   ].sort((a, b) => (b.date || '').localeCompare(a.date || ''))
 
+  const todayDate = today?.date || null
+  const todayRecords = (state.records || [])
+    .filter((r) => r.date === todayDate)
+    .sort((a, b) => (a.clockIn || '').localeCompare(b.clockIn || ''))
+
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
@@ -120,6 +136,51 @@ export default function Dashboard() {
         <StatCard icon={Users} label="현재 근무중" value={state.loading ? '—' : state.ongoing?.length ?? 0} />
         <StatCard icon={Building2} label="등록 현장" value={state.loading ? '—' : state.siteCount ?? 0} />
         <StatCard icon={MapPinOff} label="반경 이탈 누적" value={state.loading ? '—' : outFlagTotal} tone="amber" />
+      </div>
+
+      <div className="mt-6 rounded-xl border border-base-800 bg-base-950 p-4">
+        <p className="mb-3 flex items-center gap-1.5 text-sm font-medium text-base-200">
+          <ListChecks size={15} className="text-mist-400" />
+          오늘 출퇴근 명단 {todayDate && <span className="text-xs font-normal text-base-500">({todayDate})</span>}
+        </p>
+        {todayRecords.length === 0 ? (
+          <p className="py-4 text-center text-sm text-base-500">오늘 출퇴근 기록이 없어요.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-base-800 text-left text-xs text-base-500">
+                  <th className="py-2 pr-4 font-medium">이름</th>
+                  <th className="py-2 pr-4 font-medium">현장</th>
+                  <th className="py-2 pr-4 font-medium">출근</th>
+                  <th className="py-2 pr-4 font-medium">퇴근</th>
+                  <th className="py-2 font-medium">상태</th>
+                </tr>
+              </thead>
+              <tbody>
+                {todayRecords.map((r) => (
+                  <tr key={r.id} className="border-b border-base-800/60 last:border-0">
+                    <td className="py-2 pr-4 text-base-100">{r.workerName}</td>
+                    <td className="py-2 pr-4 text-base-400">{r.site}</td>
+                    <td className="py-2 pr-4 text-base-300">{formatTime(r.clockIn)}</td>
+                    <td className="py-2 pr-4 text-base-300">{formatTime(r.clockOut)}</td>
+                    <td className="py-2">
+                      {r.outFlag ? (
+                        <span className="flex items-center gap-1 text-xs text-amber-400">
+                          <MapPinOff size={12} /> 반경 이탈
+                        </span>
+                      ) : r.ongoing ? (
+                        <span className="text-xs text-mist-400">근무중</span>
+                      ) : (
+                        <span className="text-xs text-base-500">완료</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-3">
@@ -161,21 +222,16 @@ export default function Dashboard() {
           <p className="mb-4 text-sm font-medium text-base-200">최근 출퇴근 추이 (최근 14일)</p>
           <div className="h-56">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData}>
-                <defs>
-                  <linearGradient id="checkedIn" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#38BFAE" stopOpacity={0.4} />
-                    <stop offset="100%" stopColor="#38BFAE" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
+              <BarChart data={chartData}>
                 <CartesianGrid stroke="#262E37" vertical={false} />
                 <XAxis dataKey="date" stroke="#6B7684" fontSize={11} tickLine={false} />
                 <YAxis stroke="#6B7684" fontSize={11} tickLine={false} axisLine={false} allowDecimals={false} />
                 <Tooltip
                   contentStyle={{ background: '#1D232A', border: '1px solid #333D48', borderRadius: 8, fontSize: 12 }}
+                  cursor={{ fill: '#262E37' }}
                 />
-                <Area type="monotone" dataKey="checkedIn" stroke="#38BFAE" fill="url(#checkedIn)" strokeWidth={2} name="출근 기록" />
-              </AreaChart>
+                <Bar dataKey="checkedIn" fill="#38BFAE" radius={[4, 4, 0, 0]} name="출근 기록" />
+              </BarChart>
             </ResponsiveContainer>
           </div>
           {!state.loading && chartData.length === 0 && !state.error && (
