@@ -1,8 +1,10 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, Package, ShieldCheck } from 'lucide-react'
+import { LayoutDashboard, Package, ShieldCheck, Users, Building2 } from 'lucide-react'
 
 const items = [
   { to: '/', label: '대시보드', icon: LayoutDashboard, end: true },
+  { to: '/workers', label: '근로자', icon: Users },
+  { to: '/sites', label: '현장', icon: Building2 },
   { to: '/inventory', label: '재고', icon: Package },
   { to: '/safety', label: '안전교육', icon: ShieldCheck }
 ]
@@ -16,12 +18,12 @@ export default function MobileNav() {
           to={to}
           end={end}
           className={({ isActive }) =>
-            `focus-ring flex flex-1 flex-col items-center gap-1 py-2.5 text-[11px] ${
+            `focus-ring flex flex-1 flex-col items-center gap-1 py-2.5 text-[10px] ${
               isActive ? 'text-mist-400' : 'text-base-400'
             }`
           }
         >
-          <Icon size={20} strokeWidth={2} />
+          <Icon size={19} strokeWidth={2} />
           {label}
         </NavLink>
       ))}
