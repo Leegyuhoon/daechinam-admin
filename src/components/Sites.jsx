@@ -92,7 +92,7 @@ export default function Sites() {
                     <div>
                       <p className="font-medium text-base-100">{name}</p>
                       <p className="flex items-center gap-1 text-xs text-base-400">
-                        <Users size={12} /> {workerSet.size}명
+                        <Users size={12} className="text-violet-500" /> {workerSet.size}명
                       </p>
                     </div>
                   </div>
@@ -126,7 +126,7 @@ export default function Sites() {
                               ) : (
                                 <ChevronRight size={13} className="text-base-500" />
                               )}
-                              <CalendarDays size={12} className="text-mist-500" /> {date}
+                              <CalendarDays size={12} className="text-teal-500" /> {date}
                             </span>
                             <span className="text-[11px] text-base-500">
                               {dateRecords.length}명 · {dateHours.toFixed(1)}h
@@ -143,7 +143,7 @@ export default function Sites() {
                                   <span className="text-base-300">{r.workerName}</span>
                                   <div className="flex items-center gap-2 text-base-400">
                                     {hoursOf(r).toFixed(1)}h
-                                    {r.ongoing && <span className="text-mist-500">진행중</span>}
+                                    {r.ongoing && <span className="text-teal-500">진행중</span>}
                                     {r.outFlag && <MapPinOff size={12} className="text-amber-500" />}
                                   </div>
                                 </li>
