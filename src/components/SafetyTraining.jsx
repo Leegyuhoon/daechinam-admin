@@ -7,12 +7,14 @@ import {
   ChevronLeft,
   Plus,
   Trash2,
-  Settings2
+  Settings2,
+  UploadCloud,
+  Loader2,
+  Sparkles
 } from 'lucide-react'
 import { api } from '../lib/api'
 
-const emptyCourse = { title: '', description: '', videoUrl: '', questions: [] }
-const PASS_RATIO = 0.8
+const emptyCourse = { title: '', description: '', videoUrl: '', passRatio: 80, questions: [] }
 
 function QuestionEditor({ question, onChange, onRemove }) {
   const setOption = (idx, value) => {
@@ -54,8 +56,56 @@ function QuestionEditor({ question, onChange, onRemove }) {
   )
 }
 
+function VideoUploader({ videoUrl, onUploaded }) {
+  const [uploading, setUploading] = useState(false)
+  const [error, setError] = useState(null)
+  const [fileName, setFileName] = useState('')
+
+  const handleFile = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setError(null)
+    setFileName(file.name)
+    setUploading(true)
+    try {
+      const { url } = await api.uploadSafetyVideo(file)
+      onUploaded(url)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  return (
+    <div>
+      <label className="focus-ring flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-base-700 px-3 py-4 text-sm text-base-400 hover:border-mist-500 hover:text-mist-400">
+        {uploading ? (
+          <>
+            <Loader2 size={16} className="animate-spin" /> 업로드 중… {fileName}
+          </>
+        ) : (
+          <>
+            <UploadCloud size={16} /> {videoUrl ? '다른 영상으로 교체' : '영상 파일 업로드 (mp4 권장)'}
+          </>
+        )}
+        <input type="file" accept="video/*" className="hidden" onChange={handleFile} disabled={uploading} />
+      </label>
+      {error && <p className="mt-2 text-xs text-amber-400">{error}</p>}
+      {videoUrl && !uploading && (
+        <video src={videoUrl} controls className="mt-3 aspect-video w-full rounded-lg bg-black" />
+      )}
+      <p className="mt-2 text-[11px] text-base-500">
+        너무 큰 파일은 업로드가 실패할 수 있어요 — 가능하면 1~2분 이내, 압축된 mp4로 올려주세요.
+      </p>
+    </div>
+  )
+}
+
 function CourseForm({ onSaved, onCancel }) {
   const [course, setCourse] = useState(emptyCourse)
+  const [generating, setGenerating] = useState(false)
+  const [genError, setGenError] = useState(null)
 
   const addQuestion = () =>
     setCourse((c) => ({
@@ -68,6 +118,20 @@ function CourseForm({ onSaved, onCancel }) {
 
   const removeQuestion = (id) =>
     setCourse((c) => ({ ...c, questions: c.questions.filter((q) => q.id !== id) }))
+
+  const generateWithAI = async () => {
+    if (!course.videoUrl) return
+    setGenError(null)
+    setGenerating(true)
+    try {
+      const { questions } = await api.generateQuizFromVideo(course.videoUrl, 4)
+      setCourse((c) => ({ ...c, questions: [...c.questions, ...questions] }))
+    } catch (err) {
+      setGenError(err.message)
+    } finally {
+      setGenerating(false)
+    }
+  }
 
   const save = async () => {
     if (!course.title || !course.videoUrl || course.questions.length === 0) return
@@ -85,12 +149,18 @@ function CourseForm({ onSaved, onCancel }) {
           value={course.title}
           onChange={(e) => setCourse({ ...course, title: e.target.value })}
         />
-        <input
-          className="focus-ring rounded-lg border border-base-700 bg-base-900 px-3 py-2 text-sm"
-          placeholder="영상 URL (Netlify Blobs 업로드 링크 또는 외부 링크)"
-          value={course.videoUrl}
-          onChange={(e) => setCourse({ ...course, videoUrl: e.target.value })}
-        />
+        <div className="flex items-center gap-2">
+          <label className="text-xs text-base-400">통과 기준</label>
+          <input
+            type="number"
+            min={1}
+            max={100}
+            className="focus-ring w-20 rounded-lg border border-base-700 bg-base-900 px-3 py-2 text-sm"
+            value={course.passRatio}
+            onChange={(e) => setCourse({ ...course, passRatio: e.target.value })}
+          />
+          <span className="text-xs text-base-400">점 이상 (100점 만점)</span>
+        </div>
       </div>
       <textarea
         className="focus-ring mt-3 w-full rounded-lg border border-base-700 bg-base-900 px-3 py-2 text-sm"
@@ -100,7 +170,30 @@ function CourseForm({ onSaved, onCancel }) {
         onChange={(e) => setCourse({ ...course, description: e.target.value })}
       />
 
+      <div className="mt-3">
+        <VideoUploader videoUrl={course.videoUrl} onUploaded={(url) => setCourse((c) => ({ ...c, videoUrl: url }))} />
+      </div>
+
       <div className="mt-4 space-y-2">
+        {course.questions.length === 0 && course.videoUrl && (
+          <button
+            onClick={generateWithAI}
+            disabled={generating}
+            className="focus-ring flex w-full items-center justify-center gap-1.5 rounded-lg border border-mist-500/40 bg-mist-500/10 px-3 py-2.5 text-sm text-mist-400 hover:bg-mist-500/15 disabled:opacity-50"
+          >
+            {generating ? (
+              <>
+                <Loader2 size={15} className="animate-spin" /> 영상 분석 중… (음성인식 + 문제 생성, 시간이 걸려요)
+              </>
+            ) : (
+              <>
+                <Sparkles size={15} /> AI로 문제 자동 생성
+              </>
+            )}
+          </button>
+        )}
+        {genError && <p className="text-xs text-amber-400">{genError}</p>}
+
         {course.questions.map((q) => (
           <QuestionEditor
             key={q.id}
@@ -118,7 +211,11 @@ function CourseForm({ onSaved, onCancel }) {
       </div>
 
       <div className="mt-4 flex gap-2">
-        <button onClick={save} className="focus-ring rounded-lg bg-mist-500 px-4 py-2 text-sm font-medium text-base-950 hover:bg-mist-400">
+        <button
+          onClick={save}
+          disabled={!course.title || !course.videoUrl || course.questions.length === 0}
+          className="focus-ring rounded-lg bg-mist-500 px-4 py-2 text-sm font-medium text-base-950 hover:bg-mist-400 disabled:opacity-40"
+        >
           과정 저장
         </button>
         <button onClick={onCancel} className="focus-ring rounded-lg border border-base-700 px-4 py-2 text-sm text-base-300">
@@ -130,9 +227,10 @@ function CourseForm({ onSaved, onCancel }) {
 }
 
 function QuizRunner({ course, onExit }) {
-  const [step, setStep] = useState('video') // video | quiz | result
+  const [step, setStep] = useState('video')
   const [answers, setAnswers] = useState({})
   const [result, setResult] = useState(null)
+  const passRatio = (course.passRatio ?? 80) / 100
 
   const submit = async () => {
     let score = 0
@@ -140,11 +238,12 @@ function QuizRunner({ course, onExit }) {
       if (answers[q.id] === q.correctIndex) score += 1
     })
     const total = course.questions.length
-    const passed = total > 0 && score / total >= PASS_RATIO
-    const r = { score, total, passed }
+    const percent = total > 0 ? Math.round((score / total) * 100) : 0
+    const passed = total > 0 && score / total >= passRatio
+    const r = { score, total, percent, passed }
     setResult(r)
     setStep('result')
-    await api.submitQuizResult({ courseId: course.id, userName: '', ...r })
+    await api.submitQuizResult({ courseId: course.id, userName: '', score, total, passed })
   }
 
   return (
@@ -210,10 +309,12 @@ function QuizRunner({ course, onExit }) {
             <XCircle size={40} className="text-amber-400" />
           )}
           <p className="text-lg font-semibold text-base-100">
-            {result.score} / {result.total}점 — {result.passed ? '이수 완료' : '재교육 필요'}
+            {result.percent}점 ({result.score}/{result.total}) — {result.passed ? '이수 완료' : '재교육 필요'}
           </p>
           <p className="text-sm text-base-400">
-            {result.passed ? '수고하셨습니다. 안전교육이 정상 등록되었습니다.' : `${Math.round(PASS_RATIO * 100)}% 이상 맞아야 이수 처리됩니다. 다시 시청해주세요.`}
+            {result.passed
+              ? '수고하셨습니다. 안전교육이 정상 등록되었습니다.'
+              : `${course.passRatio ?? 80}점 이상이어야 이수 처리됩니다. 다시 시청해주세요.`}
           </p>
           {!result.passed && (
             <button
@@ -292,7 +393,7 @@ export default function SafetyTraining() {
             >
               <div className="mb-2 flex items-center gap-2 text-mist-400">
                 <PlayCircle size={16} />
-                <span className="text-xs">{c.questions.length}문제</span>
+                <span className="text-xs">{c.questions.length}문제 · {c.passRatio ?? 80}점 이상 이수</span>
               </div>
               <p className="font-medium text-base-100">{c.title}</p>
               <p className="mt-1 line-clamp-2 text-xs text-base-400">{c.description}</p>
