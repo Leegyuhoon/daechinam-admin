@@ -15,7 +15,7 @@ body {
   height: 8px;
 }
 ::-webkit-scrollbar-thumb {
-  background: #333D48;
+  background: #D8DEE1;
   border-radius: 999px;
 }
 
@@ -27,6 +27,6 @@ body {
 }
 
 .focus-ring:focus-visible {
-  outline: 2px solid #38BFAE;
+  outline: 2px solid #129983;
   outline-offset: 2px;
 }
