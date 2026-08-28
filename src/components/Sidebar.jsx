@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, Package, ShieldCheck, Sparkles, Users, Building2 } from 'lucide-react'
+import { LayoutDashboard, Package, ShieldCheck, Users, Building2 } from 'lucide-react'
 
 const items = [
   { to: '/', label: '출퇴근 대시보드', icon: LayoutDashboard, end: true },
@@ -13,11 +13,11 @@ export default function Sidebar() {
   return (
     <aside className="hidden md:flex w-64 shrink-0 flex-col border-r border-base-800 bg-base-950 px-4 py-6">
       <div className="flex items-center gap-2 px-2 pb-8">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-mist-500/15 text-mist-400">
-          <Sparkles size={18} strokeWidth={2.2} />
+        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-mist-500/15 text-mist-500">
+          <span className="text-[11px] font-bold leading-none">대치남</span>
         </div>
         <div>
-          <p className="text-sm font-semibold leading-tight text-base-100">대신치워주는남자</p>
+          <p className="text-sm font-semibold leading-tight text-base-100">(주)이엘씨_대치남</p>
           <p className="text-xs leading-tight text-base-400">통합 관리 사이트</p>
         </div>
       </div>
@@ -31,7 +31,7 @@ export default function Sidebar() {
             className={({ isActive }) =>
               `focus-ring flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${
                 isActive
-                  ? 'bg-mist-500/15 text-mist-400 font-medium'
+                  ? 'bg-mist-500/15 text-mist-500 font-medium'
                   : 'text-base-300 hover:bg-base-800 hover:text-base-100'
               }`
             }
