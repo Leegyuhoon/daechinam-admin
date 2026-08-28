@@ -18,13 +18,30 @@ import { api } from '../lib/api'
 import { hoursOf } from '../lib/hours'
 
 const LONG_SHIFT_HOURS = 12 // 이 시간을 넘으면 "장시간 근무"로 표시
-const PIE_COLORS = ['#129983', '#0E7A6C', '#5FD9C9', '#0B6355', '#7C8790', '#AEB6BC', '#C97F0A']
+
+// 월별 추이 — 네이비 톤 하나로 통일된 그러데이션 (과거 → 최근 순으로 점점 밝아짐)
+const monthColor = (i, total) => {
+  const lightness = 26 + (i / Math.max(1, total - 1)) * 34 // 26% ~ 60%
+  return `hsl(213, 55%, ${lightness}%)`
+}
+
+const TONE_CLASSES = {
+  mist: 'text-mist-500 bg-mist-500/10',
+  teal: 'text-teal-500 bg-teal-500/10',
+  violet: 'text-violet-500 bg-violet-500/10',
+  amber: 'text-amber-500 bg-amber-500/10'
+}
+const TONE_TEXT = {
+  mist: 'text-mist-500',
+  teal: 'text-teal-500',
+  violet: 'text-violet-500',
+  amber: 'text-amber-500'
+}
 
 function StatCard({ icon: Icon, label, value, tone = 'mist' }) {
-  const toneClass = tone === 'amber' ? 'text-amber-500 bg-amber-500/10' : 'text-mist-500 bg-mist-500/10'
   return (
     <div className="rounded-xl border border-base-800 bg-base-950 p-4 shadow-sm">
-      <div className={`mb-3 flex h-9 w-9 items-center justify-center rounded-lg ${toneClass}`}>
+      <div className={`mb-3 flex h-9 w-9 items-center justify-center rounded-lg ${TONE_CLASSES[tone]}`}>
         <Icon size={18} strokeWidth={2.2} />
       </div>
       <p className="text-2xl font-semibold text-base-100">{value}</p>
@@ -33,12 +50,12 @@ function StatCard({ icon: Icon, label, value, tone = 'mist' }) {
   )
 }
 
-function Panel({ title, icon: Icon, children, badge }) {
+function Panel({ title, icon: Icon, children, badge, tone = 'mist' }) {
   return (
     <div className="rounded-xl border border-base-800 bg-base-950 p-4 shadow-sm">
       <div className="mb-3 flex items-center justify-between">
         <p className="flex items-center gap-1.5 text-sm font-medium text-base-200">
-          <Icon size={15} className="text-mist-500" /> {title}
+          <Icon size={15} className={TONE_TEXT[tone]} /> {title}
         </p>
         {badge != null && badge > 0 && (
           <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-medium text-amber-500">
@@ -69,6 +86,12 @@ const formatTime = (iso) => {
   })
 }
 
+const formatMonth = (ym) => {
+  if (!ym) return ''
+  const [y, m] = ym.split('-')
+  return `${y}.${m}`
+}
+
 export default function Dashboard() {
   const [state, setState] = useState({
     loading: true,
@@ -95,8 +118,19 @@ export default function Dashboard() {
 
   const today = state.daily?.[state.daily.length - 1]
   const outFlagTotal = (state.daily || []).reduce((sum, d) => sum + (d.outFlag || 0), 0)
-  const chartData = (state.daily || []).slice(-10) // 도넛 가독성을 위해 최근 10일만
   const leaders = (state.roster || []).filter((w) => w.isTeamLead)
+
+  // 일별 데이터를 월별로 합산 (최근 12개월)
+  const monthlyMap = {}
+  for (const d of state.daily || []) {
+    const month = d.date?.slice(0, 7)
+    if (!month) continue
+    monthlyMap[month] = (monthlyMap[month] || 0) + (d.checkedIn || 0)
+  }
+  const chartData = Object.entries(monthlyMap)
+    .map(([month, checkedIn]) => ({ date: month, checkedIn }))
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .slice(-12)
 
   const outFlagRecords = (state.records || []).filter((r) => r.outFlag)
   const longShiftRecords = (state.records || []).filter((r) => hoursOf(r) >= LONG_SHIFT_HOURS)
@@ -147,9 +181,9 @@ export default function Dashboard() {
       )}
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <StatCard icon={Users} label="오늘 출근 기록" value={state.loading ? '—' : today?.checkedIn ?? 0} />
-        <StatCard icon={Users} label="현재 근무중" value={state.loading ? '—' : state.ongoing?.length ?? 0} />
-        <StatCard icon={Building2} label="등록 현장" value={state.loading ? '—' : state.siteCount ?? 0} />
+        <StatCard icon={Users} label="오늘 출근 기록" value={state.loading ? '—' : today?.checkedIn ?? 0} tone="mist" />
+        <StatCard icon={Users} label="현재 근무중" value={state.loading ? '—' : state.ongoing?.length ?? 0} tone="teal" />
+        <StatCard icon={Building2} label="등록 현장" value={state.loading ? '—' : state.siteCount ?? 0} tone="violet" />
         <StatCard icon={MapPinOff} label="반경 이탈 누적" value={state.loading ? '—' : outFlagTotal} tone="amber" />
       </div>
 
@@ -200,32 +234,48 @@ export default function Dashboard() {
 
       <div className="mt-6 grid gap-4 lg:grid-cols-3">
         <div className="rounded-xl border border-base-800 bg-base-950 p-4 shadow-sm lg:col-span-2">
-          <p className="mb-3 text-sm font-medium text-base-200">최근 출퇴근 추이 (최근 10일)</p>
-          <div className="relative h-64">
+          <p className="mb-3 text-sm font-medium text-base-200">월별 출퇴근 추이 (최근 {chartData.length}개월)</p>
+          <div
+            className="relative h-64"
+            style={{ filter: 'drop-shadow(0 10px 14px rgba(30,58,95,0.18))' }}
+          >
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
+                <defs>
+                  {chartData.map((_, i) => {
+                    const base = monthColor(i, chartData.length)
+                    return (
+                      <linearGradient id={`monthGrad-${i}`} key={i} x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0%" stopColor={base} stopOpacity={1} />
+                        <stop offset="100%" stopColor={base} stopOpacity={0.72} />
+                      </linearGradient>
+                    )
+                  })}
+                </defs>
                 <Pie
                   data={chartData}
                   dataKey="checkedIn"
                   nameKey="date"
                   innerRadius="52%"
                   outerRadius="85%"
-                  paddingAngle={2}
+                  paddingAngle={3}
+                  cornerRadius={6}
                   label={({ percent }) => (percent > 0.08 ? `${Math.round(percent * 100)}%` : '')}
                   labelLine={false}
                 >
                   {chartData.map((_, i) => (
-                    <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} stroke="#FFFFFF" strokeWidth={2} />
+                    <Cell key={i} fill={`url(#monthGrad-${i})`} stroke="#FFFFFF" strokeWidth={2} />
                   ))}
                 </Pie>
                 <Tooltip
                   contentStyle={{ background: '#FFFFFF', border: '1px solid #D8DEE1', borderRadius: 8, fontSize: 12 }}
-                  formatter={(value, _name, entry) => [`${value}건`, entry.payload.date]}
+                  formatter={(value, _name, entry) => [`${value}건`, formatMonth(entry.payload.date)]}
                 />
                 <Legend
                   layout="vertical"
                   align="right"
                   verticalAlign="middle"
+                  formatter={(value) => formatMonth(value)}
                   wrapperStyle={{ fontSize: 11, color: '#576068' }}
                 />
               </PieChart>
@@ -234,7 +284,7 @@ export default function Dashboard() {
               <p className="text-2xl font-semibold text-base-100">
                 {chartData.reduce((sum, d) => sum + (d.checkedIn || 0), 0)}
               </p>
-              <p className="text-[11px] text-base-500">건 · 최근 10일</p>
+              <p className="text-[11px] text-base-500">건 · 월별 합계</p>
             </div>
           </div>
           {!state.loading && chartData.length === 0 && !state.error && (
@@ -265,7 +315,7 @@ export default function Dashboard() {
           )}
         </div>
 
-        <Panel title="이번달 근무시간 TOP5" icon={Trophy}>
+        <Panel title="이번달 근무시간 TOP5" icon={Trophy} tone="violet">
           {topWorkers.length === 0 ? (
             <p className="text-sm text-base-500">이번달 근무 기록이 없어요.</p>
           ) : (
@@ -280,7 +330,7 @@ export default function Dashboard() {
                   </div>
                   <div className="h-1.5 rounded-full bg-base-800">
                     <div
-                      className="h-1.5 rounded-full bg-mist-500"
+                      className="h-1.5 rounded-full bg-violet-500"
                       style={{ width: `${Math.max(6, (w.hours / topMax) * 100)}%` }}
                     />
                   </div>
@@ -292,7 +342,7 @@ export default function Dashboard() {
       </div>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
-        <Panel title="이상 근무 알림" icon={TriangleAlert} badge={alerts.length}>
+        <Panel title="이상 근무 알림" icon={TriangleAlert} badge={alerts.length} tone="amber">
           {alerts.length === 0 ? (
             <p className="text-sm text-base-500">특이사항이 없어요.</p>
           ) : (
@@ -320,7 +370,10 @@ export default function Dashboard() {
         </Panel>
 
         <div className="rounded-xl border border-base-800 bg-base-950 p-4 shadow-sm">
-          <p className="mb-4 text-sm font-medium text-base-200">현재 근무중 ({state.ongoing?.length ?? 0}명)</p>
+          <p className="mb-4 flex items-center gap-1.5 text-sm font-medium text-base-200">
+            <span className="flex h-2 w-2 rounded-full bg-teal-500" />
+            현재 근무중 ({state.ongoing?.length ?? 0}명)
+          </p>
           {state.loading ? (
             <p className="text-sm text-base-500">불러오는 중…</p>
           ) : (state.ongoing || []).length === 0 ? (
@@ -355,7 +408,7 @@ export default function Dashboard() {
           )}
         </div>
 
-        <Panel title="공지사항" icon={Megaphone}>
+        <Panel title="공지사항" icon={Megaphone} tone="violet">
           {(state.notices || []).length === 0 ? (
             <p className="text-sm text-base-500">공지사항이 없어요.</p>
           ) : (
@@ -376,7 +429,7 @@ export default function Dashboard() {
       </div>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
-        <Panel title="현장 신고·이슈" icon={ClipboardList}>
+        <Panel title="현장 신고·이슈" icon={ClipboardList} tone="teal">
           {(state.siteReports || []).length === 0 ? (
             <p className="text-sm text-base-500">등록된 현장 신고가 없어요.</p>
           ) : (
@@ -397,7 +450,7 @@ export default function Dashboard() {
           )}
         </Panel>
 
-        <Panel title="비품 요청" icon={PackageCheck} badge={state.pendingSupplyCount}>
+        <Panel title="비품 요청" icon={PackageCheck} badge={state.pendingSupplyCount} tone="mist">
           {(state.supplyRequests || []).length === 0 ? (
             <p className="text-sm text-base-500">비품 요청이 없어요.</p>
           ) : (
