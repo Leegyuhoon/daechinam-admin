@@ -13,7 +13,9 @@ import {
   Sparkles,
   Users,
   BadgeCheck,
-  BarChart3
+  BarChart3,
+  Pencil,
+  X
 } from 'lucide-react'
 import { api } from '../lib/api'
 
@@ -108,8 +110,8 @@ function VideoUploader({ videoUrl, onUploaded }) {
   )
 }
 
-function CourseForm({ onSaved, onCancel }) {
-  const [course, setCourse] = useState(emptyCourse)
+function CourseForm({ initialCourse, onSaved, onCancel }) {
+  const [course, setCourse] = useState(initialCourse || emptyCourse)
   const [generating, setGenerating] = useState(false)
   const [genError, setGenError] = useState(null)
 
@@ -147,7 +149,9 @@ function CourseForm({ onSaved, onCancel }) {
 
   return (
     <div className="rounded-xl border border-base-800 bg-base-950 p-4">
-      <p className="mb-3 text-sm font-medium text-base-200">새 안전교육 과정 등록</p>
+      <p className="mb-3 text-sm font-medium text-base-200">
+        {initialCourse ? '안전교육 과정 수정' : '새 안전교육 과정 등록'}
+      </p>
       <div className="grid gap-3 sm:grid-cols-2">
         <input
           className="focus-ring rounded-lg border border-base-700 bg-base-900 px-3 py-2 text-sm"
@@ -222,7 +226,7 @@ function CourseForm({ onSaved, onCancel }) {
           disabled={!course.title || !course.videoUrl || course.questions.length === 0}
           className="focus-ring rounded-lg bg-mist-500 px-4 py-2 text-sm font-medium text-base-950 hover:bg-mist-400 disabled:opacity-40"
         >
-          과정 저장
+          {initialCourse ? '수정 저장' : '과정 저장'}
         </button>
         <button onClick={onCancel} className="focus-ring rounded-lg border border-base-700 px-4 py-2 text-sm text-base-300">
           취소
@@ -495,6 +499,7 @@ export default function SafetyTraining() {
   const [active, setActive] = useState(null)
   const [resultsCourse, setResultsCourse] = useState(null)
   const [showAdmin, setShowAdmin] = useState(false)
+  const [editingCourse, setEditingCourse] = useState(null)
   const [showRoster, setShowRoster] = useState(false)
 
   const load = () => {
@@ -502,6 +507,22 @@ export default function SafetyTraining() {
     api.listCourses().then(({ courses }) => setCourses(courses)).finally(() => setLoading(false))
   }
   useEffect(load, [])
+
+  const openNewCourse = () => {
+    setEditingCourse(null)
+    setShowAdmin(true)
+  }
+
+  const openEditCourse = (course) => {
+    setEditingCourse(course)
+    setShowAdmin(true)
+  }
+
+  const removeCourse = async (id) => {
+    if (!confirm('이 과정을 삭제할까요? 삭제하면 되돌릴 수 없어요.')) return
+    await api.deleteCourse(id)
+    load()
+  }
 
   if (active) {
     return <QuizRunner course={active} onExit={() => setActive(null)} />
@@ -526,7 +547,7 @@ export default function SafetyTraining() {
             <Users size={14} /> 대상자 명단
           </button>
           <button
-            onClick={() => setShowAdmin((v) => !v)}
+            onClick={() => (showAdmin ? setShowAdmin(false) : openNewCourse())}
             className="focus-ring flex items-center gap-1.5 rounded-lg border border-base-800 px-3 py-1.5 text-xs text-base-300 hover:bg-base-800"
           >
             <Settings2 size={14} /> 과정 등록
@@ -543,11 +564,17 @@ export default function SafetyTraining() {
       {showAdmin && (
         <div className="mb-6">
           <CourseForm
+            key={editingCourse?.id || 'new'}
+            initialCourse={editingCourse}
             onSaved={() => {
               setShowAdmin(false)
+              setEditingCourse(null)
               load()
             }}
-            onCancel={() => setShowAdmin(false)}
+            onCancel={() => {
+              setShowAdmin(false)
+              setEditingCourse(null)
+            }}
           />
         </div>
       )}
@@ -571,12 +598,28 @@ export default function SafetyTraining() {
                 <p className="font-medium text-base-100">{c.title}</p>
                 <p className="mt-1 line-clamp-2 text-xs text-base-400">{c.description}</p>
               </button>
-              <button
-                onClick={() => setResultsCourse(c)}
-                className="focus-ring mt-3 flex items-center gap-1 text-xs text-base-500 hover:text-mist-500"
-              >
-                <BarChart3 size={12} /> 이수 현황 보기
-              </button>
+              <div className="mt-3 flex items-center justify-between">
+                <button
+                  onClick={() => setResultsCourse(c)}
+                  className="focus-ring flex items-center gap-1 text-xs text-base-500 hover:text-mist-500"
+                >
+                  <BarChart3 size={12} /> 이수 현황 보기
+                </button>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => openEditCourse(c)}
+                    className="focus-ring flex items-center gap-1 text-xs text-base-500 hover:text-mist-500"
+                  >
+                    <Pencil size={12} /> 수정
+                  </button>
+                  <button
+                    onClick={() => removeCourse(c.id)}
+                    className="focus-ring flex items-center gap-1 text-xs text-base-500 hover:text-red-500"
+                  >
+                    <X size={12} /> 삭제
+                  </button>
+                </div>
+              </div>
             </div>
           ))}
         </div>
