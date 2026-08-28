@@ -205,7 +205,7 @@ function CourseForm({ initialCourse, onSaved, onCancel }) {
           <button
             onClick={generateWithAI}
             disabled={generating}
-            className="focus-ring flex w-full items-center justify-center gap-1.5 rounded-lg border border-mist-500/40 bg-mist-500/10 px-3 py-2.5 text-sm text-mist-500 hover:bg-mist-500/15 disabled:opacity-50"
+            className="focus-ring flex w-full items-center justify-center gap-1.5 rounded-lg border border-violet-500/40 bg-violet-500/10 px-3 py-2.5 text-sm text-violet-500 hover:bg-violet-500/15 disabled:opacity-50"
           >
             {generating ? (
               <>
@@ -238,7 +238,7 @@ function CourseForm({ initialCourse, onSaved, onCancel }) {
 
       <div className="mt-4">
         <p className="mb-2 flex items-center gap-1.5 text-xs font-medium text-base-300">
-          <Users size={13} className="text-mist-500" /> 대상자 지정 (선택)
+          <Users size={13} className="text-violet-500" /> 대상자 지정 (선택)
         </p>
         <p className="mb-2 text-[11px] text-base-500">
           체크해두면 아래 "이수 현황"에서 아직 안 들은 사람을 바로 확인할 수 있어요. 아무도 체크 안 하면 전체 응시자만 보여요.
@@ -318,7 +318,7 @@ function RosterManager() {
   return (
     <div className="rounded-xl border border-base-800 bg-base-950 p-4">
       <p className="mb-3 flex items-center gap-1.5 text-sm font-medium text-base-200">
-        <Users size={15} className="text-mist-500" /> 교육 대상자 명단
+        <Users size={15} className="text-violet-500" /> 교육 대상자 명단
       </p>
       <p className="mb-3 text-xs text-base-500">
         여기 등록해두면 근로자가 이름+생년월일로 응시할 때 "확인됨"으로 표시돼요. 등록 안 해도 응시 자체는 누구나 가능해요.
@@ -444,7 +444,7 @@ function ResultsPanel({ course, onClose }) {
                 <td className="py-2 pr-4 text-base-100">
                   <span className="flex items-center gap-1">
                     {r.userName}
-                    {r.verified && <BadgeCheck size={12} className="text-mist-500" />}
+                    {r.verified && <BadgeCheck size={12} className="text-teal-500" />}
                   </span>
                 </td>
                 <td className="py-2 pr-4 text-base-300">
@@ -678,9 +678,9 @@ export default function SafetyTraining() {
               <div className="mt-3 flex items-center justify-between">
                 <button
                   onClick={() => setResultsCourse(c)}
-                  className="focus-ring flex items-center gap-1 text-xs text-base-500 hover:text-mist-500"
+                  className="focus-ring flex items-center gap-1 text-xs text-base-500 hover:text-teal-500"
                 >
-                  <BarChart3 size={12} /> 이수 현황 보기
+                  <BarChart3 size={12} className="text-teal-500" /> 이수 현황 보기
                 </button>
                 <div className="flex items-center gap-3">
                   <button
