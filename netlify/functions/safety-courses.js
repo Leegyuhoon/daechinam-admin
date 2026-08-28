@@ -34,6 +34,7 @@ export default async (req) => {
         videoUrl: body.videoUrl,
         questions: Array.isArray(body.questions) ? body.questions : [],
         passRatio: Number(body.passRatio) > 0 ? Number(body.passRatio) : 80, // % 단위
+        targetIds: Array.isArray(body.targetIds) ? body.targetIds : [], // 이 과정을 들어야 하는 대상자(training-roster id 목록)
         createdAt: body.createdAt || new Date().toISOString()
       }
       await store.setJSON(id, course)
