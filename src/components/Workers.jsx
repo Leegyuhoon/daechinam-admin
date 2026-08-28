@@ -96,10 +96,10 @@ export default function Workers() {
                       <p className="flex items-center gap-1.5 font-medium text-base-100">
                         {w.name}
                         {w.isTeamLead && (
-                          <span className="rounded-full bg-mist-500/15 px-1.5 py-0.5 text-[10px] text-mist-500">팀장</span>
+                          <span className="rounded-full bg-violet-500/15 px-1.5 py-0.5 text-[10px] text-violet-500">팀장</span>
                         )}
                         {siteNames.length > 1 && (
-                          <span className="flex items-center gap-0.5 rounded-full bg-base-800 px-1.5 py-0.5 text-[10px] text-base-400">
+                          <span className="flex items-center gap-0.5 rounded-full bg-teal-500/15 px-1.5 py-0.5 text-[10px] text-teal-500">
                             <Building2 size={10} /> {siteNames.length}곳
                           </span>
                         )}
@@ -149,7 +149,7 @@ export default function Workers() {
                                   ) : (
                                     <ChevronRight size={13} className="text-base-500" />
                                   )}
-                                  <Building2 size={12} className="text-mist-500" /> {siteName}
+                                  <Building2 size={12} className="text-teal-500" /> {siteName}
                                 </span>
                                 <span className="text-[11px] text-base-500">
                                   {siteHours.toFixed(1)}h · {siteRecords.length}건
@@ -166,7 +166,7 @@ export default function Workers() {
                                       <span className="text-base-300">{r.date}</span>
                                       <div className="flex items-center gap-2 text-base-400">
                                         <Clock size={12} /> {hoursOf(r).toFixed(1)}h
-                                        {r.ongoing && <span className="text-mist-500">진행중</span>}
+                                        {r.ongoing && <span className="text-teal-500">진행중</span>}
                                         {r.outFlag && <MapPinOff size={12} className="text-amber-500" />}
                                       </div>
                                     </li>
