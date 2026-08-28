@@ -21,8 +21,9 @@ export default async (req) => {
   }
 
   try {
+    const buffer = await req.arrayBuffer()
     const store = getStore('safety-videos')
-    await store.set(chunkKey(id, index), req.body)
+    await store.set(chunkKey(id, index), buffer)
     return Response.json({ ok: true, index })
   } catch (err) {
     return Response.json({ error: '청크 업로드 실패', detail: String(err) }, { status: 500 })
