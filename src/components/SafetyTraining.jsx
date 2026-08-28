@@ -10,11 +10,15 @@ import {
   Settings2,
   UploadCloud,
   Loader2,
-  Sparkles
+  Sparkles,
+  Users,
+  BadgeCheck,
+  BarChart3
 } from 'lucide-react'
 import { api } from '../lib/api'
 
 const emptyCourse = { title: '', description: '', videoUrl: '', passRatio: 80, questions: [] }
+const emptyRosterEntry = { name: '', birth: '', org: '' }
 
 function QuestionEditor({ question, onChange, onRemove }) {
   const setOption = (idx, value) => {
@@ -181,7 +185,7 @@ function CourseForm({ onSaved, onCancel }) {
           <button
             onClick={generateWithAI}
             disabled={generating}
-            className="focus-ring flex w-full items-center justify-center gap-1.5 rounded-lg border border-mist-500/40 bg-mist-500/10 px-3 py-2.5 text-sm text-mist-400 hover:bg-mist-500/15 disabled:opacity-50"
+            className="focus-ring flex w-full items-center justify-center gap-1.5 rounded-lg border border-mist-500/40 bg-mist-500/10 px-3 py-2.5 text-sm text-mist-500 hover:bg-mist-500/15 disabled:opacity-50"
           >
             {generating ? (
               <>
@@ -194,7 +198,7 @@ function CourseForm({ onSaved, onCancel }) {
             )}
           </button>
         )}
-        {genError && <p className="text-xs text-amber-400">{genError}</p>}
+        {genError && <p className="text-xs text-amber-500">{genError}</p>}
 
         {course.questions.map((q) => (
           <QuestionEditor
@@ -206,7 +210,7 @@ function CourseForm({ onSaved, onCancel }) {
         ))}
         <button
           onClick={addQuestion}
-          className="focus-ring flex items-center gap-1.5 rounded-lg border border-dashed border-base-700 px-3 py-2 text-xs text-base-400 hover:border-mist-500 hover:text-mist-400"
+          className="focus-ring flex items-center gap-1.5 rounded-lg border border-dashed border-base-700 px-3 py-2 text-xs text-base-400 hover:border-mist-500 hover:text-mist-500"
         >
           <Plus size={14} /> 문제 추가
         </button>
@@ -228,6 +232,160 @@ function CourseForm({ onSaved, onCancel }) {
   )
 }
 
+function RosterManager() {
+  const [items, setItems] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [form, setForm] = useState(emptyRosterEntry)
+  const [error, setError] = useState(null)
+
+  const load = () => {
+    setLoading(true)
+    api.listTrainingRoster().then(({ items }) => setItems(items)).finally(() => setLoading(false))
+  }
+  useEffect(load, [])
+
+  const submit = async (e) => {
+    e.preventDefault()
+    setError(null)
+    if (!form.name.trim() || !/^\d{6}$/.test(form.birth.trim())) {
+      setError('이름과 생년월일 6자리를 정확히 입력해주세요.')
+      return
+    }
+    try {
+      await api.upsertTrainingRosterEntry(form)
+      setForm(emptyRosterEntry)
+      load()
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
+  const remove = async (id) => {
+    await api.deleteTrainingRosterEntry(id)
+    load()
+  }
+
+  return (
+    <div className="rounded-xl border border-base-800 bg-base-950 p-4">
+      <p className="mb-3 flex items-center gap-1.5 text-sm font-medium text-base-200">
+        <Users size={15} className="text-mist-500" /> 교육 대상자 명단
+      </p>
+      <p className="mb-3 text-xs text-base-500">
+        여기 등록해두면 근로자가 이름+생년월일로 응시할 때 "확인됨"으로 표시돼요. 등록 안 해도 응시 자체는 누구나 가능해요.
+      </p>
+
+      <form onSubmit={submit} className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <input
+          className="focus-ring rounded-lg border border-base-700 bg-base-900 px-3 py-2 text-sm"
+          placeholder="이름"
+          value={form.name}
+          onChange={(e) => setForm({ ...form, name: e.target.value })}
+        />
+        <input
+          inputMode="numeric"
+          maxLength={6}
+          className="focus-ring rounded-lg border border-base-700 bg-base-900 px-3 py-2 text-sm"
+          placeholder="생년월일 6자리"
+          value={form.birth}
+          onChange={(e) => setForm({ ...form, birth: e.target.value.replace(/\D/g, '').slice(0, 6) })}
+        />
+        <input
+          className="focus-ring rounded-lg border border-base-700 bg-base-900 px-3 py-2 text-sm"
+          placeholder="소속 (선택)"
+          value={form.org}
+          onChange={(e) => setForm({ ...form, org: e.target.value })}
+        />
+        <button
+          type="submit"
+          className="focus-ring flex items-center justify-center gap-1.5 rounded-lg bg-mist-500 px-3 py-2 text-sm font-medium text-base-950 hover:bg-mist-400"
+        >
+          <Plus size={14} /> 추가
+        </button>
+      </form>
+      {error && <p className="mb-3 text-xs text-amber-500">{error}</p>}
+
+      {loading ? (
+        <p className="py-4 text-center text-sm text-base-500">불러오는 중…</p>
+      ) : items.length === 0 ? (
+        <p className="py-4 text-center text-sm text-base-500">등록된 대상자가 없어요.</p>
+      ) : (
+        <ul className="space-y-1.5">
+          {items.map((it) => (
+            <li key={it.id} className="flex items-center justify-between rounded-lg bg-base-900 px-3 py-2 text-sm">
+              <span className="text-base-100">
+                {it.name} <span className="text-xs text-base-500">({it.birth})</span>
+                {it.org && <span className="ml-2 text-xs text-base-400">{it.org}</span>}
+              </span>
+              <button onClick={() => remove(it.id)} className="focus-ring text-base-500 hover:text-red-500">
+                <Trash2 size={14} />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+
+function ResultsPanel({ course, onClose }) {
+  const [results, setResults] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    api.listResults(course.id).then(({ results }) => setResults(results)).finally(() => setLoading(false))
+  }, [course.id])
+
+  return (
+    <div className="rounded-xl border border-base-800 bg-base-950 p-4">
+      <div className="mb-3 flex items-center justify-between">
+        <p className="text-sm font-medium text-base-200">{course.title} — 이수 현황</p>
+        <button onClick={onClose} className="focus-ring text-xs text-base-500 hover:text-base-300">
+          닫기
+        </button>
+      </div>
+      {loading ? (
+        <p className="py-4 text-center text-sm text-base-500">불러오는 중…</p>
+      ) : results.length === 0 ? (
+        <p className="py-4 text-center text-sm text-base-500">아직 응시 기록이 없어요.</p>
+      ) : (
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-base-800 text-left text-xs text-base-500">
+              <th className="py-2 pr-4 font-medium">이름</th>
+              <th className="py-2 pr-4 font-medium">점수</th>
+              <th className="py-2 pr-4 font-medium">결과</th>
+              <th className="py-2 font-medium">일시</th>
+            </tr>
+          </thead>
+          <tbody>
+            {results.map((r) => (
+              <tr key={r.id} className="border-b border-base-800/60 last:border-0">
+                <td className="py-2 pr-4 text-base-100">
+                  <span className="flex items-center gap-1">
+                    {r.userName}
+                    {r.verified && <BadgeCheck size={12} className="text-mist-500" />}
+                  </span>
+                </td>
+                <td className="py-2 pr-4 text-base-300">
+                  {r.score}/{r.total}
+                </td>
+                <td className="py-2 pr-4">
+                  <span className={r.passed ? 'text-mist-500' : 'text-amber-500'}>
+                    {r.passed ? '이수' : '미이수'}
+                  </span>
+                </td>
+                <td className="py-2 text-xs text-base-500">
+                  {r.answeredAt ? new Date(r.answeredAt).toLocaleString('ko-KR') : '—'}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  )
+}
+
 function QuizRunner({ course, onExit }) {
   const [step, setStep] = useState('video')
   const [answers, setAnswers] = useState({})
@@ -245,7 +403,7 @@ function QuizRunner({ course, onExit }) {
     const r = { score, total, percent, passed }
     setResult(r)
     setStep('result')
-    await api.submitQuizResult({ courseId: course.id, userName: '', score, total, passed })
+    await api.submitQuizResult({ courseId: course.id, userName: '(관리자 미리보기)', verified: false, score, total, passed })
   }
 
   return (
@@ -283,7 +441,7 @@ function QuizRunner({ course, onExit }) {
                     onClick={() => setAnswers((a) => ({ ...a, [q.id]: idx }))}
                     className={`focus-ring rounded-lg border px-3 py-2 text-left text-sm ${
                       answers[q.id] === idx
-                        ? 'border-mist-500 bg-mist-500/10 text-mist-400'
+                        ? 'border-mist-500 bg-mist-500/10 text-mist-500'
                         : 'border-base-700 text-base-300 hover:bg-base-900'
                     }`}
                   >
@@ -306,18 +464,14 @@ function QuizRunner({ course, onExit }) {
       {step === 'result' && result && (
         <div className="flex flex-col items-center gap-3 py-6 text-center">
           {result.passed ? (
-            <CheckCircle2 size={40} className="text-mist-400" />
+            <CheckCircle2 size={40} className="text-mist-500" />
           ) : (
-            <XCircle size={40} className="text-amber-400" />
+            <XCircle size={40} className="text-amber-500" />
           )}
           <p className="text-lg font-semibold text-base-100">
             {result.percent}점 ({result.score}/{result.total}) — {result.passed ? '이수 완료' : '재교육 필요'}
           </p>
-          <p className="text-sm text-base-400">
-            {result.passed
-              ? '수고하셨습니다. 안전교육이 정상 등록되었습니다.'
-              : `${course.passRatio ?? 80}점 이상이어야 이수 처리됩니다. 다시 시청해주세요.`}
-          </p>
+          <p className="text-sm text-base-400">이건 관리자 미리보기라 실제 이수 기록에는 이름 없이 남아요.</p>
           {!result.passed && (
             <button
               onClick={() => {
@@ -339,7 +493,9 @@ export default function SafetyTraining() {
   const [courses, setCourses] = useState([])
   const [loading, setLoading] = useState(true)
   const [active, setActive] = useState(null)
+  const [resultsCourse, setResultsCourse] = useState(null)
   const [showAdmin, setShowAdmin] = useState(false)
+  const [showRoster, setShowRoster] = useState(false)
 
   const load = () => {
     setLoading(true)
@@ -351,20 +507,38 @@ export default function SafetyTraining() {
     return <QuizRunner course={active} onExit={() => setActive(null)} />
   }
 
+  if (resultsCourse) {
+    return <ResultsPanel course={resultsCourse} onClose={() => setResultsCourse(null)} />
+  }
+
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-2">
         <div>
           <h1 className="text-xl font-semibold text-base-100">안전교육</h1>
           <p className="mt-1 text-sm text-base-400">영상을 시청하고 문제를 풀어 이수하는 방식입니다.</p>
         </div>
-        <button
-          onClick={() => setShowAdmin((v) => !v)}
-          className="focus-ring flex items-center gap-1.5 rounded-lg border border-base-800 px-3 py-1.5 text-xs text-base-300 hover:bg-base-800"
-        >
-          <Settings2 size={14} /> 과정 등록
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowRoster((v) => !v)}
+            className="focus-ring flex items-center gap-1.5 rounded-lg border border-base-800 px-3 py-1.5 text-xs text-base-300 hover:bg-base-800"
+          >
+            <Users size={14} /> 대상자 명단
+          </button>
+          <button
+            onClick={() => setShowAdmin((v) => !v)}
+            className="focus-ring flex items-center gap-1.5 rounded-lg border border-base-800 px-3 py-1.5 text-xs text-base-300 hover:bg-base-800"
+          >
+            <Settings2 size={14} /> 과정 등록
+          </button>
+        </div>
       </div>
+
+      {showRoster && (
+        <div className="mb-6">
+          <RosterManager />
+        </div>
+      )}
 
       {showAdmin && (
         <div className="mb-6">
@@ -388,18 +562,22 @@ export default function SafetyTraining() {
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
           {courses.map((c) => (
-            <button
-              key={c.id}
-              onClick={() => setActive(c)}
-              className="focus-ring rounded-xl border border-base-800 bg-base-950 p-4 text-left hover:border-mist-500/50"
-            >
-              <div className="mb-2 flex items-center gap-2 text-mist-400">
-                <PlayCircle size={16} />
-                <span className="text-xs">{c.questions.length}문제 · {c.passRatio ?? 80}점 이상 이수</span>
-              </div>
-              <p className="font-medium text-base-100">{c.title}</p>
-              <p className="mt-1 line-clamp-2 text-xs text-base-400">{c.description}</p>
-            </button>
+            <div key={c.id} className="rounded-xl border border-base-800 bg-base-950 p-4 hover:border-mist-500/50">
+              <button onClick={() => setActive(c)} className="focus-ring block w-full text-left">
+                <div className="mb-2 flex items-center gap-2 text-mist-500">
+                  <PlayCircle size={16} />
+                  <span className="text-xs">{c.questions.length}문제 · {c.passRatio ?? 80}점 이상 이수</span>
+                </div>
+                <p className="font-medium text-base-100">{c.title}</p>
+                <p className="mt-1 line-clamp-2 text-xs text-base-400">{c.description}</p>
+              </button>
+              <button
+                onClick={() => setResultsCourse(c)}
+                className="focus-ring mt-3 flex items-center gap-1 text-xs text-base-500 hover:text-mist-500"
+              >
+                <BarChart3 size={12} /> 이수 현황 보기
+              </button>
+            </div>
           ))}
         </div>
       )}
