@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 import {
   Users,
   Building2,
@@ -11,18 +11,19 @@ import {
   PackageCheck,
   Crown,
   Timer,
-  ListChecks
+  ListChecks,
+  Trophy
 } from 'lucide-react'
 import { api } from '../lib/api'
 import { hoursOf } from '../lib/hours'
-import Heatmap from './Heatmap'
 
 const LONG_SHIFT_HOURS = 12 // 이 시간을 넘으면 "장시간 근무"로 표시
+const PIE_COLORS = ['#129983', '#0E7A6C', '#5FD9C9', '#0B6355', '#7C8790', '#AEB6BC', '#C97F0A']
 
 function StatCard({ icon: Icon, label, value, tone = 'mist' }) {
-  const toneClass = tone === 'amber' ? 'text-amber-400 bg-amber-500/10' : 'text-mist-400 bg-mist-500/10'
+  const toneClass = tone === 'amber' ? 'text-amber-500 bg-amber-500/10' : 'text-mist-500 bg-mist-500/10'
   return (
-    <div className="rounded-xl border border-base-800 bg-base-950 p-4">
+    <div className="rounded-xl border border-base-800 bg-base-950 p-4 shadow-sm">
       <div className={`mb-3 flex h-9 w-9 items-center justify-center rounded-lg ${toneClass}`}>
         <Icon size={18} strokeWidth={2.2} />
       </div>
@@ -34,13 +35,13 @@ function StatCard({ icon: Icon, label, value, tone = 'mist' }) {
 
 function Panel({ title, icon: Icon, children, badge }) {
   return (
-    <div className="rounded-xl border border-base-800 bg-base-950 p-4">
+    <div className="rounded-xl border border-base-800 bg-base-950 p-4 shadow-sm">
       <div className="mb-3 flex items-center justify-between">
         <p className="flex items-center gap-1.5 text-sm font-medium text-base-200">
-          <Icon size={15} className="text-mist-400" /> {title}
+          <Icon size={15} className="text-mist-500" /> {title}
         </p>
         {badge != null && badge > 0 && (
-          <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-medium text-amber-400">
+          <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-medium text-amber-500">
             {badge}
           </span>
         )}
@@ -94,7 +95,7 @@ export default function Dashboard() {
 
   const today = state.daily?.[state.daily.length - 1]
   const outFlagTotal = (state.daily || []).reduce((sum, d) => sum + (d.outFlag || 0), 0)
-  const chartData = (state.daily || []).slice(-14)
+  const chartData = (state.daily || []).slice(-10) // 도넛 가독성을 위해 최근 10일만
   const leaders = (state.roster || []).filter((w) => w.isTeamLead)
 
   const outFlagRecords = (state.records || []).filter((r) => r.outFlag)
@@ -109,6 +110,20 @@ export default function Dashboard() {
     .filter((r) => r.date === todayDate)
     .sort((a, b) => (a.clockIn || '').localeCompare(b.clockIn || ''))
 
+  // 이번달 근무시간 TOP5
+  const thisMonth = new Date().toISOString().slice(0, 7)
+  const hoursByWorker = {}
+  for (const r of state.records || []) {
+    if (!r.date?.startsWith(thisMonth)) continue
+    hoursByWorker[r.workerId] = (hoursByWorker[r.workerId] || 0) + hoursOf(r)
+  }
+  const nameById = Object.fromEntries((state.roster || []).map((w) => [w.id, w.name]))
+  const topWorkers = Object.entries(hoursByWorker)
+    .map(([id, hours]) => ({ id, name: nameById[id] || '알수없음', hours }))
+    .sort((a, b) => b.hours - a.hours)
+    .slice(0, 5)
+  const topMax = topWorkers[0]?.hours || 1
+
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
@@ -118,7 +133,7 @@ export default function Dashboard() {
         </div>
         <button
           onClick={load}
-          className="focus-ring flex items-center gap-1.5 rounded-lg border border-base-800 px-3 py-1.5 text-xs text-base-300 hover:bg-base-800"
+          className="focus-ring flex items-center gap-1.5 rounded-lg border border-base-800 bg-base-950 px-3 py-1.5 text-xs text-base-300 hover:bg-base-800"
         >
           <RefreshCw size={14} className={state.loading ? 'animate-spin' : ''} />
           새로고침
@@ -126,7 +141,7 @@ export default function Dashboard() {
       </div>
 
       {state.error && (
-        <div className="mb-6 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 text-sm text-amber-400">
+        <div className="mb-6 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 text-sm text-amber-500">
           {state.error}
         </div>
       )}
@@ -138,9 +153,9 @@ export default function Dashboard() {
         <StatCard icon={MapPinOff} label="반경 이탈 누적" value={state.loading ? '—' : outFlagTotal} tone="amber" />
       </div>
 
-      <div className="mt-6 rounded-xl border border-base-800 bg-base-950 p-4">
+      <div className="mt-6 rounded-xl border border-base-800 bg-base-950 p-4 shadow-sm">
         <p className="mb-3 flex items-center gap-1.5 text-sm font-medium text-base-200">
-          <ListChecks size={15} className="text-mist-400" />
+          <ListChecks size={15} className="text-mist-500" />
           오늘 출퇴근 명단 {todayDate && <span className="text-xs font-normal text-base-500">({todayDate})</span>}
         </p>
         {todayRecords.length === 0 ? (
@@ -166,11 +181,11 @@ export default function Dashboard() {
                     <td className="py-2 pr-4 text-base-300">{formatTime(r.clockOut)}</td>
                     <td className="py-2">
                       {r.outFlag ? (
-                        <span className="flex items-center gap-1 text-xs text-amber-400">
+                        <span className="flex items-center gap-1 text-xs text-amber-500">
                           <MapPinOff size={12} /> 반경 이탈
                         </span>
                       ) : r.ongoing ? (
-                        <span className="text-xs text-mist-400">근무중</span>
+                        <span className="text-xs text-mist-500">근무중</span>
                       ) : (
                         <span className="text-xs text-base-500">완료</span>
                       )}
@@ -184,54 +199,34 @@ export default function Dashboard() {
       </div>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-3">
-        <div className="rounded-xl border border-base-800 bg-base-950 p-4 lg:col-span-2">
-          <p className="mb-3 text-sm font-medium text-base-200">출근 히트맵 (최근 12주)</p>
-          <Heatmap daily={state.daily} />
-        </div>
-
-        <Panel title="이상 근무 알림" icon={TriangleAlert} badge={alerts.length}>
-          {alerts.length === 0 ? (
-            <p className="text-sm text-base-500">특이사항이 없어요.</p>
-          ) : (
-            <ul className="space-y-2">
-              {alerts.slice(0, 6).map((a) => (
-                <li key={`${a.kind}-${a.id}`} className="flex items-center justify-between rounded-lg bg-base-900 px-3 py-2 text-xs">
-                  <div>
-                    <p className="text-base-100">{a.workerName}</p>
-                    <p className="text-base-500">
-                      {a.site} · {a.date}
-                    </p>
-                  </div>
-                  <span
-                    className={`flex items-center gap-1 rounded-full px-2 py-0.5 ${
-                      a.kind === '반경 이탈' ? 'bg-amber-500/15 text-amber-400' : 'bg-base-800 text-base-300'
-                    }`}
-                  >
-                    {a.kind === '반경 이탈' ? <MapPinOff size={11} /> : <Timer size={11} />}
-                    {a.kind}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Panel>
-      </div>
-
-      <div className="mt-4 grid gap-4 lg:grid-cols-3">
-        <div className="rounded-xl border border-base-800 bg-base-950 p-4 lg:col-span-2">
-          <p className="mb-4 text-sm font-medium text-base-200">최근 출퇴근 추이 (최근 14일)</p>
-          <div className="h-56">
+        <div className="rounded-xl border border-base-800 bg-base-950 p-4 shadow-sm lg:col-span-2">
+          <p className="mb-3 text-sm font-medium text-base-200">최근 출퇴근 추이 (최근 10일)</p>
+          <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData}>
-                <CartesianGrid stroke="#262E37" vertical={false} />
-                <XAxis dataKey="date" stroke="#6B7684" fontSize={11} tickLine={false} />
-                <YAxis stroke="#6B7684" fontSize={11} tickLine={false} axisLine={false} allowDecimals={false} />
+              <PieChart>
+                <Pie
+                  data={chartData}
+                  dataKey="checkedIn"
+                  nameKey="date"
+                  innerRadius="45%"
+                  outerRadius="80%"
+                  paddingAngle={2}
+                >
+                  {chartData.map((_, i) => (
+                    <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                  ))}
+                </Pie>
                 <Tooltip
-                  contentStyle={{ background: '#1D232A', border: '1px solid #333D48', borderRadius: 8, fontSize: 12 }}
-                  cursor={{ fill: '#262E37' }}
+                  contentStyle={{ background: '#FFFFFF', border: '1px solid #D8DEE1', borderRadius: 8, fontSize: 12 }}
+                  formatter={(value, _name, entry) => [`${value}건`, entry.payload.date]}
                 />
-                <Bar dataKey="checkedIn" fill="#38BFAE" radius={[4, 4, 0, 0]} name="출근 기록" />
-              </BarChart>
+                <Legend
+                  layout="vertical"
+                  align="right"
+                  verticalAlign="middle"
+                  wrapperStyle={{ fontSize: 11, color: '#576068' }}
+                />
+              </PieChart>
             </ResponsiveContainer>
           </div>
           {!state.loading && chartData.length === 0 && !state.error && (
@@ -262,7 +257,61 @@ export default function Dashboard() {
           )}
         </div>
 
-        <div className="rounded-xl border border-base-800 bg-base-950 p-4">
+        <Panel title="이번달 근무시간 TOP5" icon={Trophy}>
+          {topWorkers.length === 0 ? (
+            <p className="text-sm text-base-500">이번달 근무 기록이 없어요.</p>
+          ) : (
+            <ul className="space-y-2.5">
+              {topWorkers.map((w, i) => (
+                <li key={w.id}>
+                  <div className="mb-1 flex items-center justify-between text-xs">
+                    <span className="flex items-center gap-1.5 text-base-200">
+                      <span className="text-base-500">{i + 1}</span> {w.name}
+                    </span>
+                    <span className="text-base-400">{w.hours.toFixed(1)}h</span>
+                  </div>
+                  <div className="h-1.5 rounded-full bg-base-800">
+                    <div
+                      className="h-1.5 rounded-full bg-mist-500"
+                      style={{ width: `${Math.max(6, (w.hours / topMax) * 100)}%` }}
+                    />
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Panel>
+      </div>
+
+      <div className="mt-4 grid gap-4 lg:grid-cols-3">
+        <Panel title="이상 근무 알림" icon={TriangleAlert} badge={alerts.length}>
+          {alerts.length === 0 ? (
+            <p className="text-sm text-base-500">특이사항이 없어요.</p>
+          ) : (
+            <ul className="space-y-2">
+              {alerts.slice(0, 6).map((a) => (
+                <li key={`${a.kind}-${a.id}`} className="flex items-center justify-between rounded-lg bg-base-900 px-3 py-2 text-xs">
+                  <div>
+                    <p className="text-base-100">{a.workerName}</p>
+                    <p className="text-base-500">
+                      {a.site} · {a.date}
+                    </p>
+                  </div>
+                  <span
+                    className={`flex items-center gap-1 rounded-full px-2 py-0.5 ${
+                      a.kind === '반경 이탈' ? 'bg-amber-500/15 text-amber-500' : 'bg-base-800 text-base-400'
+                    }`}
+                  >
+                    {a.kind === '반경 이탈' ? <MapPinOff size={11} /> : <Timer size={11} />}
+                    {a.kind}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Panel>
+
+        <div className="rounded-xl border border-base-800 bg-base-950 p-4 shadow-sm">
           <p className="mb-4 text-sm font-medium text-base-200">현재 근무중 ({state.ongoing?.length ?? 0}명)</p>
           {state.loading ? (
             <p className="text-sm text-base-500">불러오는 중…</p>
@@ -276,7 +325,7 @@ export default function Dashboard() {
                     <p className="text-base-100">{r.workerName}</p>
                     <p className="text-xs text-base-400">{r.site}</p>
                   </div>
-                  {r.outFlag && <TriangleAlert size={14} className="text-amber-400" />}
+                  {r.outFlag && <TriangleAlert size={14} className="text-amber-500" />}
                 </li>
               ))}
             </ul>
@@ -297,9 +346,7 @@ export default function Dashboard() {
             </div>
           )}
         </div>
-      </div>
 
-      <div className="mt-4 grid gap-4 lg:grid-cols-3">
         <Panel title="공지사항" icon={Megaphone}>
           {(state.notices || []).length === 0 ? (
             <p className="text-sm text-base-500">공지사항이 없어요.</p>
@@ -312,13 +359,15 @@ export default function Dashboard() {
                     <span className="text-[11px] text-base-500">{timeAgo(n.createdAt)}</span>
                   </div>
                   <p className="mt-0.5 line-clamp-2 whitespace-pre-line text-xs text-base-400">{n.message}</p>
-                  {n.siteName && <p className="mt-1 text-[11px] text-mist-400">{n.siteName}</p>}
+                  {n.siteName && <p className="mt-1 text-[11px] text-mist-500">{n.siteName}</p>}
                 </li>
               ))}
             </ul>
           )}
         </Panel>
+      </div>
 
+      <div className="mt-4 grid gap-4 lg:grid-cols-2">
         <Panel title="현장 신고·이슈" icon={ClipboardList}>
           {(state.siteReports || []).length === 0 ? (
             <p className="text-sm text-base-500">등록된 현장 신고가 없어요.</p>
@@ -331,7 +380,7 @@ export default function Dashboard() {
                     <span className="text-[11px] text-base-500">{timeAgo(r.createdAt)}</span>
                   </div>
                   <p className="mt-0.5 line-clamp-2 whitespace-pre-line text-xs text-base-400">{r.note}</p>
-                  <p className="mt-1 text-[11px] text-mist-400">
+                  <p className="mt-1 text-[11px] text-mist-500">
                     {r.siteName} · {r.workerName}
                   </p>
                 </li>
@@ -358,8 +407,8 @@ export default function Dashboard() {
                   <span
                     className={`rounded-full px-2 py-0.5 text-[11px] ${
                       s.status === 'delivered'
-                        ? 'bg-mist-500/15 text-mist-400'
-                        : 'bg-amber-500/15 text-amber-400'
+                        ? 'bg-mist-500/15 text-mist-500'
+                        : 'bg-amber-500/15 text-amber-500'
                     }`}
                   >
                     {s.status === 'delivered' ? '완료' : s.status === 'approved' ? '승인' : '대기'}
