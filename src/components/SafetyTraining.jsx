@@ -356,7 +356,7 @@ export default function SafetyTraining() {
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold text-base-100">안전교육</h1>
-          <p className="mt-1 text-sm text-base-400">영상을 시청하고 문제를 풀어 이수하는 방식입니다 (민방위 온라인교육 형식).</p>
+          <p className="mt-1 text-sm text-base-400">영상을 시청하고 문제를 풀어 이수하는 방식입니다.</p>
         </div>
         <button
           onClick={() => setShowAdmin((v) => !v)}
