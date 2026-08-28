@@ -2,6 +2,8 @@ import { Routes, Route } from 'react-router-dom'
 import Sidebar from './components/Sidebar'
 import MobileNav from './components/MobileNav'
 import Dashboard from './components/Dashboard'
+import Workers from './components/Workers'
+import Sites from './components/Sites'
 import Inventory from './components/Inventory'
 import SafetyTraining from './components/SafetyTraining'
 
@@ -12,6 +14,8 @@ export default function App() {
       <main className="flex-1 overflow-x-hidden px-4 pb-24 pt-6 sm:px-8 sm:pb-8">
         <Routes>
           <Route path="/" element={<Dashboard />} />
+          <Route path="/workers" element={<Workers />} />
+          <Route path="/sites" element={<Sites />} />
           <Route path="/inventory" element={<Inventory />} />
           <Route path="/safety" element={<SafetyTraining />} />
         </Routes>
