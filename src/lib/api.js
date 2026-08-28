@@ -27,7 +27,27 @@ export const api = {
   deleteInventoryItem: (id) => request(`/inventory?id=${encodeURIComponent(id)}`, { method: 'DELETE' }),
 
   // 안전교육
+  uploadSafetyVideo: async (file) => {
+    const res = await fetch('/api/safety-video-upload', {
+      method: 'POST',
+      headers: {
+        'Content-Type': file.type || 'video/mp4',
+        'X-Filename': encodeURIComponent(file.name || 'video')
+      },
+      body: file
+    })
+    if (!res.ok) {
+      const text = await res.text().catch(() => '')
+      throw new Error(`영상 업로드 실패 (${res.status}) ${text}`)
+    }
+    return res.json() // { id, url }
+  },
   listCourses: () => request('/safety-courses'),
+  generateQuizFromVideo: (videoUrl, questionCount = 4) =>
+    request('/safety-generate-quiz', {
+      method: 'POST',
+      body: JSON.stringify({ videoUrl, questionCount })
+    }),
   upsertCourse: (course) =>
     request('/safety-courses', { method: 'POST', body: JSON.stringify(course) }),
   deleteCourse: (id) => request(`/safety-courses?id=${encodeURIComponent(id)}`, { method: 'DELETE' }),
