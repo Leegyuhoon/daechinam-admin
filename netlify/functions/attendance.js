@@ -134,6 +134,7 @@ export default async (req) => {
       total: filtered.length,
       workerCount: workers.length,
       siteCount: sites.length,
+      allSiteNames: sites.map((s) => s.name),
       ongoing: todayOngoing,
       siteBreakdown,
       roster,
