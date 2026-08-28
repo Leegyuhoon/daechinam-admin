@@ -29,6 +29,7 @@ export default async (req) => {
         id,
         courseId: body.courseId,
         userName: body.userName || '익명',
+        verified: !!body.verified,
         score: Number(body.score) || 0,
         total: Number(body.total) || 0,
         passed: !!body.passed,
