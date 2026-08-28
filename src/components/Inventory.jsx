@@ -206,7 +206,7 @@ export default function Inventory() {
                     <td className="px-4 py-3 text-base-100">{item.name}</td>
                     <td className="px-4 py-3">
                       <span className="flex items-center gap-1 text-xs text-base-400">
-                        <Building2 size={11} /> {item.scope || '본사'}
+                        <Building2 size={11} className="text-teal-500" /> {item.scope || '본사'}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-base-400">{item.category}</td>
