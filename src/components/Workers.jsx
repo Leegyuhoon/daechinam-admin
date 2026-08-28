@@ -5,7 +5,8 @@ import { hoursOf } from '../lib/hours'
 
 export default function Workers() {
   const [state, setState] = useState({ loading: true, error: null, records: [], roster: [] })
-  const [openId, setOpenId] = useState(null)
+  const [openWorkerId, setOpenWorkerId] = useState(null)
+  const [openSiteKey, setOpenSiteKey] = useState(null)
 
   const load = () => {
     setState((s) => ({ ...s, loading: true, error: null }))
@@ -27,12 +28,17 @@ export default function Workers() {
 
   const thisMonth = new Date().toISOString().slice(0, 7)
 
+  const toggleWorker = (id) => {
+    setOpenWorkerId(openWorkerId === id ? null : id)
+    setOpenSiteKey(null) // 근로자를 바꾸면 현장 펼침도 초기화
+  }
+
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold text-base-100">근로자 현황</h1>
-          <p className="mt-1 text-sm text-base-400">근로자별 근무시간과 출퇴근 이력을 확인합니다.</p>
+          <p className="mt-1 text-sm text-base-400">근로자를 클릭해 현장을 고르면 상세 이력이 나와요.</p>
         </div>
         <button
           onClick={load}
@@ -62,9 +68,8 @@ export default function Workers() {
               .reduce((sum, r) => sum + hoursOf(r), 0)
             const totalHours = records.reduce((sum, r) => sum + hoursOf(r), 0)
             const flagCount = records.filter((r) => r.outFlag).length
-            const isOpen = openId === w.id
+            const isWorkerOpen = openWorkerId === w.id
 
-            // 현장별로 그룹핑 (한 사람이 여러 현장에서 일할 수 있어서)
             const bySite = {}
             for (const r of records) {
               const key = r.site || '미지정'
@@ -74,16 +79,15 @@ export default function Workers() {
             const siteNames = Object.keys(bySite).sort(
               (a, b) => bySite[b].reduce((s, r) => s + hoursOf(r), 0) - bySite[a].reduce((s, r) => s + hoursOf(r), 0)
             )
-            const multiSite = siteNames.length > 1
 
             return (
               <div key={w.id} className="rounded-xl border border-base-800 bg-base-950 shadow-sm">
                 <button
-                  onClick={() => setOpenId(isOpen ? null : w.id)}
+                  onClick={() => toggleWorker(w.id)}
                   className="focus-ring flex w-full items-center justify-between p-4 text-left"
                 >
                   <div className="flex items-center gap-3">
-                    {isOpen ? (
+                    {isWorkerOpen ? (
                       <ChevronDown size={16} className="shrink-0 text-base-500" />
                     ) : (
                       <ChevronRight size={16} className="shrink-0 text-base-500" />
@@ -94,7 +98,7 @@ export default function Workers() {
                         {w.isTeamLead && (
                           <span className="rounded-full bg-mist-500/15 px-1.5 py-0.5 text-[10px] text-mist-500">팀장</span>
                         )}
-                        {multiSite && (
+                        {siteNames.length > 1 && (
                           <span className="flex items-center gap-0.5 rounded-full bg-base-800 px-1.5 py-0.5 text-[10px] text-base-400">
                             <Building2 size={10} /> {siteNames.length}곳
                           </span>
@@ -113,7 +117,7 @@ export default function Workers() {
                   </div>
                 </button>
 
-                {isOpen && (
+                {isWorkerOpen && (
                   <div className="border-t border-base-800 p-4 pt-3">
                     <div className="mb-3 flex gap-4 text-xs text-base-400">
                       <span>누적 {totalHours.toFixed(1)}h</span>
@@ -124,42 +128,51 @@ export default function Workers() {
                     {records.length === 0 ? (
                       <p className="text-sm text-base-500">출근 기록이 없어요.</p>
                     ) : (
-                      <div className="space-y-4">
+                      <div className="space-y-1.5">
                         {siteNames.map((siteName) => {
+                          const siteKey = `${w.id}:${siteName}`
                           const siteRecords = bySite[siteName]
                             .slice()
                             .sort((a, b) => (b.date || '').localeCompare(a.date || ''))
                           const siteHours = siteRecords.reduce((sum, r) => sum + hoursOf(r), 0)
+                          const isSiteOpen = openSiteKey === siteKey
+
                           return (
-                            <div key={siteName}>
-                              {multiSite && (
-                                <div className="mb-1.5 flex items-center justify-between">
-                                  <p className="flex items-center gap-1 text-xs font-medium text-base-300">
-                                    <Building2 size={11} className="text-mist-500" /> {siteName}
-                                  </p>
-                                  <span className="text-[11px] text-base-500">
-                                    {siteHours.toFixed(1)}h · {siteRecords.length}건
-                                  </span>
-                                </div>
-                              )}
-                              <ul className="space-y-1.5">
-                                {siteRecords.slice(0, 10).map((r) => (
-                                  <li
-                                    key={r.id}
-                                    className="flex items-center justify-between rounded-lg bg-base-900 px-3 py-2 text-xs"
-                                  >
-                                    <div className="flex items-center gap-2">
+                            <div key={siteName} className="rounded-lg border border-base-800 bg-base-900">
+                              <button
+                                onClick={() => setOpenSiteKey(isSiteOpen ? null : siteKey)}
+                                className="focus-ring flex w-full items-center justify-between px-3 py-2 text-left"
+                              >
+                                <span className="flex items-center gap-1.5 text-xs font-medium text-base-200">
+                                  {isSiteOpen ? (
+                                    <ChevronDown size={13} className="text-base-500" />
+                                  ) : (
+                                    <ChevronRight size={13} className="text-base-500" />
+                                  )}
+                                  <Building2 size={12} className="text-mist-500" /> {siteName}
+                                </span>
+                                <span className="text-[11px] text-base-500">
+                                  {siteHours.toFixed(1)}h · {siteRecords.length}건
+                                </span>
+                              </button>
+
+                              {isSiteOpen && (
+                                <ul className="space-y-1.5 border-t border-base-800 p-2">
+                                  {siteRecords.slice(0, 15).map((r) => (
+                                    <li
+                                      key={r.id}
+                                      className="flex items-center justify-between rounded-lg bg-base-950 px-3 py-2 text-xs"
+                                    >
                                       <span className="text-base-300">{r.date}</span>
-                                      {!multiSite && <span className="text-base-500">{r.site}</span>}
-                                    </div>
-                                    <div className="flex items-center gap-2 text-base-400">
-                                      <Clock size={12} /> {hoursOf(r).toFixed(1)}h
-                                      {r.ongoing && <span className="text-mist-500">진행중</span>}
-                                      {r.outFlag && <MapPinOff size={12} className="text-amber-500" />}
-                                    </div>
-                                  </li>
-                                ))}
-                              </ul>
+                                      <div className="flex items-center gap-2 text-base-400">
+                                        <Clock size={12} /> {hoursOf(r).toFixed(1)}h
+                                        {r.ongoing && <span className="text-mist-500">진행중</span>}
+                                        {r.outFlag && <MapPinOff size={12} className="text-amber-500" />}
+                                      </div>
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
                             </div>
                           )
                         })}
