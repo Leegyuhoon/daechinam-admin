@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
-import { ShieldCheck, PlayCircle, CheckCircle2, XCircle, ChevronLeft, Sparkles } from 'lucide-react'
+import { ShieldCheck, PlayCircle, CheckCircle2, XCircle, ChevronLeft, Sparkles, BadgeCheck } from 'lucide-react'
 import { api } from '../lib/api'
 
-const NAME_KEY = 'daechinam_training_name'
+const AUTH_KEY = 'daechinam_training_auth' // { name, verified }
 
-function QuizRunner({ course, name, onExit }) {
+function QuizRunner({ course, auth, onExit }) {
   const [step, setStep] = useState('video')
   const [answers, setAnswers] = useState({})
   const [result, setResult] = useState(null)
@@ -20,7 +20,14 @@ function QuizRunner({ course, name, onExit }) {
     const passed = total > 0 && score / total >= passRatio
     setResult({ score, total, percent, passed })
     setStep('result')
-    await api.submitQuizResult({ courseId: course.id, userName: name, score, total, passed })
+    await api.submitQuizResult({
+      courseId: course.id,
+      userName: auth.name,
+      verified: auth.verified,
+      score,
+      total,
+      passed
+    })
   }
 
   return (
@@ -30,7 +37,14 @@ function QuizRunner({ course, name, onExit }) {
       </button>
 
       <div className="rounded-xl border border-base-800 bg-base-950 p-5 shadow-sm">
-        <p className="mb-1 text-xs text-base-500">{name}님</p>
+        <p className="mb-1 flex items-center gap-1 text-xs text-base-500">
+          {auth.name}님
+          {auth.verified && (
+            <span className="flex items-center gap-0.5 text-mist-500">
+              <BadgeCheck size={12} /> 확인됨
+            </span>
+          )}
+        </p>
         <h1 className="mb-4 text-lg font-semibold text-base-100">{course.title}</h1>
 
         {step === 'video' && (
@@ -122,65 +136,112 @@ function QuizRunner({ course, name, onExit }) {
   )
 }
 
-export default function Training() {
+function AuthGate({ onAuthed }) {
   const [name, setName] = useState('')
-  const [nameInput, setNameInput] = useState('')
+  const [birth, setBirth] = useState('')
+  const [error, setError] = useState(null)
+  const [checking, setChecking] = useState(false)
+
+  const submit = async (e) => {
+    e.preventDefault()
+    setError(null)
+    if (!name.trim() || !/^\d{6}$/.test(birth.trim())) {
+      setError('이름과 생년월일 6자리(예: 900101)를 정확히 입력해주세요.')
+      return
+    }
+    setChecking(true)
+    try {
+      const res = await api.identifyTrainee(name, birth)
+      const auth = { name: res.name, verified: res.verified }
+      localStorage.setItem(AUTH_KEY, JSON.stringify(auth))
+      onAuthed(auth)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setChecking(false)
+    }
+  }
+
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-base-900 px-4">
+      <form onSubmit={submit} className="w-full max-w-sm rounded-xl border border-base-800 bg-base-950 p-6 shadow-sm">
+        <div className="mb-4 flex items-center gap-2">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-mist-500/15 text-mist-500">
+            <ShieldCheck size={18} />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-base-100">(주)이엘씨_대치남</p>
+            <p className="text-xs text-base-400">안전교육</p>
+          </div>
+        </div>
+
+        <label className="mb-1.5 block text-sm text-base-300">이름</label>
+        <input
+          autoFocus
+          className="focus-ring mb-3 w-full rounded-lg border border-base-700 bg-base-900 px-3 py-2.5 text-sm"
+          placeholder="홍길동"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
+
+        <label className="mb-1.5 block text-sm text-base-300">생년월일 (6자리)</label>
+        <input
+          inputMode="numeric"
+          maxLength={6}
+          className="focus-ring w-full rounded-lg border border-base-700 bg-base-900 px-3 py-2.5 text-sm"
+          placeholder="예: 900101"
+          value={birth}
+          onChange={(e) => setBirth(e.target.value.replace(/\D/g, '').slice(0, 6))}
+        />
+        <p className="mt-1.5 text-[11px] text-base-500">소속 회사와 상관없이 누구나 입력하고 바로 응시할 수 있어요.</p>
+
+        {error && <p className="mt-3 text-xs text-amber-500">{error}</p>}
+
+        <button
+          type="submit"
+          disabled={checking}
+          className="focus-ring mt-4 w-full rounded-lg bg-mist-500 px-4 py-2.5 text-sm font-medium text-base-950 hover:bg-mist-400 disabled:opacity-50"
+        >
+          {checking ? '확인 중…' : '시작하기'}
+        </button>
+      </form>
+    </div>
+  )
+}
+
+export default function Training() {
+  const [auth, setAuth] = useState(null)
+  const [checkedStorage, setCheckedStorage] = useState(false)
   const [courses, setCourses] = useState([])
   const [loading, setLoading] = useState(true)
   const [active, setActive] = useState(null)
 
   useEffect(() => {
-    const saved = localStorage.getItem(NAME_KEY)
-    if (saved) setName(saved)
+    const saved = localStorage.getItem(AUTH_KEY)
+    if (saved) {
+      try {
+        setAuth(JSON.parse(saved))
+      } catch {
+        localStorage.removeItem(AUTH_KEY)
+      }
+    }
+    setCheckedStorage(true)
   }, [])
 
   useEffect(() => {
     api.listCourses().then(({ courses }) => setCourses(courses)).finally(() => setLoading(false))
   }, [])
 
-  const confirmName = (e) => {
-    e.preventDefault()
-    if (!nameInput.trim()) return
-    localStorage.setItem(NAME_KEY, nameInput.trim())
-    setName(nameInput.trim())
-  }
+  if (!checkedStorage) return null
 
-  if (!name) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-base-900 px-4">
-        <form onSubmit={confirmName} className="w-full max-w-sm rounded-xl border border-base-800 bg-base-950 p-6 shadow-sm">
-          <div className="mb-4 flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-mist-500/15 text-mist-500">
-              <ShieldCheck size={18} />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-base-100">(주)이엘씨_대치남</p>
-              <p className="text-xs text-base-400">안전교육</p>
-            </div>
-          </div>
-          <label className="mb-1.5 block text-sm text-base-300">이름을 입력해주세요</label>
-          <input
-            autoFocus
-            className="focus-ring w-full rounded-lg border border-base-700 bg-base-900 px-3 py-2.5 text-sm"
-            placeholder="홍길동"
-            value={nameInput}
-            onChange={(e) => setNameInput(e.target.value)}
-          />
-          <button
-            type="submit"
-            className="focus-ring mt-3 w-full rounded-lg bg-mist-500 px-4 py-2.5 text-sm font-medium text-base-950 hover:bg-mist-400"
-          >
-            시작하기
-          </button>
-        </form>
-      </div>
-    )
+  if (!auth) {
+    return <AuthGate onAuthed={setAuth} />
   }
 
   if (active) {
     return (
       <div className="min-h-screen bg-base-900 px-4 py-8">
-        <QuizRunner course={active} name={name} onExit={() => setActive(null)} />
+        <QuizRunner course={active} auth={auth} onExit={() => setActive(null)} />
       </div>
     )
   }
@@ -193,8 +254,17 @@ export default function Training() {
             <Sparkles size={18} />
           </div>
           <div>
-            <p className="text-sm font-semibold text-base-100">(주)이엘씨_대치남 안전교육</p>
-            <p className="text-xs text-base-400">{name}님, 반갑습니다.</p>
+            <p className="flex items-center gap-1.5 text-sm font-semibold text-base-100">
+              (주)이엘씨_대치남 안전교육
+            </p>
+            <p className="flex items-center gap-1 text-xs text-base-400">
+              {auth.name}님, 반갑습니다.
+              {auth.verified && (
+                <span className="flex items-center gap-0.5 text-mist-500">
+                  <BadgeCheck size={12} /> 확인됨
+                </span>
+              )}
+            </p>
           </div>
         </div>
 
@@ -228,12 +298,12 @@ export default function Training() {
 
         <button
           onClick={() => {
-            localStorage.removeItem(NAME_KEY)
-            setName('')
+            localStorage.removeItem(AUTH_KEY)
+            setAuth(null)
           }}
           className="focus-ring mt-6 text-xs text-base-500 hover:text-base-300"
         >
-          다른 이름으로 다시 시작
+          다른 사람으로 다시 시작
         </button>
       </div>
     </div>
