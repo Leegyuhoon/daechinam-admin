@@ -33,6 +33,7 @@ export default async (req) => {
         description: body.description || '',
         videoUrl: body.videoUrl,
         questions: Array.isArray(body.questions) ? body.questions : [],
+        passRatio: Number(body.passRatio) > 0 ? Number(body.passRatio) : 80, // % 단위
         createdAt: body.createdAt || new Date().toISOString()
       }
       await store.setJSON(id, course)
