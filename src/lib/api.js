@@ -70,6 +70,23 @@ export const api = {
     return finalizeRes.json() // { id, url }
   },
   listCourses: () => request('/safety-courses'),
+  identifyTrainee: async (name, birth) => {
+    const res = await fetch('/api/training-verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, birth })
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok || !data.ok) {
+      throw new Error(data.error || '확인에 실패했습니다')
+    }
+    return data // { ok:true, verified, name }
+  },
+  listTrainingRoster: () => request('/training-roster'),
+  upsertTrainingRosterEntry: (entry) =>
+    request('/training-roster', { method: 'POST', body: JSON.stringify(entry) }),
+  deleteTrainingRosterEntry: (id) =>
+    request(`/training-roster?id=${encodeURIComponent(id)}`, { method: 'DELETE' }),
   generateQuizFromVideo: (videoUrl, questionCount = 4) =>
     request('/safety-generate-quiz', {
       method: 'POST',
