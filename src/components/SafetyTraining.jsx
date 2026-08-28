@@ -19,7 +19,7 @@ import {
 } from 'lucide-react'
 import { api } from '../lib/api'
 
-const emptyCourse = { title: '', description: '', videoUrl: '', passRatio: 80, questions: [] }
+const emptyCourse = { title: '', description: '', videoUrl: '', passRatio: 80, questions: [], targetIds: [] }
 const emptyRosterEntry = { name: '', birth: '', org: '' }
 
 function QuestionEditor({ question, onChange, onRemove }) {
@@ -112,6 +112,8 @@ function VideoUploader({ videoUrl, onUploaded }) {
 
 function CourseForm({ initialCourse, onSaved, onCancel }) {
   const [course, setCourse] = useState(initialCourse || emptyCourse)
+  const [roster, setRoster] = useState([])
+  const [rosterLoading, setRosterLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
   const [genError, setGenError] = useState(null)
 
@@ -145,6 +147,20 @@ function CourseForm({ initialCourse, onSaved, onCancel }) {
     if (!course.title || !course.videoUrl || course.questions.length === 0) return
     await api.upsertCourse(course)
     onSaved()
+  }
+
+  useEffect(() => {
+    api.listTrainingRoster().then(({ items }) => setRoster(items)).finally(() => setRosterLoading(false))
+  }, [])
+
+  const toggleTarget = (id) => {
+    setCourse((c) => {
+      const targetIds = c.targetIds || []
+      return {
+        ...c,
+        targetIds: targetIds.includes(id) ? targetIds.filter((t) => t !== id) : [...targetIds, id]
+      }
+    })
   }
 
   return (
@@ -218,6 +234,36 @@ function CourseForm({ initialCourse, onSaved, onCancel }) {
         >
           <Plus size={14} /> 문제 추가
         </button>
+      </div>
+
+      <div className="mt-4">
+        <p className="mb-2 flex items-center gap-1.5 text-xs font-medium text-base-300">
+          <Users size={13} className="text-mist-500" /> 대상자 지정 (선택)
+        </p>
+        <p className="mb-2 text-[11px] text-base-500">
+          체크해두면 아래 "이수 현황"에서 아직 안 들은 사람을 바로 확인할 수 있어요. 아무도 체크 안 하면 전체 응시자만 보여요.
+        </p>
+        {rosterLoading ? (
+          <p className="text-xs text-base-500">불러오는 중…</p>
+        ) : roster.length === 0 ? (
+          <p className="text-xs text-base-500">
+            등록된 대상자가 없어요. 안전교육 화면의 "대상자 명단"에서 먼저 등록해주세요.
+          </p>
+        ) : (
+          <div className="grid max-h-40 grid-cols-2 gap-1.5 overflow-y-auto rounded-lg border border-base-700 bg-base-900 p-2 sm:grid-cols-3">
+            {roster.map((r) => (
+              <label key={r.id} className="flex items-center gap-1.5 text-xs text-base-300">
+                <input
+                  type="checkbox"
+                  checked={(course.targetIds || []).includes(r.id)}
+                  onChange={() => toggleTarget(r.id)}
+                />
+                {r.name}
+                {r.org && <span className="text-base-500">({r.org})</span>}
+              </label>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="mt-4 flex gap-2">
@@ -333,11 +379,22 @@ function RosterManager() {
 
 function ResultsPanel({ course, onClose }) {
   const [results, setResults] = useState([])
+  const [roster, setRoster] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    api.listResults(course.id).then(({ results }) => setResults(results)).finally(() => setLoading(false))
+    Promise.all([api.listResults(course.id), api.listTrainingRoster()])
+      .then(([r, ros]) => {
+        setResults(r.results)
+        setRoster(ros.items)
+      })
+      .finally(() => setLoading(false))
   }, [course.id])
+
+  const targetIds = course.targetIds || []
+  const targets = roster.filter((r) => targetIds.includes(r.id))
+  const passedNames = new Set(results.filter((r) => r.passed).map((r) => r.userName))
+  const notCompleted = targets.filter((t) => !passedNames.has(t.name))
 
   return (
     <div className="rounded-xl border border-base-800 bg-base-950 p-4">
@@ -347,6 +404,26 @@ function ResultsPanel({ course, onClose }) {
           닫기
         </button>
       </div>
+
+      {!loading && targetIds.length > 0 && (
+        <div className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
+          <p className="mb-1.5 text-xs font-medium text-amber-500">
+            미이수자 ({notCompleted.length}/{targets.length}명)
+          </p>
+          {notCompleted.length === 0 ? (
+            <p className="text-xs text-base-500">지정된 대상자가 모두 이수했어요.</p>
+          ) : (
+            <div className="flex flex-wrap gap-1.5">
+              {notCompleted.map((t) => (
+                <span key={t.id} className="rounded-full bg-base-900 px-2 py-1 text-xs text-base-300">
+                  {t.name}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {loading ? (
         <p className="py-4 text-center text-sm text-base-500">불러오는 중…</p>
       ) : results.length === 0 ? (
