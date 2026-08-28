@@ -201,19 +201,21 @@ export default function Dashboard() {
       <div className="mt-6 grid gap-4 lg:grid-cols-3">
         <div className="rounded-xl border border-base-800 bg-base-950 p-4 shadow-sm lg:col-span-2">
           <p className="mb-3 text-sm font-medium text-base-200">최근 출퇴근 추이 (최근 10일)</p>
-          <div className="h-64">
+          <div className="relative h-64">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={chartData}
                   dataKey="checkedIn"
                   nameKey="date"
-                  innerRadius="45%"
-                  outerRadius="80%"
+                  innerRadius="52%"
+                  outerRadius="85%"
                   paddingAngle={2}
+                  label={({ percent }) => (percent > 0.08 ? `${Math.round(percent * 100)}%` : '')}
+                  labelLine={false}
                 >
                   {chartData.map((_, i) => (
-                    <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                    <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} stroke="#FFFFFF" strokeWidth={2} />
                   ))}
                 </Pie>
                 <Tooltip
@@ -228,6 +230,12 @@ export default function Dashboard() {
                 />
               </PieChart>
             </ResponsiveContainer>
+            <div className="pointer-events-none absolute left-[38%] top-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
+              <p className="text-2xl font-semibold text-base-100">
+                {chartData.reduce((sum, d) => sum + (d.checkedIn || 0), 0)}
+              </p>
+              <p className="text-[11px] text-base-500">건 · 최근 10일</p>
+            </div>
           </div>
           {!state.loading && chartData.length === 0 && !state.error && (
             <p className="py-8 text-center text-sm text-base-500">아직 표시할 출퇴근 데이터가 없어요.</p>
