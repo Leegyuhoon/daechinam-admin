@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ChevronDown, ChevronRight, Clock, MapPinOff, RefreshCw, Building2 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { ChevronDown, ChevronRight, Clock, MapPinOff, RefreshCw, Building2, ArrowLeft } from 'lucide-react'
 import { api } from '../lib/api'
 import { hoursOf } from '../lib/hours'
 
 export default function Workers() {
+  const navigate = useNavigate()
   const [state, setState] = useState({ loading: true, error: null, records: [], roster: [] })
   const [openWorkerId, setOpenWorkerId] = useState(null)
   const [openSiteKey, setOpenSiteKey] = useState(null)
@@ -36,17 +38,22 @@ export default function Workers() {
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-base-100">근로자 현황</h1>
-          <p className="mt-1 text-sm text-base-400">근로자를 클릭해 현장을 고르면 상세 이력이 나와요.</p>
+        <h1 className="text-xl font-semibold text-base-100">근로자 현황</h1>
+        <div className="flex gap-2">
+          <button
+            onClick={() => navigate(-1)}
+            className="focus-ring flex items-center gap-1.5 rounded-lg border border-base-800 bg-base-950 px-3 py-1.5 text-xs text-base-300 hover:bg-base-800"
+          >
+            <ArrowLeft size={14} /> 뒤로가기
+          </button>
+          <button
+            onClick={load}
+            className="focus-ring flex items-center gap-1.5 rounded-lg border border-base-800 bg-base-950 px-3 py-1.5 text-xs text-base-300 hover:bg-base-800"
+          >
+            <RefreshCw size={14} className={state.loading ? 'animate-spin' : ''} />
+            새로고침
+          </button>
         </div>
-        <button
-          onClick={load}
-          className="focus-ring flex items-center gap-1.5 rounded-lg border border-base-800 bg-base-950 px-3 py-1.5 text-xs text-base-300 hover:bg-base-800"
-        >
-          <RefreshCw size={14} className={state.loading ? 'animate-spin' : ''} />
-          새로고침
-        </button>
       </div>
 
       {state.error && (

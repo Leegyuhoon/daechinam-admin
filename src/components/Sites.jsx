@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ChevronDown, ChevronRight, Users, MapPinOff, RefreshCw, CalendarDays } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { ChevronDown, ChevronRight, Users, MapPinOff, RefreshCw, CalendarDays, ArrowLeft } from 'lucide-react'
 import { api } from '../lib/api'
 import { hoursOf } from '../lib/hours'
 
 export default function Sites() {
+  const navigate = useNavigate()
   const [state, setState] = useState({ loading: true, error: null, records: [] })
   const [openSite, setOpenSite] = useState(null)
   const [openDateKey, setOpenDateKey] = useState(null)
@@ -37,17 +39,22 @@ export default function Sites() {
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-base-100">현장 현황</h1>
-          <p className="mt-1 text-sm text-base-400">현장을 클릭해 날짜를 고르면 그날 근무자 상세가 나와요.</p>
+        <h1 className="text-xl font-semibold text-base-100">현장 현황</h1>
+        <div className="flex gap-2">
+          <button
+            onClick={() => navigate(-1)}
+            className="focus-ring flex items-center gap-1.5 rounded-lg border border-base-800 bg-base-950 px-3 py-1.5 text-xs text-base-300 hover:bg-base-800"
+          >
+            <ArrowLeft size={14} /> 뒤로가기
+          </button>
+          <button
+            onClick={load}
+            className="focus-ring flex items-center gap-1.5 rounded-lg border border-base-800 bg-base-950 px-3 py-1.5 text-xs text-base-300 hover:bg-base-800"
+          >
+            <RefreshCw size={14} className={state.loading ? 'animate-spin' : ''} />
+            새로고침
+          </button>
         </div>
-        <button
-          onClick={load}
-          className="focus-ring flex items-center gap-1.5 rounded-lg border border-base-800 bg-base-950 px-3 py-1.5 text-xs text-base-300 hover:bg-base-800"
-        >
-          <RefreshCw size={14} className={state.loading ? 'animate-spin' : ''} />
-          새로고침
-        </button>
       </div>
 
       {state.error && (

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Plus, Trash2, PackageSearch, TriangleAlert, Building2 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Plus, Trash2, PackageSearch, TriangleAlert, Building2, ArrowLeft } from 'lucide-react'
 import { api } from '../lib/api'
 
 const emptyForm = {
@@ -14,6 +15,7 @@ const emptyForm = {
 const CATEGORIES = ['세정용품', '소모품', '장비', '안전보호구', '기타']
 
 export default function Inventory() {
+  const navigate = useNavigate()
   const [items, setItems] = useState([])
   const [siteNames, setSiteNames] = useState([])
   const [loading, setLoading] = useState(true)
@@ -78,9 +80,14 @@ export default function Inventory() {
 
   return (
     <div>
-      <div className="mb-6">
+      <div className="mb-6 flex items-center justify-between">
         <h1 className="text-xl font-semibold text-base-100">재고 현황</h1>
-        <p className="mt-1 text-sm text-base-400">본사·현장별로 세정용품·소모품·장비 재고를 등록하고 관리합니다.</p>
+        <button
+          onClick={() => navigate(-1)}
+          className="focus-ring flex items-center gap-1.5 rounded-lg border border-base-800 bg-base-950 px-3 py-1.5 text-xs text-base-300 hover:bg-base-800"
+        >
+          <ArrowLeft size={14} /> 뒤로가기
+        </button>
       </div>
 
       {error && (

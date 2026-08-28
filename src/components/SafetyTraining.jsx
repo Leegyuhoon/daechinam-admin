@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   ShieldCheck,
   PlayCircle,
@@ -15,7 +16,8 @@ import {
   BadgeCheck,
   BarChart3,
   Pencil,
-  X
+  X,
+  ArrowLeft
 } from 'lucide-react'
 import { api } from '../lib/api'
 
@@ -571,6 +573,7 @@ function QuizRunner({ course, onExit }) {
 }
 
 export default function SafetyTraining() {
+  const navigate = useNavigate()
   const [courses, setCourses] = useState([])
   const [loading, setLoading] = useState(true)
   const [active, setActive] = useState(null)
@@ -612,11 +615,14 @@ export default function SafetyTraining() {
   return (
     <div>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <h1 className="text-xl font-semibold text-base-100">안전교육</h1>
-          <p className="mt-1 text-sm text-base-400">영상을 시청하고 문제를 풀어 이수하는 방식입니다.</p>
-        </div>
+        <h1 className="text-xl font-semibold text-base-100">안전교육</h1>
         <div className="flex gap-2">
+          <button
+            onClick={() => navigate(-1)}
+            className="focus-ring flex items-center gap-1.5 rounded-lg border border-base-800 px-3 py-1.5 text-xs text-base-300 hover:bg-base-800"
+          >
+            <ArrowLeft size={14} /> 뒤로가기
+          </button>
           <button
             onClick={() => setShowRoster((v) => !v)}
             className="focus-ring flex items-center gap-1.5 rounded-lg border border-base-800 px-3 py-1.5 text-xs text-base-300 hover:bg-base-800"

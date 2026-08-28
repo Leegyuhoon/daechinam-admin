@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ShieldCheck, PlayCircle, CheckCircle2, XCircle, ChevronLeft, Sparkles, BadgeCheck } from 'lucide-react'
+import { ShieldCheck, PlayCircle, CheckCircle2, XCircle, ChevronLeft, BadgeCheck } from 'lucide-react'
 import { api } from '../lib/api'
 
 const AUTH_KEY = 'daechinam_training_auth' // { name, verified }
@@ -165,14 +165,9 @@ function AuthGate({ onAuthed }) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-base-900 px-4">
       <form onSubmit={submit} className="w-full max-w-sm rounded-xl border border-base-800 bg-base-950 p-6 shadow-sm">
-        <div className="mb-4 flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-mist-500/15 text-mist-500">
-            <ShieldCheck size={18} />
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-base-100">(주)이엘씨_대치남</p>
-            <p className="text-xs text-base-400">안전교육</p>
-          </div>
+        <div className="mb-4">
+          <p className="text-sm font-semibold text-base-100">(주)이엘씨_대치남</p>
+          <p className="text-xs text-base-400">안전교육</p>
         </div>
 
         <label className="mb-1.5 block text-sm text-base-300">이름</label>
@@ -249,23 +244,18 @@ export default function Training() {
   return (
     <div className="min-h-screen bg-base-900 px-4 py-8">
       <div className="mx-auto max-w-xl">
-        <div className="mb-6 flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-mist-500/15 text-mist-500">
-            <Sparkles size={18} />
-          </div>
-          <div>
-            <p className="flex items-center gap-1.5 text-sm font-semibold text-base-100">
-              (주)이엘씨_대치남 안전교육
-            </p>
-            <p className="flex items-center gap-1 text-xs text-base-400">
-              {auth.name}님, 반갑습니다.
-              {auth.verified && (
-                <span className="flex items-center gap-0.5 text-mist-500">
-                  <BadgeCheck size={12} /> 확인됨
-                </span>
-              )}
-            </p>
-          </div>
+        <div className="mb-6">
+          <p className="flex items-center gap-1.5 text-sm font-semibold text-base-100">
+            (주)이엘씨_대치남 안전교육
+          </p>
+          <p className="flex items-center gap-1 text-xs text-base-400">
+            {auth.name}님, 반갑습니다.
+            {auth.verified && (
+              <span className="flex items-center gap-0.5 text-mist-500">
+                <BadgeCheck size={12} /> 확인됨
+              </span>
+            )}
+          </p>
         </div>
 
         {loading ? (

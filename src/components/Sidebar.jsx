@@ -12,15 +12,9 @@ const items = [
 export default function Sidebar() {
   return (
     <aside className="hidden md:flex w-64 shrink-0 flex-col border-r border-base-800 bg-base-950 px-4 py-6">
-      <div className="flex items-center gap-2 px-2 pb-8">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-mist-500/15 text-mist-500">
-          <span className="text-base font-bold leading-none">D</span>
-        </div>
-        <div>
-          <p className="text-sm font-bold leading-tight tracking-wide text-base-100">DAECHINAM</p>
-          <p className="text-[11px] leading-tight text-base-400">(주)이엘씨_대치남 · 통합 관리</p>
-        </div>
-      </div>
+      <p className="mb-8 px-2 text-sm font-semibold leading-snug text-base-100">
+        (주)이엘씨_대치남 통합 관리
+      </p>
 
       <nav className="flex flex-col gap-1">
         {items.map(({ to, label, icon: Icon, end }) => (

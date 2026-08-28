@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 import {
   Users,
@@ -12,7 +13,8 @@ import {
   Crown,
   Timer,
   ListChecks,
-  Trophy
+  Trophy,
+  ArrowLeft
 } from 'lucide-react'
 import { api } from '../lib/api'
 import { hoursOf } from '../lib/hours'
@@ -93,6 +95,7 @@ const formatMonth = (ym) => {
 }
 
 export default function Dashboard() {
+  const navigate = useNavigate()
   const [state, setState] = useState({
     loading: true,
     error: null,
@@ -161,17 +164,22 @@ export default function Dashboard() {
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-base-100">출퇴근 대시보드</h1>
-          <p className="mt-1 text-sm text-base-400">daechinam.netlify.app 현장 데이터를 한 화면에 모아봅니다.</p>
+        <h1 className="text-xl font-semibold text-base-100">출퇴근 대시보드</h1>
+        <div className="flex gap-2">
+          <button
+            onClick={() => navigate(-1)}
+            className="focus-ring flex items-center gap-1.5 rounded-lg border border-base-800 bg-base-950 px-3 py-1.5 text-xs text-base-300 hover:bg-base-800"
+          >
+            <ArrowLeft size={14} /> 뒤로가기
+          </button>
+          <button
+            onClick={load}
+            className="focus-ring flex items-center gap-1.5 rounded-lg border border-base-800 bg-base-950 px-3 py-1.5 text-xs text-base-300 hover:bg-base-800"
+          >
+            <RefreshCw size={14} className={state.loading ? 'animate-spin' : ''} />
+            새로고침
+          </button>
         </div>
-        <button
-          onClick={load}
-          className="focus-ring flex items-center gap-1.5 rounded-lg border border-base-800 bg-base-950 px-3 py-1.5 text-xs text-base-300 hover:bg-base-800"
-        >
-          <RefreshCw size={14} className={state.loading ? 'animate-spin' : ''} />
-          새로고침
-        </button>
       </div>
 
       {state.error && (
@@ -302,7 +310,7 @@ export default function Dashboard() {
                       <span className="w-24 shrink-0 truncate text-base-300">{s.name}</span>
                       <div className="h-1.5 flex-1 rounded-full bg-base-800">
                         <div
-                          className="h-1.5 rounded-full bg-mist-500"
+                          className="h-1.5 rounded-full bg-red-500"
                           style={{ width: `${Math.max(6, (s.count / max) * 100)}%` }}
                         />
                       </div>
@@ -330,7 +338,7 @@ export default function Dashboard() {
                   </div>
                   <div className="h-1.5 rounded-full bg-base-800">
                     <div
-                      className="h-1.5 rounded-full bg-violet-500"
+                      className="h-1.5 rounded-full bg-red-500"
                       style={{ width: `${Math.max(6, (w.hours / topMax) * 100)}%` }}
                     />
                   </div>
