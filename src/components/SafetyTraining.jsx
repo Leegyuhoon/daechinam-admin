@@ -58,6 +58,7 @@ function QuestionEditor({ question, onChange, onRemove }) {
 
 function VideoUploader({ videoUrl, onUploaded }) {
   const [uploading, setUploading] = useState(false)
+  const [progress, setProgress] = useState(0)
   const [error, setError] = useState(null)
   const [fileName, setFileName] = useState('')
 
@@ -66,9 +67,10 @@ function VideoUploader({ videoUrl, onUploaded }) {
     if (!file) return
     setError(null)
     setFileName(file.name)
+    setProgress(0)
     setUploading(true)
     try {
-      const { url } = await api.uploadSafetyVideo(file)
+      const { url } = await api.uploadSafetyVideo(file, setProgress)
       onUploaded(url)
     } catch (err) {
       setError(err.message)
@@ -79,10 +81,10 @@ function VideoUploader({ videoUrl, onUploaded }) {
 
   return (
     <div>
-      <label className="focus-ring flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-base-700 px-3 py-4 text-sm text-base-400 hover:border-mist-500 hover:text-mist-400">
+      <label className="focus-ring flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-base-700 px-3 py-4 text-sm text-base-400 hover:border-mist-500 hover:text-mist-500">
         {uploading ? (
           <>
-            <Loader2 size={16} className="animate-spin" /> 업로드 중… {fileName}
+            <Loader2 size={16} className="animate-spin" /> 업로드 중… {progress}% ({fileName})
           </>
         ) : (
           <>
@@ -91,12 +93,12 @@ function VideoUploader({ videoUrl, onUploaded }) {
         )}
         <input type="file" accept="video/*" className="hidden" onChange={handleFile} disabled={uploading} />
       </label>
-      {error && <p className="mt-2 text-xs text-amber-400">{error}</p>}
+      {error && <p className="mt-2 text-xs text-amber-500">{error}</p>}
       {videoUrl && !uploading && (
         <video src={videoUrl} controls className="mt-3 aspect-video w-full rounded-lg bg-black" />
       )}
       <p className="mt-2 text-[11px] text-base-500">
-        너무 큰 파일은 업로드가 실패할 수 있어요 — 가능하면 1~2분 이내, 압축된 mp4로 올려주세요.
+        영상은 조각으로 나뉘어 업로드돼요 — 용량이 커도 괜찮지만 시간이 좀 걸릴 수 있어요. AI 자동 문제 생성(음성인식)은 25MB 이하 영상만 지원돼요.
       </p>
     </div>
   )
