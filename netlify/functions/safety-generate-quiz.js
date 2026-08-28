@@ -13,8 +13,39 @@ function extractVideoId(videoUrl) {
   }
 }
 
-// 1) 영상 파일을 Whisper API로 보내 대본(텍스트)을 얻습니다.
-//    Whisper는 mp4 등 일부 영상 컨테이너를 직접 받아 오디오를 추출해 인식합니다.
+function chunkKey(id, index) {
+  return `${id}:chunk:${String(index).padStart(5, '0')}`
+}
+
+// 조각(청크) 업로드된 영상과 예전 단일 업로드 영상 둘 다 지원해서 전체 버퍼를 읽어옵니다.
+async function loadVideoBuffer(store, id) {
+  const manifest = await store.get(id, { type: 'json' }).catch(() => null)
+
+  if (manifest && manifest.totalChunks) {
+    const parts = []
+    for (let i = 0; i < manifest.totalChunks; i++) {
+      const buf = await store.get(chunkKey(id, i), { type: 'arrayBuffer' })
+      if (!buf) throw new Error(`영상 조각 ${i}을(를) 찾을 수 없습니다`)
+      parts.push(new Uint8Array(buf))
+    }
+    const total = parts.reduce((sum, p) => sum + p.length, 0)
+    const merged = new Uint8Array(total)
+    let offset = 0
+    for (const p of parts) {
+      merged.set(p, offset)
+      offset += p.length
+    }
+    return { buffer: merged.buffer, contentType: manifest.contentType, filename: manifest.filename }
+  }
+
+  // 레거시: 단일 blob
+  const meta = await store.getMetadata(id)
+  const buffer = await store.get(id, { type: 'arrayBuffer' })
+  if (!buffer) return null
+  return { buffer, contentType: meta?.metadata?.contentType, filename: meta?.metadata?.filename }
+}
+
+// 1) 영상 버퍼를 Whisper API로 보내 대본(텍스트)을 얻습니다.
 async function transcribe(buffer, contentType, filename) {
   const form = new FormData()
   form.append('file', new Blob([buffer], { type: contentType }), filename || 'video.mp4')
@@ -81,14 +112,21 @@ export default async (req) => {
     if (!videoId) return Response.json({ error: '영상 ID를 확인할 수 없습니다' }, { status: 400 })
 
     const store = getStore('safety-videos')
-    const meta = await store.getMetadata(videoId)
-    const buffer = await store.get(videoId, { type: 'arrayBuffer' })
-    if (!buffer) return Response.json({ error: '영상을 찾을 수 없습니다' }, { status: 404 })
+    const loaded = await loadVideoBuffer(store, videoId)
+    if (!loaded) return Response.json({ error: '영상을 찾을 수 없습니다' }, { status: 404 })
+
+    // Whisper API는 파일당 25MB 제한이 있어요. 조각 업로드로 저장은 커져도, 음성인식은 여전히 이 한도 안에서만 동작해요.
+    if (loaded.buffer.byteLength > 25 * 1024 * 1024) {
+      return Response.json(
+        { error: '영상이 너무 커요 (25MB 초과). AI 자동 문제 생성은 25MB 이하 영상만 지원돼요.' },
+        { status: 413 }
+      )
+    }
 
     const transcript = await transcribe(
-      buffer,
-      meta?.metadata?.contentType || 'video/mp4',
-      meta?.metadata?.filename || 'video.mp4'
+      loaded.buffer,
+      loaded.contentType || 'video/mp4',
+      loaded.filename || 'video.mp4'
     )
 
     const rawQuestions = await generateQuestions(transcript, questionCount || 4)
