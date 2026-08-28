@@ -20,11 +20,15 @@ export default async (req) => {
 
     if (req.method === 'POST') {
       const body = await req.json()
+      if (!body.name) {
+        return Response.json({ error: '품목명이 필요합니다' }, { status: 400 })
+      }
       const id = body.id || crypto.randomUUID()
       const item = {
         id,
         name: body.name,
         category: body.category || '기타',
+        scope: body.scope || '본사', // '본사' 또는 현장명
         quantity: Number(body.quantity) || 0,
         unit: body.unit || '개',
         minQuantity: Number(body.minQuantity) || 0,
