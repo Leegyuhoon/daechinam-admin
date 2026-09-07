@@ -3,6 +3,52 @@ import { useSearchParams } from 'react-router-dom'
 import { Lock, Building2 } from 'lucide-react'
 import { api } from '../lib/api'
 
+function Section({ s }) {
+  if (s.type === 'table') {
+    const columns = s.columns || []
+    const rows = s.rows || []
+    return (
+      <div className="rounded-xl border border-base-800 bg-base-950 p-4 shadow-sm">
+        <p className="mb-3 text-sm font-medium text-base-100">{s.title}</p>
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse text-sm">
+            <thead>
+              <tr>
+                {columns.map((c, i) => (
+                  <th
+                    key={i}
+                    className="border border-base-800 bg-base-900 p-2 text-left text-xs font-medium text-base-300"
+                  >
+                    {c}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row, ri) => (
+                <tr key={ri}>
+                  {row.map((cell, ci) => (
+                    <td key={ci} className="border border-base-800 p-2 text-sm text-base-400">
+                      {cell}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="rounded-xl border border-base-800 bg-base-950 p-4 shadow-sm">
+      <p className="mb-2 text-sm font-medium text-base-100">{s.title}</p>
+      <p className="whitespace-pre-line text-sm text-base-400">{s.body}</p>
+    </div>
+  )
+}
+
 export default function ClientReportView() {
   const [params] = useSearchParams()
   const id = params.get('id')
@@ -76,10 +122,7 @@ export default function ClientReportView() {
 
         <div className="space-y-3">
           {(data.sections || []).map((s, i) => (
-            <div key={i} className="rounded-xl border border-base-800 bg-base-950 p-4 shadow-sm">
-              <p className="mb-2 text-sm font-medium text-base-100">{s.title}</p>
-              <p className="whitespace-pre-line text-sm text-base-400">{s.body}</p>
-            </div>
+            <Section key={i} s={s} />
           ))}
         </div>
       </div>
