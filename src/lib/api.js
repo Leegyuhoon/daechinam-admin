@@ -15,6 +15,8 @@ async function request(path, { headers, ...options } = {}) {
 
 // 일회성 현장근무 비밀번호 — 확인되면 localStorage에 저장해두고 매 요청에 같이 보냅니다.
 let spotPassword = (typeof localStorage !== 'undefined' && localStorage.getItem('daechinam_spot_pw')) || ''
+// 업체 보고 관리자 비밀번호
+let clientAdminPassword = (typeof localStorage !== 'undefined' && localStorage.getItem('daechinam_client_admin_pw')) || ''
 
 export const api = {
   // 출퇴근 대시보드 — 기존 attendance 스토어 어댑터 (netlify/functions/attendance.js 참고)
@@ -181,5 +183,50 @@ export const api = {
     const data = await finalizeRes.json() // { id, url, kind, filename }
     // <img>/<video> 태그는 커스텀 헤더를 못 보내서, 비밀번호를 링크에 같이 넣어둡니다.
     return { ...data, url: `${data.url}&pw=${encodeURIComponent(spotPassword)}` }
+  },
+
+  // 업체 보고 — 관리자 CRUD는 관리자 비밀번호로, 각 업체별 열람은 업체마다 다른 비밀번호로 보호
+  setClientAdminPassword: (pw) => {
+    clientAdminPassword = pw
+    if (typeof localStorage !== 'undefined') localStorage.setItem('daechinam_client_admin_pw', pw)
+  },
+  clearClientAdminPassword: () => {
+    clientAdminPassword = ''
+    if (typeof localStorage !== 'undefined') localStorage.removeItem('daechinam_client_admin_pw')
+  },
+  verifyClientAdminPassword: async (pw) => {
+    const res = await fetch('/api/client-report-auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: pw })
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok || !data.ok) throw new Error(data.error || '비밀번호가 올바르지 않습니다')
+    clientAdminPassword = pw
+    if (typeof localStorage !== 'undefined') localStorage.setItem('daechinam_client_admin_pw', pw)
+    return true
+  },
+  listClientReports: () =>
+    request('/client-reports', { headers: { 'X-Client-Admin-Password': clientAdminPassword } }),
+  upsertClientReport: (item) =>
+    request('/client-reports', {
+      method: 'POST',
+      body: JSON.stringify(item),
+      headers: { 'X-Client-Admin-Password': clientAdminPassword }
+    }),
+  deleteClientReport: (id) =>
+    request(`/client-reports?id=${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+      headers: { 'X-Client-Admin-Password': clientAdminPassword }
+    }),
+  viewClientReport: async (id, password) => {
+    const res = await fetch('/api/client-report-view', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, password })
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok || !data.ok) throw new Error(data.error || '조회에 실패했습니다')
+    return data // { ok:true, companyName, sections }
   }
 }
