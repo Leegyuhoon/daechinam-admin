@@ -19,7 +19,14 @@ export default async (req) => {
       return Response.json({ ok: false, error: '비밀번호가 올바르지 않습니다' }, { status: 401 })
     }
 
-    return Response.json({ ok: true, companyName: item.companyName, sections: item.sections || [] })
+    return Response.json({
+      ok: true,
+      companyName: item.companyName,
+      kpi: item.kpi || {},
+      responseTimes: item.responseTimes || {},
+      reviewMeetings: item.reviewMeetings || {},
+      escalation: item.escalation || {}
+    })
   } catch (err) {
     return Response.json({ ok: false, error: '조회 중 오류', detail: String(err) }, { status: 500 })
   }
