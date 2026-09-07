@@ -22,6 +22,7 @@ export default async (req) => {
     return Response.json({
       ok: true,
       companyName: item.companyName,
+      siteName: item.siteName || '',
       kpi: item.kpi || {},
       responseTimes: item.responseTimes || {},
       reviewMeetings: item.reviewMeetings || {},
