@@ -98,5 +98,53 @@ export const api = {
   submitQuizResult: (result) =>
     request('/safety-results', { method: 'POST', body: JSON.stringify(result) }),
   listResults: (courseId) =>
-    request(`/safety-results${courseId ? `?courseId=${encodeURIComponent(courseId)}` : ''}`)
+    request(`/safety-results${courseId ? `?courseId=${encodeURIComponent(courseId)}` : ''}`),
+
+  // 일회성 현장근무
+  listSpotJobs: () => request('/spot-jobs'),
+  upsertSpotJob: (job) => request('/spot-jobs', { method: 'POST', body: JSON.stringify(job) }),
+  deleteSpotJob: (id) => request(`/spot-jobs?id=${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  uploadSpotMedia: async (file, kind, onProgress) => {
+    const CHUNK_SIZE = 4 * 1024 * 1024
+    const uploadId = crypto.randomUUID()
+    const totalChunks = Math.max(1, Math.ceil(file.size / CHUNK_SIZE))
+
+    for (let i = 0; i < totalChunks; i++) {
+      const start = i * CHUNK_SIZE
+      const end = Math.min(file.size, start + CHUNK_SIZE)
+      const chunk = file.slice(start, end)
+
+      const res = await fetch('/api/spot-media-chunk', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/octet-stream',
+          'X-Upload-Id': uploadId,
+          'X-Chunk-Index': String(i)
+        },
+        body: chunk
+      })
+      if (!res.ok) {
+        const text = await res.text().catch(() => '')
+        throw new Error(`파일 업로드 실패 (조각 ${i + 1}/${totalChunks}) (${res.status}) ${text}`)
+      }
+      if (onProgress) onProgress(Math.round(((i + 1) / totalChunks) * 100))
+    }
+
+    const finalizeRes = await fetch('/api/spot-media-finalize', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        uploadId,
+        totalChunks,
+        contentType: file.type || 'application/octet-stream',
+        filename: file.name || 'file',
+        kind
+      })
+    })
+    if (!finalizeRes.ok) {
+      const text = await finalizeRes.text().catch(() => '')
+      throw new Error(`업로드 마무리 실패 (${finalizeRes.status}) ${text}`)
+    }
+    return finalizeRes.json() // { id, url, kind, filename }
+  }
 }
