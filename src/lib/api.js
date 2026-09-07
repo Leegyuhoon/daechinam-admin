@@ -1,8 +1,8 @@
 const BASE = '/api'
 
-async function request(path, options = {}) {
+async function request(path, { headers, ...options } = {}) {
   const res = await fetch(`${BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...headers },
     ...options
   })
   if (!res.ok) {
@@ -12,6 +12,9 @@ async function request(path, options = {}) {
   const ct = res.headers.get('content-type') || ''
   return ct.includes('application/json') ? res.json() : res.text()
 }
+
+// 일회성 현장근무 비밀번호 — 확인되면 localStorage에 저장해두고 매 요청에 같이 보냅니다.
+let spotPassword = (typeof localStorage !== 'undefined' && localStorage.getItem('daechinam_spot_pw')) || ''
 
 export const api = {
   // 출퇴근 대시보드 — 기존 attendance 스토어 어댑터 (netlify/functions/attendance.js 참고)
@@ -100,10 +103,39 @@ export const api = {
   listResults: (courseId) =>
     request(`/safety-results${courseId ? `?courseId=${encodeURIComponent(courseId)}` : ''}`),
 
-  // 일회성 현장근무
-  listSpotJobs: () => request('/spot-jobs'),
-  upsertSpotJob: (job) => request('/spot-jobs', { method: 'POST', body: JSON.stringify(job) }),
-  deleteSpotJob: (id) => request(`/spot-jobs?id=${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  // 일회성 현장근무 (비밀번호로 보호됨)
+  setSpotPassword: (pw) => {
+    spotPassword = pw
+    if (typeof localStorage !== 'undefined') localStorage.setItem('daechinam_spot_pw', pw)
+  },
+  clearSpotPassword: () => {
+    spotPassword = ''
+    if (typeof localStorage !== 'undefined') localStorage.removeItem('daechinam_spot_pw')
+  },
+  verifySpotPassword: async (pw) => {
+    const res = await fetch('/api/spot-auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: pw })
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok || !data.ok) throw new Error(data.error || '비밀번호가 올바르지 않습니다')
+    spotPassword = pw
+    if (typeof localStorage !== 'undefined') localStorage.setItem('daechinam_spot_pw', pw)
+    return true
+  },
+  listSpotJobs: () => request('/spot-jobs', { headers: { 'X-Spot-Password': spotPassword } }),
+  upsertSpotJob: (job) =>
+    request('/spot-jobs', {
+      method: 'POST',
+      body: JSON.stringify(job),
+      headers: { 'X-Spot-Password': spotPassword }
+    }),
+  deleteSpotJob: (id) =>
+    request(`/spot-jobs?id=${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+      headers: { 'X-Spot-Password': spotPassword }
+    }),
   uploadSpotMedia: async (file, kind, onProgress) => {
     const CHUNK_SIZE = 4 * 1024 * 1024
     const uploadId = crypto.randomUUID()
@@ -119,7 +151,8 @@ export const api = {
         headers: {
           'Content-Type': 'application/octet-stream',
           'X-Upload-Id': uploadId,
-          'X-Chunk-Index': String(i)
+          'X-Chunk-Index': String(i),
+          'X-Spot-Password': spotPassword
         },
         body: chunk
       })
@@ -132,7 +165,7 @@ export const api = {
 
     const finalizeRes = await fetch('/api/spot-media-finalize', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Spot-Password': spotPassword },
       body: JSON.stringify({
         uploadId,
         totalChunks,
@@ -145,6 +178,8 @@ export const api = {
       const text = await finalizeRes.text().catch(() => '')
       throw new Error(`업로드 마무리 실패 (${finalizeRes.status}) ${text}`)
     }
-    return finalizeRes.json() // { id, url, kind, filename }
+    const data = await finalizeRes.json() // { id, url, kind, filename }
+    // <img>/<video> 태그는 커스텀 헤더를 못 보내서, 비밀번호를 링크에 같이 넣어둡니다.
+    return { ...data, url: `${data.url}&pw=${encodeURIComponent(spotPassword)}` }
   }
 }
