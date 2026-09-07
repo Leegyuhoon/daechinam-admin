@@ -1,10 +1,11 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, Package, ShieldCheck, Users, Building2 } from 'lucide-react'
+import { LayoutDashboard, Package, ShieldCheck, Users, Building2, CalendarDays } from 'lucide-react'
 
 const items = [
   { to: '/', label: '대시보드', icon: LayoutDashboard, end: true },
   { to: '/workers', label: '근로자', icon: Users },
   { to: '/sites', label: '현장', icon: Building2 },
+  { to: '/spot-jobs', label: '특근', icon: CalendarDays },
   { to: '/inventory', label: '재고', icon: Package },
   { to: '/safety', label: '안전교육', icon: ShieldCheck }
 ]
