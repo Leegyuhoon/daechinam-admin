@@ -1,9 +1,14 @@
 import { getStore } from '@netlify/blobs'
 
+const SPOT_PASSWORD = process.env.SPOT_JOBS_PASSWORD
+
 // POST /api/spot-media-finalize
 // body(JSON): { uploadId, totalChunks, contentType, filename, kind: 'photo'|'video' }
 export default async (req) => {
   if (req.method !== 'POST') return new Response('Method Not Allowed', { status: 405 })
+  if (SPOT_PASSWORD && req.headers.get('x-spot-password') !== SPOT_PASSWORD) {
+    return Response.json({ error: '비밀번호가 필요합니다' }, { status: 401 })
+  }
 
   try {
     const { uploadId, totalChunks, contentType, filename, kind } = await req.json()
