@@ -12,20 +12,28 @@ import {
   Building2,
   ChevronDown,
   ChevronRight,
-  AlignLeft,
-  Table2
+  Target,
+  Timer,
+  Users,
+  TriangleAlert
 } from 'lucide-react'
 import { api } from '../lib/api'
 
-const emptySection = () => ({
-  id: crypto.randomUUID(),
-  type: 'text', // 'text' | 'table'
-  title: '',
-  body: '',
-  columns: ['항목', '내용'],
-  rows: [['', '']]
+const emptyReport = () => ({
+  companyName: '',
+  password: '',
+  kpi: { cleanliness: '', complaintSLA: '', reworkRate: '', emergencyResponse: '' },
+  responseTimes: {
+    minorConfirm: '',
+    minorAction: '',
+    complaintConfirm: '',
+    complaintAction: '',
+    emergencyInitial: '',
+    emergencyFull: ''
+  },
+  reviewMeetings: { monthly: '', quarterly: '' },
+  escalation: { minor: '', major: '', critical: '' }
 })
-const emptyReport = () => ({ companyName: '', password: '', sections: [emptySection()] })
 
 function PasswordGate({ onOk }) {
   const [pw, setPw] = useState('')
@@ -77,139 +85,27 @@ function PasswordGate({ onOk }) {
   )
 }
 
-function TableEditor({ section, onChange }) {
-  const columns = section.columns?.length ? section.columns : ['항목', '내용']
-  const rows = section.rows?.length ? section.rows : [columns.map(() => '')]
-
-  const updateColumn = (i, value) => {
-    const next = [...columns]
-    next[i] = value
-    onChange({ ...section, columns: next })
-  }
-  const addColumn = () => onChange({ ...section, columns: [...columns, ''], rows: rows.map((r) => [...r, '']) })
-  const removeColumn = (i) =>
-    onChange({
-      ...section,
-      columns: columns.filter((_, idx) => idx !== i),
-      rows: rows.map((r) => r.filter((_, idx) => idx !== i))
-    })
-
-  const updateCell = (ri, ci, value) => {
-    const next = rows.map((r) => [...r])
-    next[ri][ci] = value
-    onChange({ ...section, rows: next })
-  }
-  const addRow = () => onChange({ ...section, rows: [...rows, columns.map(() => '')] })
-  const removeRow = (ri) => onChange({ ...section, rows: rows.filter((_, idx) => idx !== ri) })
-
+function Field({ label, value, onChange, placeholder }) {
   return (
-    <div>
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse text-xs">
-          <thead>
-            <tr>
-              {columns.map((c, i) => (
-                <th key={i} className="border border-base-700 p-1">
-                  <div className="flex items-center gap-1">
-                    <input
-                      value={c}
-                      onChange={(e) => updateColumn(i, e.target.value)}
-                      className="focus-ring w-full rounded bg-base-950 px-1.5 py-1 text-xs"
-                      placeholder={`열 ${i + 1}`}
-                    />
-                    {columns.length > 1 && (
-                      <button onClick={() => removeColumn(i)} className="text-base-500 hover:text-red-500">
-                        <X size={11} />
-                      </button>
-                    )}
-                  </div>
-                </th>
-              ))}
-              <th className="w-8 border border-base-700 p-1">
-                <button onClick={addColumn} className="text-base-500 hover:text-mist-500">
-                  <Plus size={12} />
-                </button>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row, ri) => (
-              <tr key={ri}>
-                {columns.map((_, ci) => (
-                  <td key={ci} className="border border-base-700 p-1">
-                    <input
-                      value={row[ci] || ''}
-                      onChange={(e) => updateCell(ri, ci, e.target.value)}
-                      className="focus-ring w-full rounded bg-base-950 px-1.5 py-1 text-xs"
-                    />
-                  </td>
-                ))}
-                <td className="border border-base-700 p-1 text-center">
-                  <button onClick={() => removeRow(ri)} className="text-base-500 hover:text-red-500">
-                    <Trash2 size={11} />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <button
-        onClick={addRow}
-        className="focus-ring mt-1.5 flex items-center gap-1 text-[11px] text-base-400 hover:text-mist-500"
-      >
-        <Plus size={11} /> 행 추가
-      </button>
-    </div>
+    <label className="block">
+      <span className="mb-1 block text-xs text-base-400">{label}</span>
+      <input
+        className="focus-ring w-full rounded-lg border border-base-700 bg-base-900 px-3 py-2 text-sm"
+        placeholder={placeholder}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      />
+    </label>
   )
 }
 
-function SectionEditor({ section, onChange, onRemove }) {
-  const setType = (type) => onChange({ ...section, type })
-
+function FormGroup({ icon: Icon, title, children }) {
   return (
     <div className="rounded-lg border border-base-800 bg-base-900 p-3">
-      <div className="mb-2 flex items-center justify-between gap-2">
-        <input
-          className="focus-ring flex-1 rounded-md border border-base-700 bg-base-950 px-2 py-1.5 text-sm"
-          placeholder="섹션 제목 (예: 서비스 품질지표(KPI))"
-          value={section.title}
-          onChange={(e) => onChange({ ...section, title: e.target.value })}
-        />
-        <div className="flex items-center rounded-md border border-base-700 bg-base-950 p-0.5">
-          <button
-            onClick={() => setType('text')}
-            className={`flex items-center gap-1 rounded px-2 py-1 text-[11px] ${
-              section.type !== 'table' ? 'bg-mist-500/15 text-mist-500' : 'text-base-400'
-            }`}
-          >
-            <AlignLeft size={12} /> 텍스트
-          </button>
-          <button
-            onClick={() => setType('table')}
-            className={`flex items-center gap-1 rounded px-2 py-1 text-[11px] ${
-              section.type === 'table' ? 'bg-mist-500/15 text-mist-500' : 'text-base-400'
-            }`}
-          >
-            <Table2 size={12} /> 표
-          </button>
-        </div>
-        <button onClick={onRemove} className="focus-ring text-base-500 hover:text-red-500">
-          <Trash2 size={14} />
-        </button>
-      </div>
-
-      {section.type === 'table' ? (
-        <TableEditor section={section} onChange={onChange} />
-      ) : (
-        <textarea
-          className="focus-ring w-full rounded-md border border-base-700 bg-base-950 px-2 py-1.5 text-sm"
-          placeholder="내용"
-          rows={4}
-          value={section.body}
-          onChange={(e) => onChange({ ...section, body: e.target.value })}
-        />
-      )}
+      <p className="mb-3 flex items-center gap-1.5 text-xs font-medium text-base-300">
+        <Icon size={13} className="text-mist-500" /> {title}
+      </p>
+      <div className="grid gap-3 sm:grid-cols-2">{children}</div>
     </div>
   )
 }
@@ -219,10 +115,10 @@ function ReportForm({ initialReport, onSaved, onCancel }) {
   const [error, setError] = useState(null)
   const [saving, setSaving] = useState(false)
 
-  const updateSection = (id, next) =>
-    setReport((r) => ({ ...r, sections: r.sections.map((s) => (s.id === id ? next : s)) }))
-  const addSection = () => setReport((r) => ({ ...r, sections: [...r.sections, emptySection()] }))
-  const removeSection = (id) => setReport((r) => ({ ...r, sections: r.sections.filter((s) => s.id !== id) }))
+  const setKpi = (key, value) => setReport((r) => ({ ...r, kpi: { ...r.kpi, [key]: value } }))
+  const setRt = (key, value) => setReport((r) => ({ ...r, responseTimes: { ...r.responseTimes, [key]: value } }))
+  const setRm = (key, value) => setReport((r) => ({ ...r, reviewMeetings: { ...r.reviewMeetings, [key]: value } }))
+  const setEsc = (key, value) => setReport((r) => ({ ...r, escalation: { ...r.escalation, [key]: value } }))
 
   const save = async () => {
     setError(null)
@@ -263,21 +159,32 @@ function ReportForm({ initialReport, onSaved, onCancel }) {
       </div>
 
       <div className="mt-4 space-y-3">
-        <p className="text-xs font-medium text-base-300">보고 내용 (섹션마다 텍스트 또는 표 선택)</p>
-        {report.sections.map((s) => (
-          <SectionEditor
-            key={s.id}
-            section={s}
-            onChange={(next) => updateSection(s.id, next)}
-            onRemove={() => removeSection(s.id)}
-          />
-        ))}
-        <button
-          onClick={addSection}
-          className="focus-ring flex items-center gap-1.5 rounded-lg border border-dashed border-base-700 px-3 py-2 text-xs text-base-400 hover:border-mist-500 hover:text-mist-500"
-        >
-          <Plus size={14} /> 섹션 추가
-        </button>
+        <FormGroup icon={Target} title="서비스 품질지표(KPI) 목표">
+          <Field label="청결도" value={report.kpi.cleanliness} onChange={(v) => setKpi('cleanliness', v)} placeholder="예: 90% 이상" />
+          <Field label="민원처리 SLA" value={report.kpi.complaintSLA} onChange={(v) => setKpi('complaintSLA', v)} placeholder="예: 95% 이상" />
+          <Field label="작업누락·재작업 발생률" value={report.kpi.reworkRate} onChange={(v) => setKpi('reworkRate', v)} placeholder="예: 3% 이하" />
+          <Field label="긴급대응 처리시간" value={report.kpi.emergencyResponse} onChange={(v) => setKpi('emergencyResponse', v)} placeholder="예: 5분 이내 100%" />
+        </FormGroup>
+
+        <FormGroup icon={Timer} title="유형별 대응 처리시간">
+          <Field label="청소 미흡 — 현장확인" value={report.responseTimes.minorConfirm} onChange={(v) => setRt('minorConfirm', v)} placeholder="예: 30분 이내" />
+          <Field label="청소 미흡 — 조치" value={report.responseTimes.minorAction} onChange={(v) => setRt('minorAction', v)} placeholder="예: 1시간 이내" />
+          <Field label="고객 민원 — 현장확인" value={report.responseTimes.complaintConfirm} onChange={(v) => setRt('complaintConfirm', v)} placeholder="예: 10분 이내" />
+          <Field label="고객 민원 — 조치" value={report.responseTimes.complaintAction} onChange={(v) => setRt('complaintAction', v)} placeholder="예: 1시간 이내" />
+          <Field label="긴급 오염 — 초동조치" value={report.responseTimes.emergencyInitial} onChange={(v) => setRt('emergencyInitial', v)} placeholder="예: 5분 이내" />
+          <Field label="긴급 오염 — 본조치" value={report.responseTimes.emergencyFull} onChange={(v) => setRt('emergencyFull', v)} placeholder="예: 2시간 이내" />
+        </FormGroup>
+
+        <FormGroup icon={Users} title="정기 운영 리뷰">
+          <Field label="월간 운영리뷰 참석자" value={report.reviewMeetings.monthly} onChange={(v) => setRm('monthly', v)} placeholder="예: 현장소장 ↔ 회사 시설관리 담당자" />
+          <Field label="분기 경영리뷰 참석자" value={report.reviewMeetings.quarterly} onChange={(v) => setRm('quarterly', v)} placeholder="예: 본사 운영관리 임원 ↔ 회사 책임자" />
+        </FormGroup>
+
+        <FormGroup icon={TriangleAlert} title="이슈 등급별 에스컬레이션">
+          <Field label="경미" value={report.escalation.minor} onChange={(v) => setEsc('minor', v)} placeholder="예: 현장책임자 자체 처리" />
+          <Field label="중대" value={report.escalation.major} onChange={(v) => setEsc('major', v)} placeholder="예: 현장→본사(2시간 이내)" />
+          <Field label="긴급" value={report.escalation.critical} onChange={(v) => setEsc('critical', v)} placeholder="예: 현장→본사→고객사(즉시)" />
+        </FormGroup>
       </div>
 
       {error && <p className="mt-3 text-xs text-amber-500">{error}</p>}
@@ -320,42 +227,12 @@ function CopyLinkButton({ url }) {
   )
 }
 
-function SectionPreview({ s }) {
-  if (s.type === 'table') {
-    const columns = s.columns || []
-    const rows = s.rows || []
-    return (
-      <div className="overflow-x-auto rounded-lg bg-base-900 p-3">
-        <p className="mb-2 text-xs font-medium text-base-200">{s.title}</p>
-        <table className="w-full border-collapse text-xs">
-          <thead>
-            <tr>
-              {columns.map((c, i) => (
-                <th key={i} className="border border-base-800 bg-base-950 p-1.5 text-left text-base-300">
-                  {c}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row, ri) => (
-              <tr key={ri}>
-                {row.map((cell, ci) => (
-                  <td key={ci} className="border border-base-800 p-1.5 text-base-400">
-                    {cell}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    )
-  }
+function SummaryRow({ label, value }) {
+  if (!value) return null
   return (
-    <div className="rounded-lg bg-base-900 p-3">
-      <p className="mb-1 text-xs font-medium text-base-200">{s.title}</p>
-      <p className="whitespace-pre-line text-xs text-base-400">{s.body}</p>
+    <div className="flex items-center justify-between text-xs">
+      <span className="text-base-500">{label}</span>
+      <span className="font-medium text-base-200">{value}</span>
     </div>
   )
 }
@@ -468,6 +345,10 @@ export default function ClientReports() {
           {reports.map((r) => {
             const isOpen = openId === r.id
             const link = `${window.location.origin}/client-report?id=${r.id}`
+            const kpi = r.kpi || {}
+            const rt = r.responseTimes || {}
+            const rm = r.reviewMeetings || {}
+            const esc = r.escalation || {}
             return (
               <div key={r.id} className="rounded-xl border border-base-800 bg-base-950 shadow-sm">
                 <button
@@ -480,10 +361,7 @@ export default function ClientReports() {
                     ) : (
                       <ChevronRight size={16} className="shrink-0 text-base-500" />
                     )}
-                    <div>
-                      <p className="font-medium text-base-100">{r.companyName}</p>
-                      <p className="text-xs text-base-400">섹션 {r.sections?.length || 0}개</p>
-                    </div>
+                    <p className="font-medium text-base-100">{r.companyName}</p>
                   </div>
                 </button>
 
@@ -497,10 +375,39 @@ export default function ClientReports() {
                       비밀번호: <span className="font-medium text-base-300">{r.password}</span> — 이 링크와 비밀번호를 업체 담당자에게 전달하세요.
                     </p>
 
-                    <div className="mb-3 space-y-2">
-                      {(r.sections || []).map((s) => (
-                        <SectionPreview key={s.id} s={s} />
-                      ))}
+                    <div className="mb-3 grid gap-3 sm:grid-cols-2">
+                      <div className="rounded-lg bg-base-900 p-3">
+                        <p className="mb-1.5 flex items-center gap-1 text-xs font-medium text-base-200">
+                          <Target size={12} className="text-mist-500" /> KPI 목표
+                        </p>
+                        <SummaryRow label="청결도" value={kpi.cleanliness} />
+                        <SummaryRow label="민원처리 SLA" value={kpi.complaintSLA} />
+                        <SummaryRow label="누락·재작업 발생률" value={kpi.reworkRate} />
+                        <SummaryRow label="긴급대응 처리시간" value={kpi.emergencyResponse} />
+                      </div>
+                      <div className="rounded-lg bg-base-900 p-3">
+                        <p className="mb-1.5 flex items-center gap-1 text-xs font-medium text-base-200">
+                          <Timer size={12} className="text-mist-500" /> 대응 처리시간
+                        </p>
+                        <SummaryRow label="청소미흡 확인/조치" value={[rt.minorConfirm, rt.minorAction].filter(Boolean).join(' / ')} />
+                        <SummaryRow label="고객민원 확인/조치" value={[rt.complaintConfirm, rt.complaintAction].filter(Boolean).join(' / ')} />
+                        <SummaryRow label="긴급오염 초동/본조치" value={[rt.emergencyInitial, rt.emergencyFull].filter(Boolean).join(' / ')} />
+                      </div>
+                      <div className="rounded-lg bg-base-900 p-3">
+                        <p className="mb-1.5 flex items-center gap-1 text-xs font-medium text-base-200">
+                          <Users size={12} className="text-mist-500" /> 정기 운영 리뷰
+                        </p>
+                        <SummaryRow label="월간 운영리뷰" value={rm.monthly} />
+                        <SummaryRow label="분기 경영리뷰" value={rm.quarterly} />
+                      </div>
+                      <div className="rounded-lg bg-base-900 p-3">
+                        <p className="mb-1.5 flex items-center gap-1 text-xs font-medium text-base-200">
+                          <TriangleAlert size={12} className="text-mist-500" /> 에스컬레이션
+                        </p>
+                        <SummaryRow label="경미" value={esc.minor} />
+                        <SummaryRow label="중대" value={esc.major} />
+                        <SummaryRow label="긴급" value={esc.critical} />
+                      </div>
                     </div>
 
                     <div className="flex items-center gap-3">
