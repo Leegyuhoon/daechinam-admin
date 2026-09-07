@@ -4,6 +4,7 @@ import MobileNav from './components/MobileNav'
 import Dashboard from './components/Dashboard'
 import Workers from './components/Workers'
 import Sites from './components/Sites'
+import SpotJobs from './components/SpotJobs'
 import Inventory from './components/Inventory'
 import SafetyTraining from './components/SafetyTraining'
 import Training from './components/Training'
@@ -33,6 +34,7 @@ export default function App() {
               <Route path="/" element={<Dashboard />} />
               <Route path="/workers" element={<Workers />} />
               <Route path="/sites" element={<Sites />} />
+              <Route path="/spot-jobs" element={<SpotJobs />} />
               <Route path="/inventory" element={<Inventory />} />
               <Route path="/safety" element={<SafetyTraining />} />
             </Routes>
