@@ -1,50 +1,25 @@
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Lock, Building2 } from 'lucide-react'
+import { Lock, Building2, Target, Timer, Users, TriangleAlert } from 'lucide-react'
 import { api } from '../lib/api'
 
-function Section({ s }) {
-  if (s.type === 'table') {
-    const columns = s.columns || []
-    const rows = s.rows || []
-    return (
-      <div className="rounded-xl border border-base-800 bg-base-950 p-4 shadow-sm">
-        <p className="mb-3 text-sm font-medium text-base-100">{s.title}</p>
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse text-sm">
-            <thead>
-              <tr>
-                {columns.map((c, i) => (
-                  <th
-                    key={i}
-                    className="border border-base-800 bg-base-900 p-2 text-left text-xs font-medium text-base-300"
-                  >
-                    {c}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row, ri) => (
-                <tr key={ri}>
-                  {row.map((cell, ci) => (
-                    <td key={ci} className="border border-base-800 p-2 text-sm text-base-400">
-                      {cell}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    )
-  }
+function Row({ label, value }) {
+  if (!value) return null
+  return (
+    <div className="flex items-center justify-between border-b border-base-800/60 py-2 text-sm last:border-0">
+      <span className="text-base-400">{label}</span>
+      <span className="font-medium text-base-100">{value}</span>
+    </div>
+  )
+}
 
+function Card({ icon: Icon, title, children }) {
   return (
     <div className="rounded-xl border border-base-800 bg-base-950 p-4 shadow-sm">
-      <p className="mb-2 text-sm font-medium text-base-100">{s.title}</p>
-      <p className="whitespace-pre-line text-sm text-base-400">{s.body}</p>
+      <p className="mb-2 flex items-center gap-1.5 text-sm font-medium text-base-100">
+        <Icon size={15} className="text-mist-500" /> {title}
+      </p>
+      <div>{children}</div>
     </div>
   )
 }
@@ -107,6 +82,11 @@ export default function ClientReportView() {
     )
   }
 
+  const kpi = data.kpi || {}
+  const rt = data.responseTimes || {}
+  const rm = data.reviewMeetings || {}
+  const esc = data.escalation || {}
+
   return (
     <div className="min-h-screen bg-base-900 px-4 py-8">
       <div className="mx-auto max-w-2xl">
@@ -121,9 +101,32 @@ export default function ClientReportView() {
         </div>
 
         <div className="space-y-3">
-          {(data.sections || []).map((s, i) => (
-            <Section key={i} s={s} />
-          ))}
+          <Card icon={Target} title="서비스 품질지표(KPI) 목표">
+            <Row label="청결도" value={kpi.cleanliness} />
+            <Row label="민원처리 SLA" value={kpi.complaintSLA} />
+            <Row label="작업누락·재작업 발생률" value={kpi.reworkRate} />
+            <Row label="긴급대응 처리시간" value={kpi.emergencyResponse} />
+          </Card>
+
+          <Card icon={Timer} title="유형별 대응 처리시간">
+            <Row label="청소 미흡 — 현장확인" value={rt.minorConfirm} />
+            <Row label="청소 미흡 — 조치" value={rt.minorAction} />
+            <Row label="고객 민원 — 현장확인" value={rt.complaintConfirm} />
+            <Row label="고객 민원 — 조치" value={rt.complaintAction} />
+            <Row label="긴급 오염 — 초동조치" value={rt.emergencyInitial} />
+            <Row label="긴급 오염 — 본조치" value={rt.emergencyFull} />
+          </Card>
+
+          <Card icon={Users} title="정기 운영 리뷰">
+            <Row label="월간 운영리뷰 참석자" value={rm.monthly} />
+            <Row label="분기 경영리뷰 참석자" value={rm.quarterly} />
+          </Card>
+
+          <Card icon={TriangleAlert} title="이슈 등급별 에스컬레이션">
+            <Row label="경미" value={esc.minor} />
+            <Row label="중대" value={esc.major} />
+            <Row label="긴급" value={esc.critical} />
+          </Card>
         </div>
       </div>
     </div>
