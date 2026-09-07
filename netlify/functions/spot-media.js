@@ -4,13 +4,20 @@ function chunkKey(id, index) {
   return `${id}:chunk:${String(index).padStart(5, '0')}`
 }
 
-// GET /api/spot-media?id=... - 조각을 순서대로 이어붙여 스트리밍 (사진·영상 공용)
+const SPOT_PASSWORD = process.env.SPOT_JOBS_PASSWORD
+
+// GET /api/spot-media?id=...&pw=... - 조각을 순서대로 이어붙여 스트리밍 (사진·영상 공용)
+// <img>/<video> 태그는 커스텀 헤더를 못 보내서, 비밀번호를 쿼리 파라미터로 받습니다.
 export default async (req) => {
   if (req.method !== 'GET') return new Response('Method Not Allowed', { status: 405 })
 
   const url = new URL(req.url)
   const id = url.searchParams.get('id')
   if (!id) return new Response('id가 필요합니다', { status: 400 })
+
+  if (SPOT_PASSWORD && url.searchParams.get('pw') !== SPOT_PASSWORD) {
+    return new Response('비밀번호가 필요합니다', { status: 401 })
+  }
 
   const store = getStore('spot-job-media')
 
