@@ -4,10 +4,15 @@ function chunkKey(id, index) {
   return `${id}:chunk:${String(index).padStart(5, '0')}`
 }
 
+const SPOT_PASSWORD = process.env.SPOT_JOBS_PASSWORD
+
 // POST /api/spot-media-chunk
-// 헤더: X-Upload-Id, X-Chunk-Index / 본문: 해당 조각의 바이너리 (사진·영상 공용)
+// 헤더: X-Upload-Id, X-Chunk-Index, X-Spot-Password / 본문: 해당 조각의 바이너리 (사진·영상 공용)
 export default async (req) => {
   if (req.method !== 'POST') return new Response('Method Not Allowed', { status: 405 })
+  if (SPOT_PASSWORD && req.headers.get('x-spot-password') !== SPOT_PASSWORD) {
+    return Response.json({ error: '비밀번호가 필요합니다' }, { status: 401 })
+  }
   if (!req.body) return Response.json({ error: '청크 데이터가 없습니다' }, { status: 400 })
 
   const id = req.headers.get('x-upload-id')
