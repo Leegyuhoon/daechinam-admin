@@ -8,7 +8,7 @@ function checkAdmin(req) {
   return req.headers.get('x-client-admin-password') === ADMIN_PASSWORD
 }
 
-// item: { id, companyName, password, sections: [{ title, body }], createdAt, updatedAt }
+// item: { id, companyName, password, kpi, responseTimes, reviewMeetings, escalation, createdAt, updatedAt }
 // (password는 이 업체 보고 링크를 볼 때 필요한 "업체별" 비밀번호이고, 관리자 비밀번호와는 별개입니다)
 export default async (req) => {
   if (!checkAdmin(req)) {
@@ -40,7 +40,10 @@ export default async (req) => {
         id,
         companyName: body.companyName.trim(),
         password: body.password,
-        sections: Array.isArray(body.sections) ? body.sections : [],
+        kpi: body.kpi || {},
+        responseTimes: body.responseTimes || {},
+        reviewMeetings: body.reviewMeetings || {},
+        escalation: body.escalation || {},
         createdAt: body.createdAt || new Date().toISOString(),
         updatedAt: new Date().toISOString()
       }
