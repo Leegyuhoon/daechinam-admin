@@ -15,13 +15,16 @@ import {
   Target,
   Timer,
   Users,
-  TriangleAlert
+  TriangleAlert,
+  ListChecks
 } from 'lucide-react'
 import { api } from '../lib/api'
+import SiteChecklist from './SiteChecklist'
 
 const emptyReport = () => ({
   companyName: '',
   password: '',
+  siteName: '',
   kpi: { cleanliness: '', complaintSLA: '', reworkRate: '', emergencyResponse: '' },
   responseTimes: {
     minorConfirm: '',
@@ -112,8 +115,16 @@ function FormGroup({ icon: Icon, title, children }) {
 
 function ReportForm({ initialReport, onSaved, onCancel }) {
   const [report, setReport] = useState(initialReport || emptyReport())
+  const [siteNames, setSiteNames] = useState([])
   const [error, setError] = useState(null)
   const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    api
+      .getAttendanceSummary()
+      .then((att) => setSiteNames(att.allSiteNames || []))
+      .catch(() => {})
+  }, [])
 
   const setKpi = (key, value) => setReport((r) => ({ ...r, kpi: { ...r.kpi, [key]: value } }))
   const setRt = (key, value) => setReport((r) => ({ ...r, responseTimes: { ...r.responseTimes, [key]: value } }))
@@ -156,6 +167,23 @@ function ReportForm({ initialReport, onSaved, onCancel }) {
           value={report.password}
           onChange={(e) => setReport({ ...report, password: e.target.value })}
         />
+        <label className="block sm:col-span-2">
+          <span className="mb-1 block text-xs text-base-400">
+            연동할 현장 (이 현장의 실제 출퇴근 기록이 "일일 체크리스트"로 자동 표시돼요)
+          </span>
+          <select
+            className="focus-ring w-full rounded-lg border border-base-700 bg-base-900 px-3 py-2 text-sm"
+            value={report.siteName}
+            onChange={(e) => setReport({ ...report, siteName: e.target.value })}
+          >
+            <option value="">연동 안 함</option>
+            {siteNames.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
 
       <div className="mt-4 space-y-3">
@@ -409,6 +437,15 @@ export default function ClientReports() {
                         <SummaryRow label="긴급" value={esc.critical} />
                       </div>
                     </div>
+
+                    {r.siteName && (
+                      <div className="mb-3 rounded-lg bg-base-900 p-3">
+                        <p className="mb-2 flex items-center gap-1 text-xs font-medium text-base-200">
+                          <ListChecks size={12} className="text-teal-500" /> 일일 체크리스트 ({r.siteName})
+                        </p>
+                        <SiteChecklist siteName={r.siteName} />
+                      </div>
+                    )}
 
                     <div className="flex items-center gap-3">
                       <button
