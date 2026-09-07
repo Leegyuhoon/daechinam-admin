@@ -1,6 +1,12 @@
 import { getStore } from '@netlify/blobs'
 
 const STORE_NAME = 'spot-jobs'
+const SPOT_PASSWORD = process.env.SPOT_JOBS_PASSWORD
+
+function checkPassword(req) {
+  if (!SPOT_PASSWORD) return true // 환경변수 미설정 시엔 막지 않음 (설정 전까지는 열려있어요)
+  return req.headers.get('x-spot-password') === SPOT_PASSWORD
+}
 
 // item shape:
 // {
@@ -11,6 +17,10 @@ const STORE_NAME = 'spot-jobs'
 //   createdAt, updatedAt
 // }
 export default async (req) => {
+  if (!checkPassword(req)) {
+    return Response.json({ error: '비밀번호가 필요합니다' }, { status: 401 })
+  }
+
   const store = getStore(STORE_NAME)
   const url = new URL(req.url)
 
