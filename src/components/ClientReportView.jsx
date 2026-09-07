@@ -1,33 +1,67 @@
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Lock, Building2, Target, Timer, Users, TriangleAlert, ListChecks } from 'lucide-react'
+import { Lock, Building2, Printer } from 'lucide-react'
 import { api } from '../lib/api'
 import SiteChecklist from './SiteChecklist'
 
-function Row({ label, value }) {
-  if (!value) return null
+function KVTable({ rows }) {
+  const visible = rows.filter(([, v]) => v)
+  if (visible.length === 0) return <p className="text-[11px] text-base-500">입력된 내용이 없어요.</p>
   return (
-    <div className="flex items-center justify-between border-b border-base-800/60 py-2 text-sm last:border-0">
-      <span className="text-base-400">{label}</span>
-      <span className="font-medium text-base-100">{value}</span>
-    </div>
+    <table className="w-full border-collapse text-[11px]">
+      <tbody>
+        {visible.map(([label, value]) => (
+          <tr key={label}>
+            <td className="border border-base-700 bg-base-900 px-2 py-1 font-medium text-base-300">{label}</td>
+            <td className="border border-base-700 px-2 py-1 text-base-100">{value}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   )
 }
 
-function Card({ icon: Icon, title, children }) {
+function RowsTable({ columns, rows }) {
+  const visible = (rows || []).filter((r) => r.some((c) => c))
+  if (visible.length === 0) return <p className="text-[11px] text-base-500">입력된 내용이 없어요.</p>
   return (
-    <div className="rounded-xl border border-base-800 bg-base-950 p-4 shadow-sm">
-      <p className="mb-2 flex items-center gap-1.5 text-sm font-medium text-base-100">
-        <Icon size={15} className="text-mist-500" /> {title}
-      </p>
-      <div>{children}</div>
+    <table className="w-full border-collapse text-[11px]">
+      <thead>
+        <tr>
+          {columns.map((c) => (
+            <th key={c} className="border border-base-700 bg-base-900 px-2 py-1 text-left font-medium text-base-300">
+              {c}
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {visible.map((row, i) => (
+          <tr key={i}>
+            {row.map((cell, ci) => (
+              <td key={ci} className="border border-base-700 px-2 py-1 text-base-100">
+                {cell}
+              </td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  )
+}
+
+function Block({ title, children }) {
+  return (
+    <div className="break-inside-avoid rounded-lg border border-base-800 bg-base-950 p-3">
+      <p className="mb-1.5 text-xs font-semibold text-base-100">{title}</p>
+      {children}
     </div>
   )
 }
 
 export default function ClientReportView() {
   const [params] = useSearchParams()
-  const id = params.get('id')
+  const companyId = params.get('id')
   const [pw, setPw] = useState('')
   const [error, setError] = useState(null)
   const [checking, setChecking] = useState(false)
@@ -36,18 +70,27 @@ export default function ClientReportView() {
   const submit = async (e) => {
     e.preventDefault()
     setError(null)
-    if (!id) {
+    if (!companyId) {
       setError('링크가 올바르지 않아요. 전달받은 링크로 다시 접속해주세요.')
       return
     }
     setChecking(true)
     try {
-      const res = await api.viewClientReport(id, pw)
+      const res = await api.viewClientReport(companyId, pw)
       setData(res)
     } catch (err) {
       setError(err.message)
     } finally {
       setChecking(false)
+    }
+  }
+
+  const switchPeriod = async (period) => {
+    try {
+      const res = await api.viewClientReport(companyId, pw, period)
+      setData(res)
+    } catch (err) {
+      setError(err.message)
     }
   }
 
@@ -83,57 +126,129 @@ export default function ClientReportView() {
     )
   }
 
-  const kpi = data.kpi || {}
-  const rt = data.responseTimes || {}
-  const rm = data.reviewMeetings || {}
-  const esc = data.escalation || {}
+  const r = data.report
+  if (!r) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-base-900 px-4">
+        <p className="text-sm text-base-400">아직 등록된 보고가 없어요.</p>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-base-900 px-4 py-8">
-      <div className="mx-auto max-w-2xl">
-        <div className="mb-6 flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-mist-500/15 text-mist-500">
-            <Building2 size={18} />
+      <div className="no-print mx-auto mb-4 flex max-w-[210mm] items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-mist-500/15 text-mist-500">
+            <Building2 size={16} />
           </div>
+          <p className="text-sm font-semibold text-base-100">{data.companyName}</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <select
+            className="focus-ring rounded-lg border border-base-700 bg-base-950 px-2 py-1.5 text-xs"
+            value={r.period}
+            onChange={(e) => switchPeriod(e.target.value)}
+          >
+            {data.periods.map((p) => (
+              <option key={p} value={p}>
+                {p}
+              </option>
+            ))}
+          </select>
+          <button
+            onClick={() => window.print()}
+            className="focus-ring flex items-center gap-1 rounded-lg border border-base-700 bg-base-950 px-2.5 py-1.5 text-xs text-base-300 hover:bg-base-800"
+          >
+            <Printer size={13} /> 인쇄/저장
+          </button>
+        </div>
+      </div>
+
+      <div className="print-area mx-auto max-w-[210mm] rounded-xl border border-base-800 bg-base-950 p-5 text-base-100 shadow-sm">
+        <div className="mb-3 flex items-center justify-between border-b border-base-800 pb-3">
           <div>
-            <p className="text-sm font-semibold text-base-100">{data.companyName}</p>
-            <p className="text-xs text-base-400">업체 보고</p>
+            <p className="text-base font-bold">{data.companyName} 서비스 보고</p>
+            <p className="text-xs text-base-400">{r.period} 기준</p>
           </div>
+          {data.siteName && <p className="text-xs text-base-400">현장: {data.siteName}</p>}
         </div>
 
-        <div className="space-y-3">
+        <div className="grid gap-2 sm:grid-cols-2">
           {data.siteName && (
-            <Card icon={ListChecks} title={`일일 체크리스트 (${data.siteName})`}>
-              <SiteChecklist siteName={data.siteName} />
-            </Card>
+            <Block title={`일일 체크리스트 (${data.siteName})`}>
+              <SiteChecklist siteName={data.siteName} period={r.period} compact />
+            </Block>
           )}
 
-          <Card icon={Target} title="서비스 품질지표(KPI) 목표">
-            <Row label="청결도" value={kpi.cleanliness} />
-            <Row label="민원처리 SLA" value={kpi.complaintSLA} />
-            <Row label="작업누락·재작업 발생률" value={kpi.reworkRate} />
-            <Row label="긴급대응 처리시간" value={kpi.emergencyResponse} />
-          </Card>
+          <Block title="서비스 품질지표(KPI) 목표">
+            <KVTable
+              rows={[
+                ['청결도', r.kpi.cleanliness],
+                ['민원처리 SLA', r.kpi.complaintSLA],
+                ['작업누락·재작업 발생률', r.kpi.reworkRate],
+                ['긴급대응 처리시간', r.kpi.emergencyResponse]
+              ]}
+            />
+          </Block>
 
-          <Card icon={Timer} title="유형별 대응 처리시간">
-            <Row label="청소 미흡 — 현장확인" value={rt.minorConfirm} />
-            <Row label="청소 미흡 — 조치" value={rt.minorAction} />
-            <Row label="고객 민원 — 현장확인" value={rt.complaintConfirm} />
-            <Row label="고객 민원 — 조치" value={rt.complaintAction} />
-            <Row label="긴급 오염 — 초동조치" value={rt.emergencyInitial} />
-            <Row label="긴급 오염 — 본조치" value={rt.emergencyFull} />
-          </Card>
+          <Block title="유형별 대응 처리시간">
+            <KVTable
+              rows={[
+                ['청소미흡 — 현장확인', r.responseTimes.minorConfirm],
+                ['청소미흡 — 조치', r.responseTimes.minorAction],
+                ['고객민원 — 현장확인', r.responseTimes.complaintConfirm],
+                ['고객민원 — 조치', r.responseTimes.complaintAction],
+                ['긴급오염 — 초동조치', r.responseTimes.emergencyInitial],
+                ['긴급오염 — 본조치', r.responseTimes.emergencyFull]
+              ]}
+            />
+          </Block>
 
-          <Card icon={Users} title="정기 운영 리뷰">
-            <Row label="월간 운영리뷰 참석자" value={rm.monthly} />
-            <Row label="분기 경영리뷰 참석자" value={rm.quarterly} />
-          </Card>
+          <Block title="정기 운영 리뷰">
+            <KVTable
+              rows={[
+                ['월간 운영리뷰', r.reviewMeetings.monthly],
+                ['분기 경영리뷰', r.reviewMeetings.quarterly]
+              ]}
+            />
+          </Block>
 
-          <Card icon={TriangleAlert} title="이슈 등급별 에스컬레이션">
-            <Row label="경미" value={esc.minor} />
-            <Row label="중대" value={esc.major} />
-            <Row label="긴급" value={esc.critical} />
-          </Card>
+          <Block title="이슈 등급별 에스컬레이션">
+            <KVTable
+              rows={[
+                ['경미', r.escalation.minor],
+                ['중대', r.escalation.major],
+                ['긴급', r.escalation.critical]
+              ]}
+            />
+          </Block>
+
+          <Block title="관리 현황 (인력 배치)">
+            <RowsTable columns={['구분', '인원', '근무시간']} rows={r.staffing} />
+          </Block>
+
+          <Block title="장비·소모품 비용">
+            <RowsTable columns={['품목', '규격', '비용']} rows={r.equipmentCost} />
+          </Block>
+
+          {r.companyOverview && (
+            <Block title="회사 개요·수행실적">
+              <p className="whitespace-pre-line text-[11px] text-base-200">{r.companyOverview}</p>
+            </Block>
+          )}
+
+          {r.safetyPolicy && (
+            <Block title="안전보건·보안 정책">
+              <p className="whitespace-pre-line text-[11px] text-base-200">{r.safetyPolicy}</p>
+            </Block>
+          )}
+
+          {r.differentiation && (
+            <Block title="차별화 방안·부가서비스">
+              <p className="whitespace-pre-line text-[11px] text-base-200">{r.differentiation}</p>
+            </Block>
+          )}
         </div>
       </div>
     </div>
