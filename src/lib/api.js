@@ -206,27 +206,48 @@ export const api = {
     if (typeof localStorage !== 'undefined') localStorage.setItem('daechinam_client_admin_pw', pw)
     return true
   },
-  listClientReports: () =>
-    request('/client-reports', { headers: { 'X-Client-Admin-Password': clientAdminPassword } }),
-  upsertClientReport: (item) =>
+
+  // 업체(회사) — 상위 개체, 업체명·비밀번호·연동현장은 여기 고정
+  listClientCompanies: () =>
+    request('/client-companies', { headers: { 'X-Client-Admin-Password': clientAdminPassword } }),
+  upsertClientCompany: (item) =>
+    request('/client-companies', {
+      method: 'POST',
+      body: JSON.stringify(item),
+      headers: { 'X-Client-Admin-Password': clientAdminPassword }
+    }),
+  deleteClientCompany: (id) =>
+    request(`/client-companies?id=${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+      headers: { 'X-Client-Admin-Password': clientAdminPassword }
+    }),
+
+  // 업체별 월별 보고 (period: 'YYYY-MM')
+  listClientReportPeriods: (companyId) =>
+    request(`/client-reports?companyId=${encodeURIComponent(companyId)}`, {
+      headers: { 'X-Client-Admin-Password': clientAdminPassword }
+    }),
+  upsertClientReportPeriod: (item) =>
     request('/client-reports', {
       method: 'POST',
       body: JSON.stringify(item),
       headers: { 'X-Client-Admin-Password': clientAdminPassword }
     }),
-  deleteClientReport: (id) =>
+  deleteClientReportPeriod: (id) =>
     request(`/client-reports?id=${encodeURIComponent(id)}`, {
       method: 'DELETE',
       headers: { 'X-Client-Admin-Password': clientAdminPassword }
     }),
-  viewClientReport: async (id, password) => {
+
+  // 업체 담당자용 열람 (companyId + 업체별 비밀번호, period 생략 시 최신월)
+  viewClientReport: async (companyId, password, period) => {
     const res = await fetch('/api/client-report-view', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, password })
+      body: JSON.stringify({ companyId, password, period })
     })
     const data = await res.json().catch(() => ({}))
     if (!res.ok || !data.ok) throw new Error(data.error || '조회에 실패했습니다')
-    return data // { ok:true, companyName, sections }
+    return data // { ok:true, companyName, siteName, periods, report }
   }
 }
