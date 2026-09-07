@@ -15,7 +15,8 @@ import {
   Loader2,
   ChevronDown,
   ChevronRight,
-  CalendarDays
+  CalendarDays,
+  Lock
 } from 'lucide-react'
 import { api } from '../lib/api'
 
@@ -213,8 +214,62 @@ function JobForm({ initialJob, onSaved, onCancel }) {
   )
 }
 
+function PasswordGate({ onOk }) {
+  const [pw, setPw] = useState('')
+  const [error, setError] = useState(null)
+  const [checking, setChecking] = useState(false)
+
+  const submit = async (e) => {
+    e.preventDefault()
+    setError(null)
+    setChecking(true)
+    try {
+      await api.verifySpotPassword(pw)
+      onOk()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setChecking(false)
+    }
+  }
+
+  return (
+    <div className="flex min-h-[60vh] items-center justify-center">
+      <form onSubmit={submit} className="w-full max-w-sm rounded-xl border border-base-800 bg-base-950 p-6 shadow-sm">
+        <div className="mb-3 flex items-center gap-2">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-mist-500/15 text-mist-500">
+            <Lock size={16} />
+          </div>
+          <p className="text-sm font-semibold text-base-100">일회성 현장근무</p>
+        </div>
+        <p className="mb-4 text-xs text-base-400">
+          이름·연락처 등 개인정보가 포함된 화면이라 비밀번호가 필요해요.
+        </p>
+        <input
+          type="password"
+          autoFocus
+          className="focus-ring w-full rounded-lg border border-base-700 bg-base-900 px-3 py-2.5 text-sm"
+          placeholder="비밀번호"
+          value={pw}
+          onChange={(e) => setPw(e.target.value)}
+        />
+        {error && <p className="mt-2 text-xs text-amber-500">{error}</p>}
+        <button
+          type="submit"
+          disabled={checking}
+          className="focus-ring mt-3 w-full rounded-lg bg-mist-500 px-4 py-2.5 text-sm font-medium text-base-950 hover:bg-mist-400 disabled:opacity-50"
+        >
+          {checking ? '확인 중…' : '들어가기'}
+        </button>
+      </form>
+    </div>
+  )
+}
+
 export default function SpotJobs() {
   const navigate = useNavigate()
+  const [unlocked, setUnlocked] = useState(false)
+  const [checkingStored, setCheckingStored] = useState(true)
   const [jobs, setJobs] = useState([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
@@ -225,7 +280,23 @@ export default function SpotJobs() {
     setLoading(true)
     api.listSpotJobs().then(({ items }) => setJobs(items)).finally(() => setLoading(false))
   }
-  useEffect(load, [])
+
+  useEffect(() => {
+    const stored = localStorage.getItem('daechinam_spot_pw')
+    if (stored) {
+      api
+        .verifySpotPassword(stored)
+        .then(() => setUnlocked(true))
+        .catch(() => {})
+        .finally(() => setCheckingStored(false))
+    } else {
+      setCheckingStored(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (unlocked) load()
+  }, [unlocked])
 
   const openNew = () => {
     setEditingJob(null)
@@ -240,6 +311,9 @@ export default function SpotJobs() {
     await api.deleteSpotJob(id)
     load()
   }
+
+  if (checkingStored) return null
+  if (!unlocked) return <PasswordGate onOk={() => setUnlocked(true)} />
 
   return (
     <div>
@@ -263,6 +337,15 @@ export default function SpotJobs() {
             className="focus-ring flex items-center gap-1.5 rounded-lg border border-base-800 px-3 py-1.5 text-xs text-base-300 hover:bg-base-800"
           >
             <Plus size={14} /> 등록
+          </button>
+          <button
+            onClick={() => {
+              api.clearSpotPassword()
+              setUnlocked(false)
+            }}
+            className="focus-ring flex items-center gap-1.5 rounded-lg border border-base-800 px-3 py-1.5 text-xs text-base-300 hover:bg-base-800"
+          >
+            <Lock size={14} />
           </button>
         </div>
       </div>
