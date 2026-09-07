@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Lock, Building2, Target, Timer, Users, TriangleAlert } from 'lucide-react'
+import { Lock, Building2, Target, Timer, Users, TriangleAlert, ListChecks } from 'lucide-react'
 import { api } from '../lib/api'
+import SiteChecklist from './SiteChecklist'
 
 function Row({ label, value }) {
   if (!value) return null
@@ -101,6 +102,12 @@ export default function ClientReportView() {
         </div>
 
         <div className="space-y-3">
+          {data.siteName && (
+            <Card icon={ListChecks} title={`일일 체크리스트 (${data.siteName})`}>
+              <SiteChecklist siteName={data.siteName} />
+            </Card>
+          )}
+
           <Card icon={Target} title="서비스 품질지표(KPI) 목표">
             <Row label="청결도" value={kpi.cleanliness} />
             <Row label="민원처리 SLA" value={kpi.complaintSLA} />
