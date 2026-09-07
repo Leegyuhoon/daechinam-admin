@@ -11,11 +11,20 @@ import {
   Check,
   Building2,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  AlignLeft,
+  Table2
 } from 'lucide-react'
 import { api } from '../lib/api'
 
-const emptySection = () => ({ id: crypto.randomUUID(), title: '', body: '' })
+const emptySection = () => ({
+  id: crypto.randomUUID(),
+  type: 'text', // 'text' | 'table'
+  title: '',
+  body: '',
+  columns: ['항목', '내용'],
+  rows: [['', '']]
+})
 const emptyReport = () => ({ companyName: '', password: '', sections: [emptySection()] })
 
 function PasswordGate({ onOk }) {
@@ -68,13 +77,150 @@ function PasswordGate({ onOk }) {
   )
 }
 
+function TableEditor({ section, onChange }) {
+  const columns = section.columns?.length ? section.columns : ['항목', '내용']
+  const rows = section.rows?.length ? section.rows : [columns.map(() => '')]
+
+  const updateColumn = (i, value) => {
+    const next = [...columns]
+    next[i] = value
+    onChange({ ...section, columns: next })
+  }
+  const addColumn = () => onChange({ ...section, columns: [...columns, ''], rows: rows.map((r) => [...r, '']) })
+  const removeColumn = (i) =>
+    onChange({
+      ...section,
+      columns: columns.filter((_, idx) => idx !== i),
+      rows: rows.map((r) => r.filter((_, idx) => idx !== i))
+    })
+
+  const updateCell = (ri, ci, value) => {
+    const next = rows.map((r) => [...r])
+    next[ri][ci] = value
+    onChange({ ...section, rows: next })
+  }
+  const addRow = () => onChange({ ...section, rows: [...rows, columns.map(() => '')] })
+  const removeRow = (ri) => onChange({ ...section, rows: rows.filter((_, idx) => idx !== ri) })
+
+  return (
+    <div>
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse text-xs">
+          <thead>
+            <tr>
+              {columns.map((c, i) => (
+                <th key={i} className="border border-base-700 p-1">
+                  <div className="flex items-center gap-1">
+                    <input
+                      value={c}
+                      onChange={(e) => updateColumn(i, e.target.value)}
+                      className="focus-ring w-full rounded bg-base-950 px-1.5 py-1 text-xs"
+                      placeholder={`열 ${i + 1}`}
+                    />
+                    {columns.length > 1 && (
+                      <button onClick={() => removeColumn(i)} className="text-base-500 hover:text-red-500">
+                        <X size={11} />
+                      </button>
+                    )}
+                  </div>
+                </th>
+              ))}
+              <th className="w-8 border border-base-700 p-1">
+                <button onClick={addColumn} className="text-base-500 hover:text-mist-500">
+                  <Plus size={12} />
+                </button>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, ri) => (
+              <tr key={ri}>
+                {columns.map((_, ci) => (
+                  <td key={ci} className="border border-base-700 p-1">
+                    <input
+                      value={row[ci] || ''}
+                      onChange={(e) => updateCell(ri, ci, e.target.value)}
+                      className="focus-ring w-full rounded bg-base-950 px-1.5 py-1 text-xs"
+                    />
+                  </td>
+                ))}
+                <td className="border border-base-700 p-1 text-center">
+                  <button onClick={() => removeRow(ri)} className="text-base-500 hover:text-red-500">
+                    <Trash2 size={11} />
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <button
+        onClick={addRow}
+        className="focus-ring mt-1.5 flex items-center gap-1 text-[11px] text-base-400 hover:text-mist-500"
+      >
+        <Plus size={11} /> 행 추가
+      </button>
+    </div>
+  )
+}
+
+function SectionEditor({ section, onChange, onRemove }) {
+  const setType = (type) => onChange({ ...section, type })
+
+  return (
+    <div className="rounded-lg border border-base-800 bg-base-900 p-3">
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <input
+          className="focus-ring flex-1 rounded-md border border-base-700 bg-base-950 px-2 py-1.5 text-sm"
+          placeholder="섹션 제목 (예: 서비스 품질지표(KPI))"
+          value={section.title}
+          onChange={(e) => onChange({ ...section, title: e.target.value })}
+        />
+        <div className="flex items-center rounded-md border border-base-700 bg-base-950 p-0.5">
+          <button
+            onClick={() => setType('text')}
+            className={`flex items-center gap-1 rounded px-2 py-1 text-[11px] ${
+              section.type !== 'table' ? 'bg-mist-500/15 text-mist-500' : 'text-base-400'
+            }`}
+          >
+            <AlignLeft size={12} /> 텍스트
+          </button>
+          <button
+            onClick={() => setType('table')}
+            className={`flex items-center gap-1 rounded px-2 py-1 text-[11px] ${
+              section.type === 'table' ? 'bg-mist-500/15 text-mist-500' : 'text-base-400'
+            }`}
+          >
+            <Table2 size={12} /> 표
+          </button>
+        </div>
+        <button onClick={onRemove} className="focus-ring text-base-500 hover:text-red-500">
+          <Trash2 size={14} />
+        </button>
+      </div>
+
+      {section.type === 'table' ? (
+        <TableEditor section={section} onChange={onChange} />
+      ) : (
+        <textarea
+          className="focus-ring w-full rounded-md border border-base-700 bg-base-950 px-2 py-1.5 text-sm"
+          placeholder="내용"
+          rows={4}
+          value={section.body}
+          onChange={(e) => onChange({ ...section, body: e.target.value })}
+        />
+      )}
+    </div>
+  )
+}
+
 function ReportForm({ initialReport, onSaved, onCancel }) {
   const [report, setReport] = useState(initialReport || emptyReport())
   const [error, setError] = useState(null)
   const [saving, setSaving] = useState(false)
 
-  const updateSection = (id, patch) =>
-    setReport((r) => ({ ...r, sections: r.sections.map((s) => (s.id === id ? { ...s, ...patch } : s)) }))
+  const updateSection = (id, next) =>
+    setReport((r) => ({ ...r, sections: r.sections.map((s) => (s.id === id ? next : s)) }))
   const addSection = () => setReport((r) => ({ ...r, sections: [...r.sections, emptySection()] }))
   const removeSection = (id) => setReport((r) => ({ ...r, sections: r.sections.filter((s) => s.id !== id) }))
 
@@ -117,28 +263,14 @@ function ReportForm({ initialReport, onSaved, onCancel }) {
       </div>
 
       <div className="mt-4 space-y-3">
-        <p className="text-xs font-medium text-base-300">보고 내용 (섹션별 제목 + 내용)</p>
-        {report.sections.map((s, i) => (
-          <div key={s.id} className="rounded-lg border border-base-800 bg-base-900 p-3">
-            <div className="mb-2 flex items-center justify-between gap-2">
-              <input
-                className="focus-ring flex-1 rounded-md border border-base-700 bg-base-950 px-2 py-1.5 text-sm"
-                placeholder={`섹션 ${i + 1} 제목 (예: 서비스 품질지표(KPI))`}
-                value={s.title}
-                onChange={(e) => updateSection(s.id, { title: e.target.value })}
-              />
-              <button onClick={() => removeSection(s.id)} className="focus-ring text-base-500 hover:text-red-500">
-                <Trash2 size={14} />
-              </button>
-            </div>
-            <textarea
-              className="focus-ring w-full rounded-md border border-base-700 bg-base-950 px-2 py-1.5 text-sm"
-              placeholder="내용"
-              rows={4}
-              value={s.body}
-              onChange={(e) => updateSection(s.id, { body: e.target.value })}
-            />
-          </div>
+        <p className="text-xs font-medium text-base-300">보고 내용 (섹션마다 텍스트 또는 표 선택)</p>
+        {report.sections.map((s) => (
+          <SectionEditor
+            key={s.id}
+            section={s}
+            onChange={(next) => updateSection(s.id, next)}
+            onRemove={() => removeSection(s.id)}
+          />
         ))}
         <button
           onClick={addSection}
@@ -185,6 +317,46 @@ function CopyLinkButton({ url }) {
       {copied ? <Check size={11} className="text-mist-500" /> : <Copy size={11} />}
       {copied ? '복사됨' : '링크 복사'}
     </button>
+  )
+}
+
+function SectionPreview({ s }) {
+  if (s.type === 'table') {
+    const columns = s.columns || []
+    const rows = s.rows || []
+    return (
+      <div className="overflow-x-auto rounded-lg bg-base-900 p-3">
+        <p className="mb-2 text-xs font-medium text-base-200">{s.title}</p>
+        <table className="w-full border-collapse text-xs">
+          <thead>
+            <tr>
+              {columns.map((c, i) => (
+                <th key={i} className="border border-base-800 bg-base-950 p-1.5 text-left text-base-300">
+                  {c}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, ri) => (
+              <tr key={ri}>
+                {row.map((cell, ci) => (
+                  <td key={ci} className="border border-base-800 p-1.5 text-base-400">
+                    {cell}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )
+  }
+  return (
+    <div className="rounded-lg bg-base-900 p-3">
+      <p className="mb-1 text-xs font-medium text-base-200">{s.title}</p>
+      <p className="whitespace-pre-line text-xs text-base-400">{s.body}</p>
+    </div>
   )
 }
 
@@ -327,10 +499,7 @@ export default function ClientReports() {
 
                     <div className="mb-3 space-y-2">
                       {(r.sections || []).map((s) => (
-                        <div key={s.id} className="rounded-lg bg-base-900 p-3">
-                          <p className="mb-1 text-xs font-medium text-base-200">{s.title}</p>
-                          <p className="whitespace-pre-line text-xs text-base-400">{s.body}</p>
-                        </div>
+                        <SectionPreview key={s.id} s={s} />
                       ))}
                     </div>
 
