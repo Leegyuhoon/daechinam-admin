@@ -51,17 +51,17 @@ export default function Workers() {
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-base-100">근로자 현황</h1>
+        <h1 className="text-xl font-semibold text-page-text">근로자 현황</h1>
         <div className="flex gap-2">
           <button
             onClick={() => navigate(-1)}
-            className="focus-ring flex items-center gap-1.5 rounded-lg border border-base-800 bg-base-950 px-3 py-1.5 text-xs text-base-300 hover:bg-base-800"
+            className="focus-ring flex items-center gap-1.5 rounded-lg border border-page-border bg-page-soft px-3 py-1.5 text-xs text-page-sub hover:bg-page-border hover:text-page-text"
           >
             <ArrowLeft size={14} /> 뒤로가기
           </button>
           <button
             onClick={load}
-            className="focus-ring flex items-center gap-1.5 rounded-lg border border-base-800 bg-base-950 px-3 py-1.5 text-xs text-base-300 hover:bg-base-800"
+            className="focus-ring flex items-center gap-1.5 rounded-lg border border-page-border bg-page-soft px-3 py-1.5 text-xs text-page-sub hover:bg-page-border hover:text-page-text"
           >
             <RefreshCw size={14} className={state.loading ? 'animate-spin' : ''} />
             새로고침
@@ -70,15 +70,15 @@ export default function Workers() {
       </div>
 
       {state.error && (
-        <div className="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 text-sm text-amber-500">
+        <div className="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 text-sm text-amber-400">
           {state.error}
         </div>
       )}
 
       {state.loading ? (
-        <p className="p-8 text-center text-sm text-base-500">불러오는 중…</p>
+        <p className="p-8 text-center text-sm text-page-sub">불러오는 중…</p>
       ) : cards.length === 0 ? (
-        <p className="p-8 text-center text-sm text-base-500">등록된 근로자가 없어요.</p>
+        <p className="p-8 text-center text-sm text-page-sub">등록된 근로자가 없어요.</p>
       ) : (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
           {cards.map(({ w, records, monthHours, totalHours, flagCount, ongoingToday }) => {
