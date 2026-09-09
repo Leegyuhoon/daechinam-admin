@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { Routes, Route } from 'react-router-dom'
 import Sidebar from './components/Sidebar'
 import MobileNav from './components/MobileNav'
@@ -21,30 +22,58 @@ function AdminLayout({ children }) {
   )
 }
 
-export default function App() {
+// 어플(daechinam-app)과 같은 다크 네이비 + 골드 브랜드로 맞춘 접속 인트로 화면
+function Splash() {
   return (
-    <Routes>
-      {/* 근로자용 / 업체 담당자용 — 관리 UI 없이 독립된 화면 */}
-      <Route path="/training" element={<Training />} />
-      <Route path="/client-report" element={<ClientReportView />} />
+    <div
+      className="fixed inset-0 z-[999] flex flex-col items-center justify-center gap-3"
+      style={{ background: '#1D232A' }}
+    >
+      <div
+        className="flex h-14 w-14 items-center justify-center rounded-2xl"
+        style={{ background: 'rgba(185,114,10,0.18)' }}
+      >
+        <span className="text-xl font-bold" style={{ color: '#EB9E18' }}>D</span>
+      </div>
+      <p className="text-sm font-semibold tracking-wide" style={{ color: '#F5F1EA' }}>DAECHINAM</p>
+      <p className="text-[11px]" style={{ color: '#9BA3AB' }}>통합 관리</p>
+    </div>
+  )
+}
 
-      {/* 본사 관리용 — 사이드바 포함 */}
-      <Route
-        path="/*"
-        element={
-          <AdminLayout>
-            <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/workers" element={<Workers />} />
-              <Route path="/sites" element={<Sites />} />
-              <Route path="/spot-jobs" element={<SpotJobs />} />
-              <Route path="/inventory" element={<Inventory />} />
-              <Route path="/safety" element={<SafetyTraining />} />
-              <Route path="/client-reports" element={<ClientReports />} />
-            </Routes>
-          </AdminLayout>
-        }
-      />
-    </Routes>
+export default function App() {
+  const [showSplash, setShowSplash] = useState(true)
+  useEffect(() => {
+    const t = setTimeout(() => setShowSplash(false), 700)
+    return () => clearTimeout(t)
+  }, [])
+
+  return (
+    <>
+      {showSplash && <Splash />}
+      <Routes>
+        {/* 근로자용 / 업체 담당자용 — 관리 UI 없이 독립된 화면 */}
+        <Route path="/training" element={<Training />} />
+        <Route path="/client-report" element={<ClientReportView />} />
+
+        {/* 본사 관리용 — 사이드바 포함 */}
+        <Route
+          path="/*"
+          element={
+            <AdminLayout>
+              <Routes>
+                <Route path="/" element={<Dashboard />} />
+                <Route path="/workers" element={<Workers />} />
+                <Route path="/sites" element={<Sites />} />
+                <Route path="/spot-jobs" element={<SpotJobs />} />
+                <Route path="/inventory" element={<Inventory />} />
+                <Route path="/safety" element={<SafetyTraining />} />
+                <Route path="/client-reports" element={<ClientReports />} />
+              </Routes>
+            </AdminLayout>
+          }
+        />
+      </Routes>
+    </>
   )
 }
