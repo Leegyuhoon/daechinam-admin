@@ -21,10 +21,10 @@ import { hoursOf } from '../lib/hours'
 
 const LONG_SHIFT_HOURS = 12 // 이 시간을 넘으면 "장시간 근무"로 표시
 
-// 월별 추이 — 네이비 톤 하나로 통일된 그러데이션 (과거 → 최근 순으로 점점 밝아짐)
+// 월별 추이 — 골드 톤 하나로 통일된 그러데이션 (과거 → 최근 순으로 점점 밝아짐)
 const monthColor = (i, total) => {
-  const lightness = 26 + (i / Math.max(1, total - 1)) * 34 // 26% ~ 60%
-  return `hsl(213, 55%, ${lightness}%)`
+  const lightness = 30 + (i / Math.max(1, total - 1)) * 30 // 30% ~ 60%
+  return `hsl(35, 70%, ${lightness}%)`
 }
 
 const TONE_CLASSES = {
@@ -123,7 +123,6 @@ export default function Dashboard() {
   const outFlagTotal = (state.daily || []).reduce((sum, d) => sum + (d.outFlag || 0), 0)
   const leaders = (state.roster || []).filter((w) => w.isTeamLead)
 
-  // 일별 데이터를 월별로 합산 (최근 12개월)
   const monthlyMap = {}
   for (const d of state.daily || []) {
     const month = d.date?.slice(0, 7)
@@ -147,7 +146,6 @@ export default function Dashboard() {
     .filter((r) => r.date === todayDate)
     .sort((a, b) => (a.clockIn || '').localeCompare(b.clockIn || ''))
 
-  // 이번달 근무시간 TOP5
   const thisMonth = new Date().toISOString().slice(0, 7)
   const hoursByWorker = {}
   for (const r of state.records || []) {
@@ -164,17 +162,17 @@ export default function Dashboard() {
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-base-100">출퇴근 대시보드</h1>
+        <h1 className="text-xl font-semibold text-page-text">출퇴근 대시보드</h1>
         <div className="flex gap-2">
           <button
             onClick={() => navigate(-1)}
-            className="focus-ring flex items-center gap-1.5 rounded-lg border border-base-800 bg-base-950 px-3 py-1.5 text-xs text-base-300 hover:bg-base-800"
+            className="focus-ring flex items-center gap-1.5 rounded-lg border border-page-border bg-page-soft px-3 py-1.5 text-xs text-page-sub hover:bg-page-border hover:text-page-text"
           >
             <ArrowLeft size={14} /> 뒤로가기
           </button>
           <button
             onClick={load}
-            className="focus-ring flex items-center gap-1.5 rounded-lg border border-base-800 bg-base-950 px-3 py-1.5 text-xs text-base-300 hover:bg-base-800"
+            className="focus-ring flex items-center gap-1.5 rounded-lg border border-page-border bg-page-soft px-3 py-1.5 text-xs text-page-sub hover:bg-page-border hover:text-page-text"
           >
             <RefreshCw size={14} className={state.loading ? 'animate-spin' : ''} />
             새로고침
@@ -183,7 +181,7 @@ export default function Dashboard() {
       </div>
 
       {state.error && (
-        <div className="mb-6 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 text-sm text-amber-500">
+        <div className="mb-6 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 text-sm text-amber-400">
           {state.error}
         </div>
       )}
@@ -245,7 +243,7 @@ export default function Dashboard() {
           <p className="mb-3 text-sm font-medium text-base-200">월별 출퇴근 추이 (최근 {chartData.length}개월)</p>
           <div
             className="relative h-64"
-            style={{ filter: 'drop-shadow(0 10px 14px rgba(30,58,95,0.18))' }}
+            style={{ filter: 'drop-shadow(0 10px 14px rgba(185,114,10,0.18))' }}
           >
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
