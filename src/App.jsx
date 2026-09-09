@@ -14,7 +14,7 @@ import ClientReportView from './components/ClientReportView'
 
 function AdminLayout({ children }) {
   return (
-    <div className="flex min-h-screen bg-base-900">
+    <div className="flex min-h-screen bg-page-bg">
       <Sidebar />
       <main className="flex-1 overflow-x-hidden px-4 pb-24 pt-6 sm:px-8 sm:pb-8">{children}</main>
       <MobileNav />
