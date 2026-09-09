@@ -13,8 +13,8 @@ const items = [
 
 export default function Sidebar() {
   return (
-    <aside className="hidden md:flex w-64 shrink-0 flex-col border-r border-base-800 bg-base-950 px-4 py-6">
-      <p className="mb-8 px-2 text-sm font-semibold leading-snug text-base-100">
+    <aside className="hidden md:flex w-64 shrink-0 flex-col border-r border-page-border bg-page-bg px-4 py-6">
+      <p className="mb-8 px-2 text-sm font-semibold leading-snug text-page-text">
         (주)이엘씨_대치남 통합 관리
       </p>
 
@@ -27,8 +27,8 @@ export default function Sidebar() {
             className={({ isActive }) =>
               `focus-ring flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors ${
                 isActive
-                  ? 'bg-mist-500/15 text-mist-500 font-medium'
-                  : 'text-base-300 hover:bg-base-800 hover:text-base-100'
+                  ? 'bg-mist-500/15 text-mist-400 font-medium'
+                  : 'text-page-sub hover:bg-page-soft hover:text-page-text'
               }`
             }
           >
@@ -38,10 +38,10 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      <div className="mt-auto flex items-center gap-2 rounded-lg border border-base-800 px-3 py-2.5 text-xs text-base-400">
+      <div className="mt-auto flex items-center gap-2 rounded-lg border border-page-border px-3 py-2.5 text-xs text-page-sub">
         <span className="relative flex h-2 w-2">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-mist-500 opacity-60" />
-          <span className="relative inline-flex h-2 w-2 rounded-full bg-mist-500" />
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-mist-400 opacity-60" />
+          <span className="relative inline-flex h-2 w-2 rounded-full bg-mist-400" />
         </span>
         현장 데이터 실시간 연동 중
       </div>
