@@ -81,17 +81,17 @@ export default function Inventory() {
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-base-100">재고 현황</h1>
+        <h1 className="text-xl font-semibold text-page-text">재고 현황</h1>
         <button
           onClick={() => navigate(-1)}
-          className="focus-ring flex items-center gap-1.5 rounded-lg border border-base-800 bg-base-950 px-3 py-1.5 text-xs text-base-300 hover:bg-base-800"
+          className="focus-ring flex items-center gap-1.5 rounded-lg border border-page-border bg-page-soft px-3 py-1.5 text-xs text-page-sub hover:bg-page-border hover:text-page-text"
         >
           <ArrowLeft size={14} /> 뒤로가기
         </button>
       </div>
 
       {error && (
-        <div className="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 text-sm text-amber-500">
+        <div className="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 text-sm text-amber-400">
           {error}
         </div>
       )}
@@ -162,7 +162,9 @@ export default function Inventory() {
             key={s}
             onClick={() => setScopeFilter(s)}
             className={`focus-ring flex items-center gap-1 rounded-full px-3 py-1 text-xs ${
-              scopeFilter === s ? 'bg-mist-500/15 text-mist-500' : 'border border-base-800 text-base-400 hover:bg-base-800'
+              scopeFilter === s
+                ? 'bg-mist-500/15 text-mist-500'
+                : 'border border-page-border text-page-sub hover:bg-page-soft hover:text-page-text'
             }`}
           >
             {s !== '전체' && <Building2 size={11} />}
@@ -177,7 +179,9 @@ export default function Inventory() {
             key={c}
             onClick={() => setCategory(c)}
             className={`focus-ring rounded-full px-3 py-1 text-xs ${
-              category === c ? 'bg-base-800 text-base-100' : 'border border-base-800 text-base-400 hover:bg-base-800'
+              category === c
+                ? 'bg-base-800 text-base-100'
+                : 'border border-page-border text-page-sub hover:bg-page-soft hover:text-page-text'
             }`}
           >
             {c}
