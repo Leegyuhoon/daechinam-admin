@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ChevronDown, ChevronRight, Clock, MapPinOff, RefreshCw, Building2, ArrowLeft } from 'lucide-react'
+import { ChevronDown, ChevronRight, Clock, MapPinOff, RefreshCw, Building2, Crown, ArrowLeft } from 'lucide-react'
 import { api } from '../lib/api'
 import { hoursOf } from '../lib/hours'
 
@@ -29,11 +29,24 @@ export default function Workers() {
   }, [state.records])
 
   const thisMonth = new Date().toISOString().slice(0, 7)
+  const today = new Date().toISOString().slice(0, 10)
 
   const toggleWorker = (id) => {
     setOpenWorkerId(openWorkerId === id ? null : id)
-    setOpenSiteKey(null) // 근로자를 바꾸면 현장 펼침도 초기화
+    setOpenSiteKey(null)
   }
+
+  const cards = useMemo(() => {
+    return (state.roster || []).map((w) => {
+      const records = (byWorker[w.id] || []).slice().sort((a, b) => (b.date || '').localeCompare(a.date || ''))
+      const monthHours = records.filter((r) => r.date?.startsWith(thisMonth)).reduce((sum, r) => sum + hoursOf(r), 0)
+      const totalHours = records.reduce((sum, r) => sum + hoursOf(r), 0)
+      const flagCount = records.filter((r) => r.outFlag).length
+      const ongoingToday = records.some((r) => r.date === today && r.ongoing)
+      return { w, records, monthHours, totalHours, flagCount, ongoingToday }
+    })
+  }, [state.roster, byWorker, thisMonth, today])
+  const maxMonthHours = Math.max(1, ...cards.map((c) => c.monthHours))
 
   return (
     <div>
@@ -64,19 +77,12 @@ export default function Workers() {
 
       {state.loading ? (
         <p className="p-8 text-center text-sm text-base-500">불러오는 중…</p>
-      ) : (state.roster || []).length === 0 ? (
+      ) : cards.length === 0 ? (
         <p className="p-8 text-center text-sm text-base-500">등록된 근로자가 없어요.</p>
       ) : (
-        <div className="space-y-2">
-          {state.roster.map((w) => {
-            const records = (byWorker[w.id] || []).slice().sort((a, b) => (b.date || '').localeCompare(a.date || ''))
-            const monthHours = records
-              .filter((r) => r.date?.startsWith(thisMonth))
-              .reduce((sum, r) => sum + hoursOf(r), 0)
-            const totalHours = records.reduce((sum, r) => sum + hoursOf(r), 0)
-            const flagCount = records.filter((r) => r.outFlag).length
-            const isWorkerOpen = openWorkerId === w.id
-
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          {cards.map(({ w, records, monthHours, totalHours, flagCount, ongoingToday }) => {
+            const isOpen = openWorkerId === w.id
             const bySite = {}
             for (const r of records) {
               const key = r.site || '미지정'
@@ -88,52 +94,48 @@ export default function Workers() {
             )
 
             return (
-              <div key={w.id} className="rounded-xl border border-base-800 bg-base-950 shadow-sm">
+              <div key={w.id} className="overflow-hidden rounded-xl border border-base-800 bg-base-950 shadow-sm">
                 <button
                   onClick={() => toggleWorker(w.id)}
-                  className="focus-ring flex w-full items-center justify-between p-4 text-left"
+                  className="focus-ring flex w-full flex-col items-center gap-2 p-4 text-center"
                 >
-                  <div className="flex items-center gap-3">
-                    {isWorkerOpen ? (
-                      <ChevronDown size={16} className="shrink-0 text-base-500" />
-                    ) : (
-                      <ChevronRight size={16} className="shrink-0 text-base-500" />
-                    )}
-                    <div>
-                      <p className="flex items-center gap-1.5 font-medium text-base-100">
-                        {w.name}
-                        {w.isTeamLead && (
-                          <span className="rounded-full bg-violet-500/15 px-1.5 py-0.5 text-[10px] text-violet-500">팀장</span>
-                        )}
-                        {siteNames.length > 1 && (
-                          <span className="flex items-center gap-0.5 rounded-full bg-teal-500/15 px-1.5 py-0.5 text-[10px] text-teal-500">
-                            <Building2 size={10} /> {siteNames.length}곳
-                          </span>
-                        )}
-                      </p>
-                      <p className="text-xs text-base-400">{w.siteNames.join(', ') || '배정 현장 없음'}</p>
+                  <div className="relative">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-mist-500/15 text-lg font-semibold text-mist-500">
+                      {w.name.slice(0, 1)}
                     </div>
+                    {ongoingToday && (
+                      <span className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full bg-teal-500 ring-2 ring-base-950" />
+                    )}
                   </div>
-                  <div className="flex items-center gap-4 text-right text-xs text-base-400">
-                    <span>이번달 {monthHours.toFixed(1)}h</span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-sm font-medium text-base-100">{w.name}</span>
+                    {w.isTeamLead && <Crown size={12} className="text-violet-500" />}
+                  </div>
+                  <div className="h-1.5 w-full rounded-full bg-base-800">
+                    <div
+                      className="h-1.5 rounded-full bg-red-500"
+                      style={{ width: `${Math.max(6, (monthHours / maxMonthHours) * 100)}%` }}
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 text-[11px] text-base-500">
+                    <span>{monthHours.toFixed(1)}h 이번달</span>
                     {flagCount > 0 && (
-                      <span className="flex items-center gap-1 text-amber-500">
-                        <MapPinOff size={12} /> {flagCount}
+                      <span className="flex items-center gap-0.5 text-amber-500">
+                        <MapPinOff size={10} /> {flagCount}
                       </span>
                     )}
                   </div>
                 </button>
 
-                {isWorkerOpen && (
-                  <div className="border-t border-base-800 p-4 pt-3">
-                    <div className="mb-3 flex gap-4 text-xs text-base-400">
+                {isOpen && (
+                  <div className="border-t border-base-800 p-3 pt-3">
+                    <div className="mb-2 flex justify-center gap-3 text-[11px] text-base-500">
                       <span>누적 {totalHours.toFixed(1)}h</span>
-                      <span>이번달 {monthHours.toFixed(1)}h</span>
                       <span>기록 {records.length}건</span>
                     </div>
 
                     {records.length === 0 ? (
-                      <p className="text-sm text-base-500">출근 기록이 없어요.</p>
+                      <p className="text-center text-xs text-base-500">출근 기록이 없어요.</p>
                     ) : (
                       <div className="space-y-1.5">
                         {siteNames.map((siteName) => {
@@ -148,33 +150,31 @@ export default function Workers() {
                             <div key={siteName} className="rounded-lg border border-base-800 bg-base-900">
                               <button
                                 onClick={() => setOpenSiteKey(isSiteOpen ? null : siteKey)}
-                                className="focus-ring flex w-full items-center justify-between px-3 py-2 text-left"
+                                className="focus-ring flex w-full items-center justify-between px-2.5 py-1.5 text-left"
                               >
-                                <span className="flex items-center gap-1.5 text-xs font-medium text-base-200">
+                                <span className="flex items-center gap-1 text-[11px] font-medium text-base-200">
                                   {isSiteOpen ? (
-                                    <ChevronDown size={13} className="text-base-500" />
+                                    <ChevronDown size={11} className="text-base-500" />
                                   ) : (
-                                    <ChevronRight size={13} className="text-base-500" />
+                                    <ChevronRight size={11} className="text-base-500" />
                                   )}
-                                  <Building2 size={12} className="text-teal-500" /> {siteName}
+                                  <Building2 size={11} className="text-teal-500" /> {siteName}
                                 </span>
-                                <span className="text-[11px] text-base-500">
-                                  {siteHours.toFixed(1)}h · {siteRecords.length}건
-                                </span>
+                                <span className="text-[10px] text-base-500">{siteHours.toFixed(1)}h</span>
                               </button>
 
                               {isSiteOpen && (
-                                <ul className="space-y-1.5 border-t border-base-800 p-2">
+                                <ul className="space-y-1 border-t border-base-800 p-1.5">
                                   {siteRecords.slice(0, 15).map((r) => (
                                     <li
                                       key={r.id}
-                                      className="flex items-center justify-between rounded-lg bg-base-950 px-3 py-2 text-xs"
+                                      className="flex items-center justify-between rounded-md bg-base-950 px-2 py-1.5 text-[11px]"
                                     >
                                       <span className="text-base-300">{r.date}</span>
-                                      <div className="flex items-center gap-2 text-base-400">
-                                        <Clock size={12} /> {hoursOf(r).toFixed(1)}h
+                                      <div className="flex items-center gap-1.5 text-base-400">
+                                        <Clock size={10} /> {hoursOf(r).toFixed(1)}h
                                         {r.ongoing && <span className="text-teal-500">진행중</span>}
-                                        {r.outFlag && <MapPinOff size={12} className="text-amber-500" />}
+                                        {r.outFlag && <MapPinOff size={10} className="text-amber-500" />}
                                       </div>
                                     </li>
                                   ))}
