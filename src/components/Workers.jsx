@@ -99,15 +99,8 @@ export default function Workers() {
                   onClick={() => toggleWorker(w.id)}
                   className="focus-ring flex w-full flex-col items-center gap-2 p-4 text-center"
                 >
-                  <div className="relative">
-                    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-mist-500/15 text-lg font-semibold text-mist-500">
-                      {w.name.slice(0, 1)}
-                    </div>
-                    {ongoingToday && (
-                      <span className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full bg-teal-500 ring-2 ring-base-950" />
-                    )}
-                  </div>
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1.5">
+                    {ongoingToday && <span className="h-2 w-2 rounded-full bg-teal-500" />}
                     <span className="text-sm font-medium text-base-100">{w.name}</span>
                     {w.isTeamLead && <Crown size={12} className="text-violet-500" />}
                   </div>
