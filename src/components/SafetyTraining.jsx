@@ -615,23 +615,23 @@ export default function SafetyTraining() {
   return (
     <div>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold text-base-100">안전교육</h1>
+        <h1 className="text-xl font-semibold text-page-text">안전교육</h1>
         <div className="flex gap-2">
           <button
             onClick={() => navigate(-1)}
-            className="focus-ring flex items-center gap-1.5 rounded-lg border border-base-800 px-3 py-1.5 text-xs text-base-300 hover:bg-base-800"
+            className="focus-ring flex items-center gap-1.5 rounded-lg border border-page-border bg-page-soft px-3 py-1.5 text-xs text-page-sub hover:bg-page-border hover:text-page-text"
           >
             <ArrowLeft size={14} /> 뒤로가기
           </button>
           <button
             onClick={() => setShowRoster((v) => !v)}
-            className="focus-ring flex items-center gap-1.5 rounded-lg border border-base-800 px-3 py-1.5 text-xs text-base-300 hover:bg-base-800"
+            className="focus-ring flex items-center gap-1.5 rounded-lg border border-page-border bg-page-soft px-3 py-1.5 text-xs text-page-sub hover:bg-page-border hover:text-page-text"
           >
             <Users size={14} /> 대상자 명단
           </button>
           <button
             onClick={() => (showAdmin ? setShowAdmin(false) : openNewCourse())}
-            className="focus-ring flex items-center gap-1.5 rounded-lg border border-base-800 px-3 py-1.5 text-xs text-base-300 hover:bg-base-800"
+            className="focus-ring flex items-center gap-1.5 rounded-lg border border-page-border bg-page-soft px-3 py-1.5 text-xs text-page-sub hover:bg-page-border hover:text-page-text"
           >
             <Settings2 size={14} /> 과정 등록
           </button>
