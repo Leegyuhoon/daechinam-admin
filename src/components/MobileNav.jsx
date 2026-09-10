@@ -5,7 +5,7 @@ const items = [
   { to: '/', label: '대시보드', icon: LayoutDashboard, end: true },
   { to: '/workers', label: '근로자', icon: Users },
   { to: '/sites', label: '현장', icon: Building2 },
-  { to: '/spot-jobs', label: '특근', icon: CalendarDays },
+  { to: '/spot-jobs', label: '일회성', icon: CalendarDays },
   { to: '/inventory', label: '재고', icon: Package },
   { to: '/safety', label: '안전교육', icon: ShieldCheck }
 ]
@@ -19,7 +19,7 @@ export default function MobileNav() {
           to={to}
           end={end}
           className={({ isActive }) =>
-            `focus-ring flex flex-1 flex-col items-center gap-1 py-2.5 text-[10px] ${
+            `focus-ring flex flex-1 flex-col items-center gap-1 py-2.5 text-[10px] whitespace-nowrap ${
               isActive ? 'text-mist-400' : 'text-page-sub'
             }`
           }
