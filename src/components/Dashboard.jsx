@@ -16,7 +16,8 @@ import {
   X,
   ChevronDown,
   ChevronRight,
-  Check
+  Check,
+  Download
 } from 'lucide-react'
 import { api } from '../lib/api'
 import { hoursOf } from '../lib/hours'
@@ -780,16 +781,13 @@ export default function Dashboard() {
               onChange={setReportSite}
             />
           )}
-          <p className="mb-3 text-[11px] text-amber-400">
-            사진·영상 원본 보기·다운로드는 백엔드 연동을 확인해야 붙일 수 있어요 — 지금은 목록·내용만 보여요.
-          </p>
           {filteredReports.length === 0 ? (
             <p className="py-6 text-center text-sm text-base-500">조건에 맞는 신고가 없어요.</p>
           ) : (
             <div className="space-y-1.5">
               {filteredReports.map((r) => {
                 const isOpen = openReportId === r.id
-                const mediaCount = (r.photoIds || (r.photoId ? [r.photoId] : [])).length
+                const mediaUrls = r.mediaUrls || []
                 return (
                   <div key={r.id} className="rounded-lg border border-base-800 bg-base-900">
                     <button
@@ -812,9 +810,32 @@ export default function Dashboard() {
                         {r.note && <p className="whitespace-pre-line text-sm text-base-300">{r.note}</p>}
                         <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-base-500">
                           <span>작성자: {r.workerName || '알수없음'}</span>
-                          {r.authorRole && <span>({r.authorRole === 'leader' ? '팀장' : r.authorRole === 'admin' ? '관리자' : '근로자'})</span>}
-                          {mediaCount > 0 && <span className="text-teal-500">첨부 {mediaCount}개 ({r.kind || '사진'})</span>}
+                          {r.authorRole && (
+                            <span>({r.authorRole === 'leader' ? '팀장' : r.authorRole === 'admin' ? '관리자' : '근로자'})</span>
+                          )}
                         </div>
+                        {mediaUrls.length > 0 && (
+                          <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4">
+                            {mediaUrls.map((url, i) => (
+                              <div key={url} className="group relative overflow-hidden rounded-lg border border-base-800 bg-base-950">
+                                {r.kind === 'video' ? (
+                                  <video src={url} controls className="aspect-square w-full object-cover" />
+                                ) : (
+                                  <img src={url} alt={`첨부 ${i + 1}`} className="aspect-square w-full object-cover" />
+                                )}
+                                
+                                  href={url}
+                                  download
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="focus-ring absolute bottom-1 right-1 flex items-center gap-1 rounded-full bg-black/60 px-2 py-1 text-[10px] text-white opacity-0 transition-opacity group-hover:opacity-100"
+                                >
+                                  <Download size={10} /> 저장
+                                </a>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
