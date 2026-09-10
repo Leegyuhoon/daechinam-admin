@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ChevronDown, ChevronRight, Users, MapPinOff, RefreshCw, CalendarDays, Building2, ArrowLeft } from 'lucide-react'
+import { ChevronDown, ChevronRight, Users, MapPinOff, RefreshCw, CalendarDays, ArrowLeft } from 'lucide-react'
 import { api } from '../lib/api'
 import { hoursOf } from '../lib/hours'
 
@@ -19,8 +19,6 @@ export default function Sites() {
   }
   useEffect(load, [])
 
-  // 정기 현장만 — siteId가 있는(고정 현장 목록에 등록된) 기록만 모음. siteId 없는 일회성 근무는
-  // "일회성 현장" 메뉴에서 따로 보여줌.
   const bySite = useMemo(() => {
     const map = {}
     for (const r of state.records || []) {
@@ -99,9 +97,6 @@ export default function Sites() {
                   onClick={() => toggleSite(name)}
                   className="focus-ring flex w-full flex-col items-center gap-2 p-4 text-center"
                 >
-                  <div className="flex h-14 w-14 items-center justify-center rounded-full bg-violet-500/15 text-violet-500">
-                    <Building2 size={24} />
-                  </div>
                   <span className="text-sm font-medium text-base-100">{name}</span>
                   <div className="h-1.5 w-full rounded-full bg-base-800">
                     <div
