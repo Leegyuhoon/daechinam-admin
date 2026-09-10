@@ -165,6 +165,8 @@ export default function Dashboard() {
   const [openReportId, setOpenReportId] = useState(null)
   const [supplyPeriod, setSupplyPeriod] = useState('전체')
   const [supplySite, setSupplySite] = useState('전체')
+  const [noticeDetail, setNoticeDetail] = useState(null)
+  const [reportDetail, setReportDetail] = useState(null)
 
   const load = () => {
     setState((s) => ({ ...s, loading: true, error: null }))
@@ -205,6 +207,15 @@ export default function Dashboard() {
         .sort((a, b) => (b.clockIn || '').localeCompare(a.clockIn || '')),
     [state.records, todayDate]
   )
+  const todayBySite = useMemo(() => {
+    const map = {}
+    for (const r of todayRecords) {
+      const key = r.site || '미지정'
+      map[key] = map[key] || []
+      map[key].push(r)
+    }
+    return Object.entries(map).sort((a, b) => b[1].length - a[1].length)
+  }, [todayRecords])
 
   const thisMonth = new Date().toISOString().slice(0, 7)
   const hoursByWorker = {}
@@ -321,58 +332,69 @@ export default function Dashboard() {
         />
       </div>
 
-      {/* 오늘 출퇴근 명단 */}
+      {/* 오늘 출퇴근 명단 — 현장별로 묶어서 표시 */}
       <div className="mt-6 rounded-xl border border-base-800 bg-base-950 p-4 shadow-sm">
         <p className="mb-3 flex items-center gap-1.5 text-sm font-medium text-base-200">
           <ListChecks size={15} className="text-mist-500" />
           오늘 출퇴근 명단 {todayDate && <span className="text-xs font-normal text-base-500">({todayDate})</span>}
-          <span className="ml-auto text-xs font-normal text-base-500">최근 출근순</span>
+          <span className="ml-auto text-xs font-normal text-base-500">현장별 · 인원 많은 순</span>
         </p>
         {todayRecords.length === 0 ? (
           <p className="py-4 text-center text-sm text-base-500">오늘 출퇴근 기록이 없어요.</p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-base-800 text-left text-xs text-base-500">
-                  <th className="py-2 pr-4 font-medium">이름</th>
-                  <th className="py-2 pr-4 font-medium">현장</th>
-                  <th className="py-2 pr-4 font-medium">출근</th>
-                  <th className="py-2 pr-4 font-medium">퇴근</th>
-                  <th className="py-2 font-medium">상태</th>
-                </tr>
-              </thead>
-              <tbody>
-                {todayRecords.map((r, i) => (
-                  <tr key={r.id} className={`border-b border-base-800/60 last:border-0 ${i % 2 === 1 ? 'bg-base-900/40' : ''}`}>
-                    <td className="py-2 pr-4 text-base-100">
-                      <span className="flex items-center gap-1.5">
-                        {r.workerName}
-                        {leaderNames.has(r.workerName) && (
-                          <span className="flex items-center gap-0.5 rounded-full bg-violet-500/15 px-1.5 py-0.5 text-[10px] font-medium text-violet-500">
-                            <Crown size={9} /> 팀장
-                          </span>
-                        )}
-                      </span>
-                    </td>
-                    <td className="py-2 pr-4 text-base-400">{r.site}</td>
-                    <td className="py-2 pr-4 text-base-300">{formatTime(r.clockIn)}</td>
-                    <td className="py-2 pr-4 text-base-300">{formatTime(r.clockOut)}</td>
-                    <td className="py-2">
-                      {r.outFlag ? (
-                        <span className="flex items-center gap-1 text-xs text-amber-500">
-                          <MapPinOff size={12} /> 반경 이탈
-                        </span>
-                      ) : r.ongoing ? (
-                        <span className="text-xs text-teal-500">근무중</span>
-                      ) : (
-                        <span className="text-xs text-base-500">완료</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="space-y-4">
+            {todayBySite.map(([siteName, recs]) => (
+              <div key={siteName}>
+                <p className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-base-300">
+                  <Building2 size={12} className="text-violet-500" /> {siteName}
+                  <span className="text-base-500">· {recs.length}명</span>
+                </p>
+                <div className="overflow-x-auto rounded-lg border border-base-800">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-base-800 bg-base-900 text-left text-xs text-base-500">
+                        <th className="py-2 pl-3 pr-4 font-medium">이름</th>
+                        <th className="py-2 pr-4 font-medium">출근</th>
+                        <th className="py-2 pr-4 font-medium">퇴근</th>
+                        <th className="py-2 pr-3 font-medium">상태</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {recs
+                        .slice()
+                        .sort((a, b) => (b.clockIn || '').localeCompare(a.clockIn || ''))
+                        .map((r, i) => (
+                          <tr key={r.id} className={`border-b border-base-800/60 last:border-0 ${i % 2 === 1 ? 'bg-base-900/40' : ''}`}>
+                            <td className="py-2 pl-3 pr-4 text-base-100">
+                              <span className="flex items-center gap-1.5">
+                                {r.workerName}
+                                {leaderNames.has(r.workerName) && (
+                                  <span className="flex items-center gap-0.5 rounded-full bg-violet-500/15 px-1.5 py-0.5 text-[10px] font-medium text-violet-500">
+                                    <Crown size={9} /> 팀장
+                                  </span>
+                                )}
+                              </span>
+                            </td>
+                            <td className="py-2 pr-4 text-base-300">{formatTime(r.clockIn)}</td>
+                            <td className="py-2 pr-4 text-base-300">{formatTime(r.clockOut)}</td>
+                            <td className="py-2 pr-3">
+                              {r.outFlag ? (
+                                <span className="flex items-center gap-1 text-xs text-amber-500">
+                                  <MapPinOff size={12} /> 반경 이탈
+                                </span>
+                              ) : r.ongoing ? (
+                                <span className="text-xs text-teal-500">근무중</span>
+                              ) : (
+                                <span className="text-xs text-base-500">완료</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
@@ -506,21 +528,26 @@ export default function Dashboard() {
           ) : (
             <ul className="space-y-3">
               {state.notices.slice(0, 4).map((n) => (
-                <li key={n.id} className="rounded-lg bg-base-900 p-3 text-sm">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="font-medium text-base-100">{n.title}</p>
-                    <span className="shrink-0 text-[11px] text-base-500">{timeAgo(n.createdAt)}</span>
-                  </div>
-                  <p className="mt-1 line-clamp-2 whitespace-pre-line text-xs text-base-400">{n.message}</p>
-                  <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-base-500">
-                    {n.siteName && <span className="text-mist-500">{n.siteName}</span>}
-                    <span>· {n.createdByName || '관리자'} 작성</span>
-                    {typeof n.readBy?.length === 'number' && (
-                      <span className="flex items-center gap-0.5 text-teal-500">
-                        <Check size={10} /> {n.readBy.length}명 확인
-                      </span>
-                    )}
-                  </div>
+                <li key={n.id}>
+                  <button
+                    onClick={() => setNoticeDetail(n)}
+                    className="focus-ring w-full rounded-lg bg-base-900 p-3 text-left text-sm hover:bg-base-800"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="font-medium text-base-100">{n.title}</p>
+                      <span className="shrink-0 text-[11px] text-base-500">{timeAgo(n.createdAt)}</span>
+                    </div>
+                    <p className="mt-1 line-clamp-2 whitespace-pre-line text-xs text-base-400">{n.message}</p>
+                    <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-base-500">
+                      {n.siteName && <span className="text-mist-500">{n.siteName}</span>}
+                      <span>· {n.createdByName || '관리자'} 작성</span>
+                      {typeof n.readBy?.length === 'number' && (
+                        <span className="flex items-center gap-0.5 text-teal-500">
+                          <Check size={10} /> {n.readBy.length}명 확인
+                        </span>
+                      )}
+                    </div>
+                  </button>
                 </li>
               ))}
             </ul>
@@ -549,15 +576,23 @@ export default function Dashboard() {
           ) : (
             <ul className="space-y-3">
               {state.siteReports.slice(0, 4).map((r) => (
-                <li key={r.id} className="text-sm">
-                  <div className="flex items-center justify-between">
-                    <p className="font-medium text-base-100">{r.category || '기타'}</p>
-                    <span className="text-[11px] text-base-500">{timeAgo(r.createdAt)}</span>
-                  </div>
-                  <p className="mt-0.5 line-clamp-2 whitespace-pre-line text-xs text-base-400">{r.note}</p>
-                  <p className="mt-1 text-[11px] text-mist-500">
-                    {r.siteName} · {r.workerName}
-                  </p>
+                <li key={r.id}>
+                  <button
+                    onClick={() => setReportDetail(r)}
+                    className="focus-ring w-full rounded-lg p-2 text-left text-sm hover:bg-base-900"
+                  >
+                    <div className="flex items-center justify-between">
+                      <p className="font-medium text-base-100">{r.category || '기타'}</p>
+                      <span className="text-[11px] text-base-500">{timeAgo(r.createdAt)}</span>
+                    </div>
+                    <p className="mt-0.5 line-clamp-2 whitespace-pre-line text-xs text-base-400">{r.note}</p>
+                    <p className="mt-1 flex items-center gap-2 text-[11px] text-mist-500">
+                      {r.siteName} · {r.workerName}
+                      {(r.mediaUrls || []).length > 0 && (
+                        <span className="text-teal-500">첨부 {r.mediaUrls.length}개</span>
+                      )}
+                    </p>
+                  </button>
                 </li>
               ))}
             </ul>
@@ -841,6 +876,73 @@ export default function Dashboard() {
                   </div>
                 )
               })}
+            </div>
+          )}
+        </Modal>
+      )}
+
+      {/* ── 공지사항 단건 상세 (미리보기 목록에서 바로 클릭) ── */}
+      {noticeDetail && (
+        <Modal title={noticeDetail.title} onClose={() => setNoticeDetail(null)}>
+          {noticeDetail.message && (
+            <p className="whitespace-pre-line text-sm text-base-300">{noticeDetail.message}</p>
+          )}
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-base-500">
+            {noticeDetail.siteName && <span className="text-mist-500">{noticeDetail.siteName}</span>}
+            <span>작성자: {noticeDetail.createdByName || '관리자'}</span>
+            <span>{(noticeDetail.createdAt || '').slice(0, 16).replace('T', ' ')}</span>
+          </div>
+          <div className="mt-3 border-t border-base-800 pt-3">
+            <p className="mb-1.5 text-[11px] font-medium text-base-400">확인 {noticeDetail.readBy?.length ?? 0}명</p>
+            {noticeDetail.readBy?.length > 0 ? (
+              <div className="flex flex-wrap gap-1">
+                {noticeDetail.readBy.map((rb, i) => (
+                  <span key={i} className="rounded-full bg-teal-500/10 px-2 py-0.5 text-[10px] text-teal-500">
+                    {rb.workerName || rb.name || '이름없음'}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <p className="text-[11px] text-base-500">확인 기록이 없어요.</p>
+            )}
+          </div>
+        </Modal>
+      )}
+
+      {/* ── 현장 신고·이슈 단건 상세 (미리보기 목록에서 바로 클릭) ── */}
+      {reportDetail && (
+        <Modal title={reportDetail.category || '기타'} onClose={() => setReportDetail(null)} wide>
+          {reportDetail.note && <p className="whitespace-pre-line text-sm text-base-300">{reportDetail.note}</p>}
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-base-500">
+            <span className="text-mist-500">{reportDetail.siteName}</span>
+            <span>작성자: {reportDetail.workerName || '알수없음'}</span>
+            {reportDetail.authorRole && (
+              <span>
+                ({reportDetail.authorRole === 'leader' ? '팀장' : reportDetail.authorRole === 'admin' ? '관리자' : '근로자'})
+              </span>
+            )}
+            <span>{reportDetail.date}</span>
+          </div>
+          {(reportDetail.mediaUrls || []).length > 0 && (
+            <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {reportDetail.mediaUrls.map((url, i) => (
+                <div key={url} className="group relative overflow-hidden rounded-lg border border-base-800 bg-base-950">
+                  {reportDetail.kind === 'video' ? (
+                    <video src={url} controls className="aspect-square w-full object-cover" />
+                  ) : (
+                    <img src={url} alt={`첨부 ${i + 1}`} className="aspect-square w-full object-cover" />
+                  )}
+                  <a
+                    href={url}
+                    download
+                    target="_blank"
+                    rel="noreferrer"
+                    className="focus-ring absolute bottom-1 right-1 flex items-center gap-1 rounded-full bg-black/60 px-2 py-1 text-[10px] text-white opacity-0 transition-opacity group-hover:opacity-100"
+                  >
+                    <Download size={10} /> 저장
+                  </a>
+                </div>
+              ))}
             </div>
           )}
         </Modal>
