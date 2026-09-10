@@ -4,7 +4,7 @@ import { LayoutDashboard, Package, ShieldCheck, Users, Building2, CalendarDays }
 const items = [
   { to: '/', label: '대시보드', icon: LayoutDashboard, end: true },
   { to: '/workers', label: '근로자', icon: Users },
-  { to: '/sites', label: '현장', icon: Building2 },
+  { to: '/sites', label: '정기현장', icon: Building2 },
   { to: '/spot-jobs', label: '일회성', icon: CalendarDays },
   { to: '/inventory', label: '재고', icon: Package },
   { to: '/safety', label: '안전교육', icon: ShieldCheck }
