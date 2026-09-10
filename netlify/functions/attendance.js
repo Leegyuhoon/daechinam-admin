@@ -3,6 +3,8 @@
 // notices, siteReports, supplyRequests, ... } 형태의 JSON 하나(key: "shared")로
 // 저장되어 있습니다.
 const SOURCE_URL = 'https://daechinam.netlify.app/api/data'
+// 어플이 사진·영상을 서빙하는 공개 엔드포인트 — 같은 주소를 그대로 재사용
+const MEDIA_BASE = 'https://daechinam.netlify.app/api/photo'
 
 function toKstDateString(iso) {
   if (!iso) return null
@@ -41,7 +43,9 @@ export default async (req) => {
       clockIn: r.clockIn,
       clockOut: r.clockOut,
       ongoing: !r.clockOut,
-      outFlag: !!r.outFlag
+      outFlag: !!r.outFlag,
+      flatPay: r.flatPay ?? null,
+      manual: !!r.manual
     }))
 
     const filtered = normalized.filter((r) => {
@@ -81,11 +85,10 @@ export default async (req) => {
       isTeamLead: !!w.isTeamLead
     }))
 
-    // 최근 공지사항 (활성 우선)
+    // 공지사항 — 전체 + 누가 작성했는지·누가 확인했는지까지 포함 (관리 사이트에서 기간·현장별로 필터링)
     const notices = (data.notices || [])
       .slice()
       .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''))
-      .slice(0, 10)
       .map((n) => ({
         id: n.id,
         title: n.title,
@@ -93,37 +96,47 @@ export default async (req) => {
         siteName: n.siteName || null,
         active: !!n.active,
         createdAt: n.createdAt,
-        createdByName: n.createdByName
+        createdByName: n.createdByName,
+        readBy: (n.readBy || []).map((rb) => ({ workerName: rb.workerName, readAt: rb.readAt }))
       }))
 
-    // 현장 리포트(사진/이슈 등록) 최근 항목 - 시설 훼손/기타 카테고리 우선 노출
+    // 현장 리포트(사진/영상/이슈 등록) — 첨부 미디어 주소와 작성자 역할까지 포함
     const siteReports = (data.siteReports || [])
       .slice()
       .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''))
-      .slice(0, 10)
-      .map((r) => ({
-        id: r.id,
-        date: r.date,
-        siteName: r.siteName,
-        workerName: r.workerName,
-        category: r.category,
-        note: r.note,
-        kind: r.kind,
-        createdAt: r.createdAt
-      }))
+      .map((r) => {
+        const ids = r.photoIds && r.photoIds.length > 0 ? r.photoIds : r.photoId ? [r.photoId] : []
+        return {
+          id: r.id,
+          date: r.date,
+          siteName: r.siteName,
+          workerName: r.workerName,
+          authorRole: r.authorRole || null,
+          category: r.category,
+          note: r.note,
+          kind: r.kind,
+          createdAt: r.createdAt,
+          mediaUrls: ids.map((id) => `${MEDIA_BASE}?id=${id}`)
+        }
+      })
 
-    // 비품 요청 현황 (미처리 우선)
+    // 비품 요청 현황 — 날짜·구매정보 포함, 전체 내려서 관리 사이트에서 필터링
     const supplyRequests = (data.supplyRequests || [])
       .slice()
       .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''))
       .map((s) => ({
         id: s.id,
+        date: s.date,
         siteName: s.siteName,
         workerName: s.workerName,
         itemName: s.itemName,
         qty: s.qty,
         status: s.status,
         note: s.note,
+        vendor: s.vendor || null,
+        purchaseMethod: s.purchaseMethod || null,
+        unitPrice: s.unitPrice ?? null,
+        totalPrice: s.totalPrice ?? null,
         createdAt: s.createdAt
       }))
     const pendingSupply = supplyRequests.filter((s) => s.status !== 'delivered')
@@ -140,7 +153,7 @@ export default async (req) => {
       roster,
       notices,
       siteReports,
-      supplyRequests: supplyRequests.slice(0, 15),
+      supplyRequests,
       pendingSupplyCount: pendingSupply.length
     })
   } catch (err) {
