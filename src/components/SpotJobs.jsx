@@ -16,9 +16,11 @@ import {
   ChevronDown,
   ChevronRight,
   CalendarDays,
-  Lock
+  Lock,
+  MapPinOff
 } from 'lucide-react'
 import { api } from '../lib/api'
+import { hoursOf } from '../lib/hours'
 
 const emptyJob = {
   siteName: '',
@@ -124,7 +126,7 @@ function JobForm({ initialJob, onSaved, onCancel }) {
   return (
     <div className="rounded-xl border border-base-800 bg-base-950 p-4">
       <p className="mb-3 text-sm font-medium text-base-200">
-        {initialJob ? '일회성 현장근무 수정' : '일회성 현장근무 등록'}
+        {initialJob ? '일회성 현장 수정' : '일회성 현장 등록'}
       </p>
 
       <div className="grid gap-3 sm:grid-cols-2">
@@ -240,7 +242,7 @@ function PasswordGate({ onOk }) {
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-mist-500/15 text-mist-500">
             <Lock size={16} />
           </div>
-          <p className="text-sm font-semibold text-base-100">일회성 현장근무</p>
+          <p className="text-sm font-semibold text-base-100">일회성 현장</p>
         </div>
         <p className="mb-4 text-xs text-base-400">
           이름·연락처 등 개인정보가 포함된 화면이라 비밀번호가 필요해요.
@@ -262,6 +264,90 @@ function PasswordGate({ onOk }) {
           {checking ? '확인 중…' : '들어가기'}
         </button>
       </form>
+    </div>
+  )
+}
+
+// 어플에서 실제로 출퇴근 찍은 일회성 현장(등록된 정기 현장 목록에 없는 곳) — 여월중, 금강CC 등
+function AttendanceOneOffSection() {
+  const [state, setState] = useState({ loading: true, error: null, records: [] })
+  const [openSite, setOpenSite] = useState(null)
+
+  useEffect(() => {
+    api
+      .getAttendanceSummary()
+      .then((data) => setState({ loading: false, error: null, ...data }))
+      .catch((err) => setState((s) => ({ ...s, loading: false, error: err.message })))
+  }, [])
+
+  const bySite = {}
+  for (const r of state.records || []) {
+    if (r.siteId) continue // 정기 현장은 제외 — "정기 현장" 메뉴에서 봄
+    const key = r.site || '미지정'
+    bySite[key] = bySite[key] || []
+    bySite[key].push(r)
+  }
+  const cards = Object.entries(bySite)
+    .map(([name, records]) => {
+      const workerSet = new Set(records.map((r) => r.workerId))
+      const total = records.reduce((sum, r) => sum + (r.flatPay || 0), 0)
+      return { name, records, workerCount: workerSet.size, total }
+    })
+    .sort((a, b) => b.records.length - a.records.length)
+
+  if (state.loading) return <p className="mb-6 text-sm text-base-500">실제 출퇴근 기록 불러오는 중…</p>
+  if (cards.length === 0) return null
+
+  return (
+    <div className="mb-6">
+      <p className="mb-3 flex items-center gap-1.5 text-xs font-medium text-base-400">
+        <MapPinOff size={12} className="text-amber-500" />
+        어플 출퇴근 기록 기반 일회성 현장 ({cards.length})
+      </p>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        {cards.map(({ name, records, workerCount, total }) => {
+          const isOpen = openSite === name
+          return (
+            <div key={name} className="overflow-hidden rounded-xl border border-base-800 bg-base-950 shadow-sm">
+              <button
+                onClick={() => setOpenSite(isOpen ? null : name)}
+                className="focus-ring flex w-full flex-col items-center gap-2 p-4 text-center"
+              >
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-amber-500/15 text-amber-500">
+                  <CalendarDays size={22} />
+                </div>
+                <span className="text-sm font-medium text-base-100">{name}</span>
+                <div className="flex items-center gap-2 text-[11px] text-base-500">
+                  <span className="flex items-center gap-0.5">
+                    <Users size={10} /> {workerCount}명
+                  </span>
+                  <span className="flex items-center gap-0.5">
+                    <Wallet size={10} /> {total.toLocaleString('ko-KR')}원
+                  </span>
+                </div>
+              </button>
+              {isOpen && (
+                <ul className="space-y-1 border-t border-base-800 p-2">
+                  {records
+                    .slice()
+                    .sort((a, b) => (b.date || '').localeCompare(a.date || ''))
+                    .map((r) => (
+                      <li
+                        key={r.id}
+                        className="flex items-center justify-between rounded-md bg-base-900 px-2 py-1.5 text-[11px]"
+                      >
+                        <span className="text-base-300">
+                          {r.date} · {r.workerName}
+                        </span>
+                        <span className="text-base-400">{r.flatPay != null ? `${r.flatPay.toLocaleString('ko-KR')}원` : `${hoursOf(r).toFixed(1)}h`}</span>
+                      </li>
+                    ))}
+                </ul>
+              )}
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }
@@ -318,7 +404,7 @@ export default function SpotJobs() {
   return (
     <div>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold text-page-text">일회성 현장근무</h1>
+        <h1 className="text-xl font-semibold text-page-text">일회성 현장</h1>
         <div className="flex gap-2">
           <button
             onClick={() => navigate(-1)}
@@ -350,6 +436,8 @@ export default function SpotJobs() {
         </div>
       </div>
 
+      <AttendanceOneOffSection />
+
       {showForm && (
         <div className="mb-6">
           <JobForm
@@ -368,12 +456,13 @@ export default function SpotJobs() {
         </div>
       )}
 
+      <p className="mb-3 text-xs font-medium text-base-400">직접 등록한 일회성 현장 ({jobs.length})</p>
       {loading ? (
         <p className="p-8 text-center text-sm text-base-500">불러오는 중…</p>
       ) : jobs.length === 0 ? (
         <div className="flex flex-col items-center gap-2 rounded-xl border border-base-800 bg-base-950 p-10 text-base-500">
           <CalendarDays size={28} />
-          <p className="text-sm">등록된 일회성 현장근무가 없어요.</p>
+          <p className="text-sm">등록된 일회성 현장이 없어요.</p>
         </div>
       ) : (
         <div className="space-y-2">
