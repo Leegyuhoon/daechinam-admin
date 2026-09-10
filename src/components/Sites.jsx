@@ -153,7 +153,7 @@ export default function Sites() {
         const totalHours = records.reduce((sum, r) => sum + hoursOf(r), 0)
         const flagCount = records.filter((r) => r.outFlag).length
         // 일회성 현장근무: siteId 없이 직접 입력한 장소(고정 현장 목록에 없는 곳)로 기록된 근무
-        const isOneOff = records.every((r) => !r.siteId && r.flatPay != null)
+        const isOneOff = records.every((r) => !r.siteId)
         return { name, records, workerCount: workerSet.size, totalHours, flagCount, isOneOff }
       })
       .sort((a, b) => b.records.length - a.records.length)
