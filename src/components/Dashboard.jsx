@@ -823,7 +823,7 @@ export default function Dashboard() {
                                 ) : (
                                   <img src={url} alt={`첨부 ${i + 1}`} className="aspect-square w-full object-cover" />
                                 )}
-                                
+                                <a
                                   href={url}
                                   download
                                   target="_blank"
