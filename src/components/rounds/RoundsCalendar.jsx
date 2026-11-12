@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { ChevronLeft, ChevronRight, Wand2, Plus, Check, Camera, Trash2, Printer } from 'lucide-react'
 import {
   thisMonth,
@@ -167,7 +167,13 @@ export default function RoundsCalendar({ data, ops, onWriteReport }) {
   const [month, setMonth] = useState(thisMonth())
   const [modal, setModal] = useState(null)
   const [planning, setPlanning] = useState(false)
+  const [mobileView, setMobileView] = useState('calendar')
+  const [selDate, setSelDate] = useState(todayStr())
   const today = todayStr()
+  // 달을 넘기면 선택 날짜도 그 달로 (이번 달이면 오늘)
+  useEffect(() => {
+    setSelDate(month === thisMonth() ? todayStr() : `${month}-01`)
+  }, [month])
 
   const siteName = (id) => sites.find((s) => s.id === id)?.name || '(삭제된 현장)'
   const activeSites = useMemo(() => sites.filter((s) => s.active !== false).sort((a, b) => (a.order ?? 99) - (b.order ?? 99)), [sites])
@@ -311,9 +317,95 @@ export default function RoundsCalendar({ data, ops, onWriteReport }) {
           </div>
         </Card>
 
-        {/* 목록 (모바일) */}
-        <Card className="md:hidden print:hidden">
-          {monthVisits.length === 0 ? (
+        {/* 모바일 — 달력 / 목록 전환 */}
+        <Card className="!p-3 md:hidden print:hidden">
+          <div className="mb-3 flex gap-1 rounded-lg bg-base-900 p-1">
+            {[
+              ['calendar', '달력'],
+              ['list', '목록']
+            ].map(([key, label]) => (
+              <button
+                key={key}
+                onClick={() => setMobileView(key)}
+                className={`focus-ring flex-1 rounded-md py-1.5 text-xs ${mobileView === key ? 'bg-base-950 font-medium shadow-sm' : 'text-base-500'}`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {mobileView === 'calendar' ? (
+            <>
+              <div className="grid grid-cols-7 text-center text-[10px] text-base-500">
+                {WEEKDAYS.map((w, i) => (
+                  <div key={w} className={`pb-1 ${i === 0 ? 'text-red-500' : i === 6 ? 'text-blue-500' : ''}`}>
+                    {w}
+                  </div>
+                ))}
+              </div>
+              <div className="grid grid-cols-7 gap-1">
+                {cells.map((date, i) => {
+                  if (!date) return <div key={`m${i}`} />
+                  const list = (byDate[date] || []).filter((v) => v.status !== 'canceled')
+                  const wd = i % 7
+                  const isSel = date === selDate
+                  return (
+                    <button
+                      key={date}
+                      onClick={() => setSelDate(date)}
+                      className={`flex aspect-square flex-col items-center justify-start rounded-lg pt-1 text-xs ${
+                        isSel ? 'bg-mist-500 text-base-950' : date === today ? 'ring-1 ring-mist-500' : list.length ? 'bg-base-900' : ''
+                      }`}
+                    >
+                      <span className={isSel ? 'font-semibold' : wd === 0 ? 'text-red-500' : wd === 6 ? 'text-blue-500' : date < today ? 'text-base-500' : ''}>
+                        {Number(date.slice(8))}
+                      </span>
+                      {list.length > 0 && (
+                        <span className="mt-0.5 flex flex-wrap justify-center gap-0.5 px-0.5">
+                          {list.slice(0, 4).map((v) => (
+                            <span
+                              key={v.id}
+                              className={`h-1.5 w-1.5 rounded-full ${
+                                isSel ? 'bg-base-950' : v.status === 'done' ? 'bg-base-500' : v.type === 'service' ? 'bg-violet-500' : 'bg-teal-500'
+                              }`}
+                            />
+                          ))}
+                        </span>
+                      )}
+                      {list.length > 4 && <span className="text-[9px] leading-none">+{list.length - 4}</span>}
+                    </button>
+                  )
+                })}
+              </div>
+              <div className="mt-2 flex justify-center gap-3 text-[10px] text-base-500">
+                <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-teal-500" /> 점검</span>
+                <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-violet-500" /> 서비스</span>
+                <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-base-500" /> 완료</span>
+              </div>
+
+              <div className="mt-3 border-t border-base-800 pt-3">
+                <div className="mb-2 flex items-center justify-between">
+                  <p className="text-xs font-medium">
+                    {selDate?.startsWith(month) ? fmtDate(selDate) : '날짜를 눌러 보세요'} {selDate === today && <span className="text-mist-500">· 오늘</span>}
+                  </p>
+                  {selDate?.startsWith(month) && (
+                    <button onClick={() => newVisit(selDate)} className="flex items-center gap-0.5 text-[11px] text-mist-500">
+                      <Plus size={12} /> 이 날 일정 추가
+                    </button>
+                  )}
+                </div>
+                {selDate?.startsWith(month) && (byDate[selDate] || []).length > 0 ? (
+                  <div className="space-y-1">
+                    {byDate[selDate].map((v) => (
+                      <VisitChip key={v.id} visit={v} siteName={siteName(v.siteId)} onClick={() => setModal(v)} />
+                    ))}
+                  </div>
+                ) : (
+                  selDate?.startsWith(month) && <p className="py-2 text-center text-[11px] text-base-500">이 날은 일정이 없어요.</p>
+                )}
+              </div>
+            </>
+          ) : monthVisits.length === 0 ? (
             <p className="py-6 text-center text-xs text-base-500">이번 달 일정이 없어요. "자동 배치"를 눌러 보세요.</p>
           ) : (
             <div className="space-y-3">
