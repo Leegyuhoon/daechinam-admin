@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react'
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, Navigate } from 'react-router-dom'
 import Sidebar from './components/Sidebar'
 import MobileNav from './components/MobileNav'
-import Dashboard from './components/Dashboard'
 import Workers from './components/Workers'
 import Sites from './components/Sites'
 import SpotJobs from './components/SpotJobs'
@@ -67,7 +66,7 @@ export default function App() {
           element={
             <AdminLayout>
               <Routes>
-                <Route path="/" element={<Dashboard />} />
+                <Route path="/" element={<Navigate to="/rounds" replace />} />
                 <Route path="/workers" element={<Workers />} />
                 <Route path="/sites" element={<Sites />} />
                 <Route path="/rounds" element={<Rounds />} />

@@ -28,10 +28,10 @@ export default function Inventory() {
   const load = () => {
     setLoading(true)
     setError(null)
-    Promise.all([api.listInventory(), api.getAttendanceSummary().catch(() => ({ allSiteNames: [] }))])
+    Promise.all([api.listInventory(), api.listRegularSiteNames().catch(() => ({ names: [] }))])
       .then(([inv, att]) => {
         setItems(inv.items || [])
-        setSiteNames(att.allSiteNames || [])
+        setSiteNames(att.names || [])
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))

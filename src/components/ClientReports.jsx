@@ -20,7 +20,6 @@ import {
   Wrench
 } from 'lucide-react'
 import { api } from '../lib/api'
-import SiteChecklist from './SiteChecklist'
 
 const emptyCompany = () => ({ companyName: '', password: '', siteName: '' })
 
@@ -177,16 +176,8 @@ function RowsEditor({ columns, rows, onChange }) {
 
 function CompanyForm({ initialCompany, onSaved, onCancel }) {
   const [company, setCompany] = useState(initialCompany || emptyCompany())
-  const [siteNames, setSiteNames] = useState([])
   const [error, setError] = useState(null)
   const [saving, setSaving] = useState(false)
-
-  useEffect(() => {
-    api
-      .getAttendanceSummary()
-      .then((att) => setSiteNames(att.allSiteNames || []))
-      .catch(() => {})
-  }, [])
 
   const save = async () => {
     setError(null)
@@ -223,23 +214,12 @@ function CompanyForm({ initialCompany, onSaved, onCancel }) {
           value={company.password}
           onChange={(e) => setCompany({ ...company, password: e.target.value })}
         />
-        <label className="block sm:col-span-2">
-          <span className="mb-1 block text-xs text-base-400">
-            연동할 현장 (실제 출퇴근 기록이 "일일 체크리스트"로 자동 표시돼요)
-          </span>
-          <select
-            className="focus-ring w-full rounded-lg border border-base-700 bg-base-900 px-3 py-2 text-sm"
-            value={company.siteName}
-            onChange={(e) => setCompany({ ...company, siteName: e.target.value })}
-          >
-            <option value="">연동 안 함</option>
-            {siteNames.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
-        </label>
+        <input
+          className="focus-ring rounded-lg border border-base-700 bg-base-900 px-3 py-2 text-sm sm:col-span-2"
+          placeholder="현장명 (보고서에 표시, 선택)"
+          value={company.siteName}
+          onChange={(e) => setCompany({ ...company, siteName: e.target.value })}
+        />
       </div>
       {error && <p className="mt-3 text-xs text-amber-500">{error}</p>}
       <div className="mt-4 flex gap-2">
@@ -466,7 +446,7 @@ function CompanyRow({ company, onEditCompany, onRemoveCompany }) {
           )}
           <div>
             <p className="font-medium text-base-100">{company.companyName}</p>
-            <p className="text-xs text-base-400">{company.siteName ? `연동 현장: ${company.siteName}` : '연동 현장 없음'}</p>
+            <p className="text-xs text-base-400">{company.siteName ? `현장: ${company.siteName}` : ''}</p>
           </div>
         </div>
       </button>
@@ -565,14 +545,6 @@ function CompanyRow({ company, onEditCompany, onRemoveCompany }) {
                         </span>
                       </div>
                     </button>
-                    {isOpen && company.siteName && (
-                      <div className="border-t border-base-800 p-2">
-                        <p className="mb-1 flex items-center gap-1 text-[11px] text-base-400">
-                          <ListChecks size={10} /> 일일 체크리스트
-                        </p>
-                        <SiteChecklist siteName={company.siteName} period={p.period} compact />
-                      </div>
-                    )}
                   </div>
                 )
               })}

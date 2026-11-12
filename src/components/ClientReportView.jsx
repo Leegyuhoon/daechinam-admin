@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Lock, Building2, Printer } from 'lucide-react'
 import { api } from '../lib/api'
-import SiteChecklist from './SiteChecklist'
 
 function KVTable({ rows }) {
   const visible = rows.filter(([, v]) => v)
@@ -175,12 +174,6 @@ export default function ClientReportView() {
         </div>
 
         <div className="grid gap-2 sm:grid-cols-2">
-          {data.siteName && (
-            <Block title={`일일 체크리스트 (${data.siteName})`}>
-              <SiteChecklist siteName={data.siteName} period={r.period} compact />
-            </Block>
-          )}
-
           <Block title="서비스 품질지표(KPI) 목표">
             <KVTable
               rows={[

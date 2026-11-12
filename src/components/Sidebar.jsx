@@ -1,8 +1,7 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, Package, ShieldCheck, CalendarDays, Send, CalendarRange } from 'lucide-react'
+import { Package, ShieldCheck, CalendarDays, Send, CalendarRange } from 'lucide-react'
 
 const items = [
-  { to: '/', label: '출퇴근 대시보드', icon: LayoutDashboard, end: true },
   { to: '/rounds', label: '순회 관리', icon: CalendarRange },
   { to: '/spot-jobs', label: '일회성 현장', icon: CalendarDays },
   { to: '/inventory', label: '재고 현황', icon: Package },
@@ -42,7 +41,7 @@ export default function Sidebar() {
           <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-mist-400 opacity-60" />
           <span className="relative inline-flex h-2 w-2 rounded-full bg-mist-400" />
         </span>
-        현장 데이터 실시간 연동 중
+        (주)이엘씨_대치남 관리 사이트
       </div>
     </aside>
   )
