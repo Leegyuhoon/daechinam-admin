@@ -1,4 +1,5 @@
 import { X } from 'lucide-react'
+import useBackClose from '../../lib/useBackClose'
 
 export const inputCls = 'focus-ring w-full rounded-lg border border-base-700 bg-base-900 px-3 py-2 text-sm text-base-100'
 export const btnPrimary =
@@ -9,6 +10,7 @@ export const btnDanger =
   'focus-ring inline-flex items-center justify-center gap-1.5 rounded-lg border border-red-200 px-3 py-2 text-sm text-red-600 hover:bg-red-50'
 
 export function Modal({ title, onClose, children, wide = false }) {
+  useBackClose(onClose)
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4" onClick={onClose}>
       <div

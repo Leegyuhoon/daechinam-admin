@@ -61,8 +61,12 @@ const TABS = [
 export default function Rounds() {
   const [authed, setAuthed] = useState(true)
   const [state, setState] = useState({ loading: true, error: null, sites: [], visits: [], executions: [], tickets: [], reports: [] })
-  const [params] = useSearchParams()
-  const [tab, setTab] = useState(params.get('tab') || 'calendar')
+  // 탭을 주소(?tab=)에 기록 → 휴대폰 뒤로 가기로 이전 탭으로 돌아감
+  const [params, setParams] = useSearchParams()
+  const tab = params.get('tab') || 'calendar'
+  const setTab = (t) => {
+    if (t !== tab) setParams({ tab: t })
+  }
   const [reportPrefill, setReportPrefill] = useState(null)
 
   const load = () => {
@@ -142,8 +146,9 @@ export default function Rounds() {
   }
 
   const openReportFor = (prefill) => {
-    setReportPrefill(prefill)
     setTab('reports')
+    // 앞 팝업이 닫히며 기록을 되돌린 뒤에 새 팝업을 열도록 살짝 늦춤
+    setTimeout(() => setReportPrefill(prefill), 150)
   }
 
   if (!authed) {

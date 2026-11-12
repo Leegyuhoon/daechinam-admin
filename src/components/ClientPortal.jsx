@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { PenLine, MessagesSquare, FileText, ListChecks, Send, Printer, ChevronLeft, CheckCircle2, Paperclip } from 'lucide-react'
 import { api } from '../lib/api'
@@ -160,10 +160,18 @@ function TicketItem({ t, code, onUpdated }) {
 export default function ClientPortal() {
   const [params, setParams] = useSearchParams()
   const code = params.get('c')
-  const [tab, setTab] = useState(params.get('tab') || 'new')
+  // 탭·보고서 화면을 주소에 기록 → 휴대폰 뒤로 가기로 이전 화면으로
+  const tab = params.get('tab') || 'new'
+  const reportMonth = params.get('m') || null
+  const setReportMonth = (m) => {
+    const next = new URLSearchParams(params)
+    if (m) next.set('m', m)
+    else next.delete('m')
+    setParams(next)
+  }
   const [state, setState] = useState({ loading: true, error: null, data: null })
   const [justSent, setJustSent] = useState(false)
-  const [reportMonth, setReportMonth] = useState(null)
+  const openedFromList = useRef(false)
 
   const load = () =>
     api
@@ -191,12 +199,12 @@ export default function ClientPortal() {
   }, [code])
 
   const go = (t) => {
-    setTab(t)
-    setReportMonth(null)
     setJustSent(false)
+    if (t === tab && !reportMonth) return
     const next = new URLSearchParams(params)
     next.set('tab', t)
-    setParams(next, { replace: true })
+    next.delete('m')
+    setParams(next)
   }
 
   if (state.loading || state.error) {
@@ -311,7 +319,10 @@ export default function ClientPortal() {
             (report ? (
               <div>
                 <div className="no-print mb-3 flex items-center justify-between">
-                  <button onClick={() => setReportMonth(null)} className="flex items-center gap-0.5 text-xs text-base-400">
+                  <button
+                    onClick={() => (openedFromList.current ? window.history.back() : setReportMonth(null))}
+                    className="flex items-center gap-0.5 text-xs text-base-400"
+                  >
                     <ChevronLeft size={14} /> 목록
                   </button>
                   <button
@@ -338,7 +349,12 @@ export default function ClientPortal() {
                 {reports.map((r) => {
                   const [y, m] = r.month.split('-')
                   return (
-                    <button key={r.id} onClick={() => setReportMonth(r.month)} className="flex w-full items-center justify-between rounded-lg border border-base-800 px-3 py-3 text-left hover:border-mist-500">
+                    <button
+                      key={r.id}
+                      onClick={() => {
+                        openedFromList.current = true
+                        setReportMonth(r.month)
+                      }} className="flex w-full items-center justify-between rounded-lg border border-base-800 px-3 py-3 text-left hover:border-mist-500">
                       <span className="text-sm font-medium">
                         {y}년 {Number(m)}월 청소 관리 보고서
                       </span>
