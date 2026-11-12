@@ -117,14 +117,14 @@ function TicketItem({ t, code, onUpdated }) {
       </button>
       {open && (
         <div className="mt-3 space-y-2">
-          <MediaView media={t.media || []} size="h-16 w-16" />
+          <MediaView media={t.media || []} size="h-16 w-16" name="문의첨부" />
           {(t.messages || []).map((m, i) => (
             <div key={i} className={`flex ${m.from === 'admin' ? '' : 'justify-end'}`}>
               <div className={`max-w-[85%] rounded-xl px-3 py-2 text-sm ${m.from === 'admin' ? 'bg-mist-500/15' : 'bg-base-900'}`}>
                 {m.text && <p className="whitespace-pre-line">{m.text}</p>}
                 {(m.media || []).length > 0 && (
                   <div className="mt-1">
-                    <MediaView media={m.media} size="h-16 w-16" />
+                    <MediaView media={m.media} size="h-16 w-16" name={m.from === 'admin' ? '조치사진' : '추가첨부'} />
                   </div>
                 )}
                 <p className="mt-0.5 text-[10px] text-base-500">

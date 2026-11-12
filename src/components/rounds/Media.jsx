@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { ImagePlus, Video, X, Loader2, Play } from 'lucide-react'
+import { ImagePlus, Video, X, Loader2, Play, Download } from 'lucide-react'
 import { api } from '../../lib/api'
+import { downloadMedia, downloadAll } from '../../lib/download'
 
 // 사진·영상 첨부 고르기 — code를 주면 업체 페이지용(접속 코드로 업로드)
 export function MediaPicker({ media, onChange, code, max = 10, compact = false, onBusyChange }) {
@@ -77,20 +78,79 @@ export function MediaPicker({ media, onChange, code, max = 10, compact = false, 
   )
 }
 
-// 첨부 보기 — 사진은 눌러서 크게, 영상은 바로 재생
-export function MediaView({ media = [], size = 'h-20 w-20' }) {
+// 첨부 보기 — 사진은 눌러서 크게, 영상은 바로 재생, 각각 내려받기 버튼
+// name: 내려받을 때 파일 이름 앞부분 (예: "메트라이프본사_문의_1112")
+export function MediaView({ media = [], size = 'h-20 w-20', name = '첨부' }) {
+  const [busy, setBusy] = useState({}) // url → 진행률
+  const [allBusy, setAllBusy] = useState(false)
+  const [error, setError] = useState(null)
   if (!media.length) return null
+
+  const one = async (m, i) => {
+    setError(null)
+    setBusy((b) => ({ ...b, [m.url]: 0 }))
+    try {
+      await downloadMedia(m, `${name}_${m.kind === 'video' ? '영상' : '사진'}${i + 1}`, (p) => setBusy((b) => ({ ...b, [m.url]: p })))
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setBusy((b) => {
+        const n = { ...b }
+        delete n[m.url]
+        return n
+      })
+    }
+  }
+  const all = async () => {
+    setError(null)
+    setAllBusy(true)
+    try {
+      await downloadAll(media, name)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setAllBusy(false)
+    }
+  }
+
+  const DlBtn = ({ m, i, className = '' }) => (
+    <button
+      type="button"
+      onClick={() => one(m, i)}
+      disabled={m.url in busy}
+      className={`no-print flex items-center gap-0.5 rounded bg-black/60 px-1.5 py-0.5 text-[10px] text-white ${className}`}
+      aria-label="내려받기"
+    >
+      {m.url in busy ? <Loader2 size={10} className="animate-spin" /> : <Download size={10} />}
+      {m.url in busy && m.kind === 'video' ? `${busy[m.url]}%` : ''}
+    </button>
+  )
+
   return (
-    <div className="flex flex-wrap gap-1.5">
-      {media.map((m) =>
-        m.kind === 'video' ? (
-          <video key={m.url} src={m.url} controls playsInline preload="metadata" className="max-h-56 w-full max-w-xs rounded-lg bg-black" />
-        ) : (
-          <a key={m.url} href={m.url} target="_blank" rel="noreferrer">
-            <img src={m.url} alt="" className={`${size} rounded-md object-cover`} />
-          </a>
-        )
+    <div>
+      <div className="flex flex-wrap gap-1.5">
+        {media.map((m, i) =>
+          m.kind === 'video' ? (
+            <div key={m.url} className="relative w-full max-w-xs">
+              <video src={m.url} controls playsInline preload="metadata" className="max-h-56 w-full rounded-lg bg-black" />
+              <DlBtn m={m} i={i} className="absolute right-1.5 top-1.5" />
+            </div>
+          ) : (
+            <div key={m.url} className="relative">
+              <a href={m.url} target="_blank" rel="noreferrer">
+                <img src={m.url} alt="" className={`${size} rounded-md object-cover`} />
+              </a>
+              <DlBtn m={m} i={i} className="absolute bottom-1 right-1" />
+            </div>
+          )
+        )}
+      </div>
+      {media.length > 1 && (
+        <button type="button" onClick={all} disabled={allBusy} className="no-print mt-1 flex items-center gap-1 text-[11px] text-base-500 hover:text-mist-500">
+          {allBusy ? <Loader2 size={11} className="animate-spin" /> : <Download size={11} />} {allBusy ? '내려받는 중…' : `전체 다운로드 (${media.length}개)`}
+        </button>
       )}
+      {error && <p className="mt-1 text-[11px] text-amber-500">{error}</p>}
     </div>
   )
 }

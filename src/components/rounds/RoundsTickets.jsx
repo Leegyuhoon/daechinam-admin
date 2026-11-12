@@ -26,6 +26,13 @@ function useCopy() {
   return [copied, copy]
 }
 
+// 내려받는 파일 이름: 현장명_문의_1112-1340
+const fileBase = (site, at, kind) => {
+  const d = at ? new Date(at) : new Date()
+  const p = (n) => String(n).padStart(2, '0')
+  return `${(site?.name || '현장').replace(/\s+/g, '')}_${kind}_${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}`
+}
+
 function TicketModal({ ticket, site, ops, onClose }) {
   const [text, setText] = useState('')
   const [status, setStatus] = useState(ticket.status === 'open' ? 'done' : ticket.status)
@@ -62,7 +69,7 @@ function TicketModal({ ticket, site, ops, onClose }) {
           </p>
           {ticket.content && <p className="whitespace-pre-line text-sm">{ticket.content}</p>}
           <div className="mt-2">
-            <MediaView media={ticketMedia(ticket)} />
+            <MediaView media={ticketMedia(ticket)} name={fileBase(site, ticket.createdAt, '문의')} />
           </div>
         </div>
 
@@ -74,7 +81,7 @@ function TicketModal({ ticket, site, ops, onClose }) {
                   {m.text && <p className="whitespace-pre-line">{m.text}</p>}
                   {(m.media || []).length > 0 && (
                     <div className="mt-1">
-                      <MediaView media={m.media} size="h-16 w-16" />
+                      <MediaView media={m.media} size="h-16 w-16" name={fileBase(site, m.at, m.from === 'admin' ? '답변' : '업체')} />
                     </div>
                   )}
                   <p className="mt-0.5 text-[10px] text-base-500">
