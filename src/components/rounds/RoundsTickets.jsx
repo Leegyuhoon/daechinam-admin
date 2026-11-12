@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
-import { Plus, Send, Copy, Check, Link2, BellRing, Paperclip } from 'lucide-react'
-import { TICKET_CATEGORIES, TICKET_STATUS, TICKET_SOURCES, sourceLabel, ticketMedia, needsReply, fmtDateTime, portalLink } from '../../lib/rounds'
+import { Plus, Send, Copy, Check, Link2, BellRing, Paperclip, FileImage, ExternalLink } from 'lucide-react'
+import { TICKET_CATEGORIES, TICKET_STATUS, TICKET_SOURCES, sourceLabel, ticketMedia, needsReply, fmtDateTime, portalLink, reportLink, todayStr } from '../../lib/rounds'
 import { MediaPicker, MediaView } from './Media'
 import { Modal, Label, Card, inputCls, btnPrimary, btnGhost } from './ui'
 import PrintButton from '../PrintButton'
@@ -41,13 +41,38 @@ function TicketModal({ ticket, site, ops, onClose }) {
   const [sent, setSent] = useState(false)
   const [media, setMedia] = useState([])
   const [uploading, setUploading] = useState(false)
+  const [asReport, setAsReport] = useState(true) // 조치 첨부가 있으면 전후 보고서로도 등록
+  const [madeReport, setMadeReport] = useState(null)
+
+  // 업체가 올린 첨부(처음 문의 + 추가 글) → 작업 전
+  const clientMedia = [...ticketMedia(ticket), ...(ticket.messages || []).filter((m) => m.from === 'client').flatMap((m) => m.media || [])]
 
   const send = async () => {
     if (!text.trim() && !media.length && status === ticket.status) return setError('답변을 입력하거나 상태를 바꿔 주세요.')
     setSending(true)
     setError(null)
     try {
-      await ops.replyTicket(ticket.id, text.trim(), status, media)
+      let executionId = null
+      if (asReport && media.length) {
+        const summary = (ticket.content || '').replace(/\s+/g, ' ').trim()
+        const ex = await ops.save('executions', {
+          siteId: ticket.siteId,
+          siteName: site?.name || '',
+          serviceId: '',
+          serviceName: `[${ticket.category}] ${summary.length > 30 ? `${summary.slice(0, 30)}…` : summary || '요청 처리'}`,
+          date: todayStr(),
+          worker: '',
+          note: [`요청 내용: ${ticket.content || '(사진·영상 첨부)'}`, text.trim() && `조치 내용: ${text.trim()}`].filter(Boolean).join('\n'),
+          before: clientMedia,
+          after: media,
+          ticketId: ticket.id
+        })
+        executionId = ex.id
+        setMadeReport(ex)
+      } else {
+        setMadeReport(null)
+      }
+      await ops.replyTicket(ticket.id, text.trim(), status, media, executionId)
       setSent(Boolean(text.trim() || media.length))
       setText('')
       setMedia([])
@@ -84,6 +109,11 @@ function TicketModal({ ticket, site, ops, onClose }) {
                       <MediaView media={m.media} size="h-16 w-16" name={fileBase(site, m.at, m.from === 'admin' ? '답변' : '업체')} />
                     </div>
                   )}
+                  {m.executionId && (
+                    <a href={reportLink(m.executionId)} target="_blank" rel="noreferrer" className="mt-1 flex items-center gap-1 text-[11px] text-mist-600 hover:underline">
+                      <FileImage size={11} /> 전후 보고서 보기 <ExternalLink size={10} />
+                    </a>
+                  )}
                   <p className="mt-0.5 text-[10px] text-base-500">
                     {m.from === 'admin' ? '우리 답변' : '업체'} · {fmtDateTime(m.at)}
                   </p>
@@ -105,6 +135,17 @@ function TicketModal({ ticket, site, ops, onClose }) {
         <div>
           <p className="mb-1 text-xs text-base-400">조치 사진·영상 (선택)</p>
           <MediaPicker media={media} onChange={setMedia} onBusyChange={setUploading} />
+          {media.length > 0 && (
+            <label className="mt-2 flex items-start gap-1.5 text-xs text-base-300">
+              <input type="checkbox" className="mt-0.5" checked={asReport} onChange={(e) => setAsReport(e.target.checked)} />
+              <span>
+                전후 보고서로도 등록
+                <span className="block text-[11px] text-base-500">
+                  업체가 올린 사진·영상 {clientMedia.length}개 → 작업 전, 조치 사진·영상 {media.length}개 → 작업 후. 이달 월간 보고서에도 자동으로 들어가요.
+                </span>
+              </span>
+            </label>
+          )}
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex gap-1 rounded-lg bg-base-900 p-1">
@@ -130,6 +171,15 @@ function TicketModal({ ticket, site, ops, onClose }) {
             <div>
               <p className="text-xs font-medium">답변이 업체 페이지에 등록됐어요.</p>
               <p className="mt-0.5 text-[11px] text-base-500">업체 페이지에서 알림을 켠 담당자에게는 알림이 바로 전송돼요.</p>
+              {madeReport && (
+                <p className="mt-1 text-[11px] text-base-400">
+                  전후 보고서도 만들어졌어요 —{' '}
+                  <a href={reportLink(madeReport.id)} target="_blank" rel="noreferrer" className="text-mist-600 underline">
+                    보기
+                  </a>{' '}
+                  (전후 보고서 탭 · 이달 월간 보고서에 자동 포함)
+                </p>
+              )}
             </div>
           </div>
         )}

@@ -50,6 +50,7 @@ export default function TicketsPrint({ id, tickets, siteName }) {
                           [{m.from === 'admin' ? '답변' : '업체'} {fmtDateTime(m.at)}]
                         </span>{' '}
                         {m.text}
+                        {m.executionId && <span className="text-base-500"> (전후 보고서 등록)</span>}
                         <Attach media={m.media} />
                       </p>
                     ))}

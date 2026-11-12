@@ -38,7 +38,8 @@ const publicTicket = (t) => ({
   authorName: t.authorName || '',
   media: ticketMedia(t),
   status: t.status || 'open',
-  messages: (t.messages || []).map((m) => ({ from: m.from, text: m.text, at: m.at, media: m.media || [] })),
+  messages: (t.messages || []).map((m) => ({ from: m.from, text: m.text, at: m.at, media: m.media || [], executionId: m.executionId || null })),
+  executionIds: t.executionIds || [],
   createdAt: t.createdAt
 })
 
@@ -78,8 +79,9 @@ export default async (req) => {
           id: e.id,
           date: e.date,
           serviceName: e.serviceName,
-          before: (e.before || []).slice(0, 1).map((p) => ({ url: p.url })),
-          after: (e.after || []).slice(0, 1).map((p) => ({ url: p.url }))
+          ticketId: e.ticketId || null,
+          before: (e.before || []).slice(0, 1).map((p) => ({ url: p.url, kind: p.kind || 'photo' })),
+          after: (e.after || []).slice(0, 1).map((p) => ({ url: p.url, kind: p.kind || 'photo' }))
         }))
       })
     }

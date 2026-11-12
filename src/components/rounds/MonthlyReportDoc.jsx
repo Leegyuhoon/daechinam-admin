@@ -1,4 +1,5 @@
 import { fmtDate, TICKET_STATUS } from '../../lib/rounds'
+import { Thumb } from './Media'
 
 // 월간 이슈·점검 보고서 본문 — 관리자 미리보기와 업체 페이지에서 같이 씀
 // data = collectMonth(...) 결과, report = { rating, summary, nextPlan }
@@ -98,7 +99,14 @@ export default function MonthlyReportDoc({ siteName, month, report, data, servic
                   <td className="border border-base-700 px-2 py-1 align-top">
                     <span className="text-base-500">[{t.category}]</span> {t.content || '(사진·영상 첨부)'}
                   </td>
-                  <td className="border border-base-700 px-2 py-1 align-top text-base-300">{lastAdmin(t) || '-'}</td>
+                  <td className="border border-base-700 px-2 py-1 align-top text-base-300">
+                    {lastAdmin(t) || '-'}
+                    {(t.executionIds || []).map((id) => (
+                      <a key={id} href={serviceReportLink(id)} target="_blank" rel="noreferrer" className="mt-0.5 block text-mist-600 underline">
+                        전후 보고서 보기
+                      </a>
+                    ))}
+                  </td>
                   <td className={`border border-base-700 px-2 py-1 align-top ${t.status === 'done' ? 'text-teal-500' : 'text-amber-500'}`}>
                     {TICKET_STATUS[t.status] || '접수'}
                   </td>
@@ -117,12 +125,13 @@ export default function MonthlyReportDoc({ siteName, month, report, data, servic
             {executions.map((e) => (
               <a key={e.id} href={serviceReportLink(e.id)} target="_blank" rel="noreferrer" className="block rounded-lg border border-base-800 p-2 hover:border-mist-500">
                 <p className="mb-1 text-[11px] font-medium">
+                  {e.ticketId && <span className="mr-1 text-amber-500">[요청 처리]</span>}
                   {fmtDate(e.date)} · {e.serviceName}
                 </p>
                 <div className="grid grid-cols-2 gap-1">
                   {[e.before?.[0], e.after?.[0]].map((p, i) => (
                     <div key={i} className="relative aspect-[4/3] overflow-hidden rounded bg-base-900">
-                      {p && <img src={p.url} alt="" className="h-full w-full object-cover" />}
+                      {p && <Thumb m={p} className="h-full w-full" />}
                       <span className="absolute left-1 top-1 rounded bg-black/60 px-1 text-[9px] text-white">{i === 0 ? '전' : '후'}</span>
                     </div>
                   ))}

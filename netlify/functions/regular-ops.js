@@ -92,14 +92,16 @@ export default async (req) => {
           .filter((m) => typeof m?.url === 'string' && m.url.startsWith('/api/regular-'))
           .slice(0, 10)
           .map((m) => ({ url: m.url, kind: m.kind === 'video' ? 'video' : 'photo' }))
-        if (text || media.length) {
-          t.messages = [...(t.messages || []), { id: crypto.randomUUID(), from: 'admin', text, media, at: now }]
+        const executionId = /^[0-9a-f-]{36}$/i.test(body.executionId || '') ? body.executionId : null
+        if (text || media.length || executionId) {
+          t.messages = [...(t.messages || []), { id: crypto.randomUUID(), from: 'admin', text, media, executionId, at: now }]
           t.lastAdminAt = now
+          if (executionId) t.executionIds = [...new Set([...(t.executionIds || []), executionId])]
         }
         if (['open', 'progress', 'done'].includes(body.status)) t.status = body.status
         t.updatedAt = now
         await store.setJSON('tickets', list)
-        if (text || media.length) {
+        if (text || media.length || executionId) {
           const site = (await readCol(store, 'sites')).find((s) => s.id === t.siteId)
           if (site?.accessCode) {
             await notify({ role: 'client', siteId: site.id }, {

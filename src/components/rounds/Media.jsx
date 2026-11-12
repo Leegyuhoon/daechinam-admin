@@ -154,3 +154,20 @@ export function MediaView({ media = [], size = 'h-20 w-20', name = '첨부' }) {
     </div>
   )
 }
+
+export const isVideo = (m) => m?.kind === 'video' || /\/api\/regular-media/.test(m?.url || '')
+
+// 썸네일 한 칸 — 사진이면 이미지, 영상이면 재생 표시 (controls=true면 바로 재생 가능)
+export function Thumb({ m, className = '', controls = false, alt = '' }) {
+  if (!m) return null
+  if (isVideo(m)) {
+    return controls ? (
+      <video src={m.url} controls playsInline preload="metadata" className={`bg-black object-contain ${className}`} />
+    ) : (
+      <div className={`flex items-center justify-center bg-base-200 text-base-950 ${className}`}>
+        <Play size={18} />
+      </div>
+    )
+  }
+  return <img src={m.url} alt={alt} className={`object-cover ${className}`} />
+}

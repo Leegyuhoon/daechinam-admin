@@ -274,10 +274,10 @@ export const api = {
     if (!res.ok) throw new Error(data.error || `사진 업로드 실패 (${res.status})`)
     return data // { id, url }
   },
-  replyTicket: (id, text, status, media = []) =>
+  replyTicket: (id, text, status, media = [], executionId = null) =>
     request('/regular-ops', {
       method: 'POST',
-      body: JSON.stringify({ collection: 'tickets', action: 'reply', id, text, status, media }),
+      body: JSON.stringify({ collection: 'tickets', action: 'reply', id, text, status, media, executionId }),
       headers: { 'X-Client-Admin-Password': clientAdminPassword }
     }),
 

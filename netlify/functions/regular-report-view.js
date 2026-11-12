@@ -25,8 +25,9 @@ export default async (req) => {
         date: ex.date || '',
         worker: ex.worker || '',
         note: ex.note || '',
-        before: (ex.before || []).map((p) => ({ url: p.url, caption: p.caption || '' })),
-        after: (ex.after || []).map((p) => ({ url: p.url, caption: p.caption || '' }))
+        fromTicket: !!ex.ticketId,
+        before: (ex.before || []).map((p) => ({ url: p.url, kind: p.kind || 'photo', caption: p.caption || '' })),
+        after: (ex.after || []).map((p) => ({ url: p.url, kind: p.kind || 'photo', caption: p.caption || '' }))
       }
     })
   } catch (err) {

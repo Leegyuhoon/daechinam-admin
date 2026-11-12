@@ -1,62 +1,14 @@
 import { useEffect, useState } from 'react'
-import { Plus, Copy, Check, ExternalLink, Pencil, Trash2, ImagePlus, X, Loader2 } from 'lucide-react'
+import { Plus, Copy, Check, ExternalLink, Pencil, Trash2 } from 'lucide-react'
 import { api } from '../../lib/api'
 import { todayStr, fmtDate, reportLink } from '../../lib/rounds'
 import { Modal, Label, Card, inputCls, btnPrimary, btnGhost, btnDanger } from './ui'
 import PrintButton from '../PrintButton'
-
-function PhotoPicker({ label, photos, onChange }) {
-  const [uploading, setUploading] = useState(0)
-  const [error, setError] = useState(null)
-
-  const pick = async (e) => {
-    const files = [...(e.target.files || [])]
-    e.target.value = ''
-    if (!files.length) return
-    setError(null)
-    setUploading(files.length)
-    const added = []
-    for (const f of files) {
-      try {
-        added.push(await api.uploadRegularPhoto(f))
-      } catch (err) {
-        setError(err.message)
-      }
-      setUploading((n) => n - 1)
-    }
-    onChange([...photos, ...added])
-  }
-
-  return (
-    <div>
-      <p className="mb-1.5 text-xs font-medium text-base-300">
-        {label} <span className="font-normal text-base-500">({photos.length}장)</span>
-      </p>
-      <div className="grid grid-cols-3 gap-1.5">
-        {photos.map((p, i) => (
-          <div key={p.id || p.url} className="relative aspect-square overflow-hidden rounded-lg bg-base-900">
-            <img src={p.url} alt="" className="h-full w-full object-cover" />
-            <button
-              onClick={() => onChange(photos.filter((_, j) => j !== i))}
-              className="absolute right-1 top-1 rounded-full bg-black/60 p-0.5 text-white"
-            >
-              <X size={12} />
-            </button>
-          </div>
-        ))}
-        <label className="flex aspect-square cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-base-700 text-[11px] text-base-500 hover:text-mist-500">
-          {uploading > 0 ? <Loader2 size={18} className="animate-spin" /> : <ImagePlus size={18} />}
-          {uploading > 0 ? `${uploading}장 올리는 중` : '사진 추가'}
-          <input type="file" accept="image/*" multiple className="hidden" onChange={pick} disabled={uploading > 0} />
-        </label>
-      </div>
-      {error && <p className="mt-1 text-[11px] text-amber-500">{error}</p>}
-    </div>
-  )
-}
+import { MediaPicker, Thumb } from './Media'
 
 function ExecutionModal({ initial, sites, visits, ops, onClose }) {
   const [ex, setEx] = useState(initial)
+  const [uploading, setUploading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
   const site = sites.find((s) => s.id === ex.siteId)
@@ -66,7 +18,7 @@ function ExecutionModal({ initial, sites, visits, ops, onClose }) {
     if (!ex.siteId || !ex.date) return setError('현장과 작업일을 입력해주세요.')
     const serviceName = ex.serviceId ? services.find((s) => s.id === ex.serviceId)?.name || ex.serviceName : ex.serviceName
     if (!serviceName?.trim()) return setError('작업 항목을 선택하거나 입력해주세요.')
-    if (ex.before.length + ex.after.length === 0) return setError('작업 전 또는 작업 후 사진을 한 장 이상 올려주세요.')
+    if (ex.before.length + ex.after.length === 0) return setError('작업 전 또는 작업 후 사진·영상을 하나 이상 올려주세요.')
     setSaving(true)
     setError(null)
     try {
@@ -130,15 +82,28 @@ function ExecutionModal({ initial, sites, visits, ops, onClose }) {
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <PhotoPicker label="작업 전" photos={ex.before} onChange={(before) => setEx((x) => ({ ...x, before }))} />
-          <PhotoPicker label="작업 후" photos={ex.after} onChange={(after) => setEx((x) => ({ ...x, after }))} />
+          {[
+            ['before', '작업 전'],
+            ['after', '작업 후']
+          ].map(([key, label]) => (
+            <div key={key}>
+              <p className="mb-1.5 text-xs font-medium text-base-300">
+                {label} <span className="font-normal text-base-500">({ex[key].length}개)</span>
+              </p>
+              <MediaPicker
+                media={ex[key]}
+                onBusyChange={setUploading}
+                onChange={(upd) => setEx((x) => ({ ...x, [key]: typeof upd === 'function' ? upd(x[key]) : upd }))}
+              />
+            </div>
+          ))}
         </div>
         <p className="text-[11px] text-base-500">같은 위치를 같은 각도로 찍어 순서대로 올리면 보고서에서 전/후가 나란히 짝지어져요.</p>
 
         {error && <p className="text-xs text-amber-500">{error}</p>}
         <div className="flex gap-2">
-          <button onClick={save} disabled={saving} className={btnPrimary}>
-            {saving ? '저장 중…' : '저장'}
+          <button onClick={save} disabled={saving || uploading} className={btnPrimary}>
+            {saving ? '저장 중…' : uploading ? '첨부 올리는 중…' : '저장'}
           </button>
           <button onClick={() => onClose()} className={btnGhost}>
             취소
@@ -252,7 +217,10 @@ export default function RoundsReports({ data, ops, prefill, clearPrefill }) {
             <Card key={ex.id}>
               <div className="mb-2 flex items-start justify-between gap-2">
                 <div>
-                  <p className="font-semibold">{ex.serviceName}</p>
+                  <p className="font-semibold">
+                    {ex.ticketId && <span className="mr-1 rounded bg-amber-400/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-500">요청 처리</span>}
+                    {ex.serviceName}
+                  </p>
                   <p className="text-[11px] text-base-500">
                     {siteName(ex)} · {fmtDate(ex.date)} {ex.worker && `· ${ex.worker}`}
                   </p>
@@ -272,7 +240,7 @@ export default function RoundsReports({ data, ops, prefill, clearPrefill }) {
                   ['후', ex.after?.[0]]
                 ].map(([label, p]) => (
                   <div key={label} className="relative aspect-[4/3] overflow-hidden rounded-lg bg-base-900">
-                    {p ? <img src={p.url} alt="" className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center text-[11px] text-base-600">사진 없음</div>}
+                    {p ? <Thumb m={p} className="h-full w-full" /> : <div className="flex h-full items-center justify-center text-[11px] text-base-600">사진 없음</div>}
                     <span className="absolute left-1.5 top-1.5 rounded bg-black/60 px-1.5 py-0.5 text-[10px] text-white">작업 {label}</span>
                   </div>
                 ))}

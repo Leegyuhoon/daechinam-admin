@@ -4,6 +4,7 @@ import { Printer } from 'lucide-react'
 import { api } from '../lib/api'
 import { fmtDate } from '../lib/rounds'
 import { printElement } from './PrintButton'
+import { Thumb } from './rounds/Media'
 
 // 업체 담당자용 "작업 전후 보고서" — 링크(/service-report?id=...)로만 열람, 관리 UI 없음
 export default function ServiceReportView() {
@@ -49,6 +50,7 @@ export default function ServiceReportView() {
           <p className="text-lg font-bold">
             {r.siteName} · {r.serviceName}
           </p>
+          {r.fromTicket && <p className="mt-0.5 text-[11px] text-base-500">고객 요청에 따른 조치 보고서입니다.</p>}
         </div>
 
         <table className="mb-4 w-full border-collapse text-xs">
@@ -87,7 +89,7 @@ export default function ServiceReportView() {
               {[r.before[i], r.after[i]].map((p, j) => (
                 <div key={j} className="aspect-[4/3] overflow-hidden rounded-lg bg-base-900">
                   {p ? (
-                    <img src={p.url} alt={j === 0 ? '작업 전' : '작업 후'} className="h-full w-full object-cover" />
+                    <Thumb m={p} controls className="h-full w-full" alt={j === 0 ? '작업 전' : '작업 후'} />
                   ) : (
                     <div className="flex h-full items-center justify-center text-[11px] text-base-600">-</div>
                   )}

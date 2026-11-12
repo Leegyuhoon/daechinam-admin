@@ -127,6 +127,11 @@ function TicketItem({ t, code, onUpdated }) {
                     <MediaView media={m.media} size="h-16 w-16" name={m.from === 'admin' ? '조치사진' : '추가첨부'} />
                   </div>
                 )}
+                {m.executionId && (
+                  <a href={reportLink(m.executionId)} target="_blank" rel="noreferrer" className="mt-1 block text-[11px] font-medium text-mist-600 underline">
+                    작업 전후 보고서 보기
+                  </a>
+                )}
                 <p className="mt-0.5 text-[10px] text-base-500">
                   {m.from === 'admin' ? '(주)이엘씨_대치남' : '작성자'} · {fmtDateTime(m.at)}
                 </p>

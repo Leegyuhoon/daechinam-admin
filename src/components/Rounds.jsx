@@ -120,8 +120,8 @@ export default function Rounds() {
       await api.deleteRegular(collection, id)
       setState((s) => ({ ...s, [collection]: s[collection].filter((x) => x.id !== id) }))
     },
-    replyTicket: async (id, text, status, media) => {
-      const { item } = await api.replyTicket(id, text, status, media)
+    replyTicket: async (id, text, status, media, executionId) => {
+      const { item } = await api.replyTicket(id, text, status, media, executionId)
       upsertLocal('tickets', [item])
       return item
     },
