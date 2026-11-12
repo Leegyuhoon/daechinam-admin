@@ -45,14 +45,19 @@ export default async (req) => {
       const employeeCount = Number(body.employeeCount) || 0
       const dayWorkerCount = Number(body.dayWorkerCount) || 0
       const dayWorkerRate = Number(body.dayWorkerRate) || 0
+      // 여러 날 작업: 종료일이 시작일보다 뒤일 때만 저장, 일수 = 종료일 - 시작일 + 1
+      const endDate = body.endDate && body.endDate > body.date ? body.endDate : null
+      const days = endDate ? Math.round((Date.parse(endDate) - Date.parse(body.date)) / 86400000) + 1 : 1
       const item = {
         id,
         siteName: body.siteName.trim(),
         date: body.date,
+        endDate,
+        days,
         employeeCount,
         dayWorkerCount,
         dayWorkerRate,
-        dayWorkerTotal: dayWorkerCount * dayWorkerRate,
+        dayWorkerTotal: dayWorkerCount * dayWorkerRate * days,
         workDescription: body.workDescription || '',
         media: Array.isArray(body.media) ? body.media : [],
         createdAt: body.createdAt || new Date().toISOString(),

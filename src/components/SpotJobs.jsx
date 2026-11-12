@@ -27,11 +27,16 @@ const emptyJob = {
   employeeCount: '',
   dayWorkerCount: '',
   dayWorkerRate: '',
+  endDate: '',
   workDescription: '',
   media: []
 }
 
 const won = (n) => `${(n || 0).toLocaleString('ko-KR')}원`
+
+// 작업 일수 (종료일 포함), 기간 표시
+const daysOf = (start, end) => (start && end && end > start ? Math.round((Date.parse(end) - Date.parse(start)) / 86400000) + 1 : 1)
+const rangeLabel = (j) => (j.endDate && j.endDate > j.date ? `${j.date} ~ ${j.endDate.slice(5)} (${daysOf(j.date, j.endDate)}일)` : j.date)
 
 function MediaUploader({ media, onAdd }) {
   const [uploading, setUploading] = useState(false)
@@ -100,10 +105,12 @@ function MediaUploader({ media, onAdd }) {
 
 function JobForm({ initialJob, onSaved, onCancel }) {
   const [job, setJob] = useState(initialJob || emptyJob)
+  const [multiDay, setMultiDay] = useState(!!(initialJob?.endDate && initialJob.endDate > initialJob.date))
   const [error, setError] = useState(null)
   const [saving, setSaving] = useState(false)
 
-  const total = (Number(job.dayWorkerCount) || 0) * (Number(job.dayWorkerRate) || 0)
+  const days = multiDay ? daysOf(job.date, job.endDate) : 1
+  const total = (Number(job.dayWorkerCount) || 0) * (Number(job.dayWorkerRate) || 0) * days
 
   const save = async () => {
     setError(null)
@@ -111,9 +118,13 @@ function JobForm({ initialJob, onSaved, onCancel }) {
       setError('현장명과 날짜를 입력해주세요.')
       return
     }
+    if (multiDay && (!job.endDate || job.endDate <= job.date)) {
+      setError('종료일은 시작일 다음 날 이후로 골라 주세요.')
+      return
+    }
     setSaving(true)
     try {
-      await api.upsertSpotJob(job)
+      await api.upsertSpotJob({ ...job, endDate: multiDay ? job.endDate : null })
       onSaved()
     } catch (err) {
       setError(err.message)
@@ -135,12 +146,35 @@ function JobForm({ initialJob, onSaved, onCancel }) {
           value={job.siteName}
           onChange={(e) => setJob({ ...job, siteName: e.target.value })}
         />
-        <input
-          type="date"
-          className="focus-ring rounded-lg border border-base-700 bg-base-900 px-3 py-2 text-sm"
-          value={job.date}
-          onChange={(e) => setJob({ ...job, date: e.target.value })}
-        />
+        <div>
+          <div className="flex items-center gap-2">
+            <input
+              type="date"
+              aria-label={multiDay ? '시작일' : '작업일'}
+              className="focus-ring min-w-0 flex-1 rounded-lg border border-base-700 bg-base-900 px-3 py-2 text-sm"
+              value={job.date}
+              onChange={(e) => setJob({ ...job, date: e.target.value })}
+            />
+            {multiDay && (
+              <>
+                <span className="text-xs text-base-500">~</span>
+                <input
+                  type="date"
+                  aria-label="종료일"
+                  min={job.date || undefined}
+                  className="focus-ring min-w-0 flex-1 rounded-lg border border-base-700 bg-base-900 px-3 py-2 text-sm"
+                  value={job.endDate || ''}
+                  onChange={(e) => setJob({ ...job, endDate: e.target.value })}
+                />
+              </>
+            )}
+          </div>
+          <label className="mt-1.5 flex items-center gap-1.5 text-xs text-base-400">
+            <input type="checkbox" checked={multiDay} onChange={(e) => setMultiDay(e.target.checked)} />
+            여러 날 작업 (시작일 ~ 종료일)
+            {multiDay && job.date && job.endDate > job.date && <span className="font-medium text-mist-500">· 총 {days}일</span>}
+          </label>
+        </div>
       </div>
 
       <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -165,7 +199,7 @@ function JobForm({ initialJob, onSaved, onCancel }) {
           />
         </div>
         <div>
-          <label className="mb-1 block text-xs text-base-400">일용직 인당 금액</label>
+          <label className="mb-1 block text-xs text-base-400">일용직 인당 {multiDay ? '하루 금액(일당)' : '금액'}</label>
           <input
             type="number"
             min={0}
@@ -180,6 +214,11 @@ function JobForm({ initialJob, onSaved, onCancel }) {
       <div className="mt-2 flex items-center gap-1.5 text-xs text-base-400">
         <Wallet size={13} className="text-red-500" />
         일용직 총액: <span className="font-medium text-base-200">{won(total)}</span>
+        {multiDay && days > 1 && (
+          <span className="text-base-500">
+            ({Number(job.dayWorkerCount) || 0}명 × {won(Number(job.dayWorkerRate) || 0)} × {days}일)
+          </span>
+        )}
       </div>
 
       <textarea
@@ -380,7 +419,7 @@ export default function SpotJobs() {
         <table className="w-full border-collapse text-[11px] text-base-100">
           <thead>
             <tr className="bg-base-900 text-left">
-              {['날짜', '현장', '직원', '일용', '일용 인당', '일용 총액', '작업 내용'].map((h) => (
+              {['날짜', '현장', '일수', '직원', '일용', '일용 인당(일)', '일용 총액', '작업 내용'].map((h) => (
                 <th key={h} className="border border-base-700 px-2 py-1 font-medium">
                   {h}
                 </th>
@@ -392,8 +431,12 @@ export default function SpotJobs() {
               .sort((a, b) => (a.date || '').localeCompare(b.date || ''))
               .map((j) => (
                 <tr key={j.id}>
-                  <td className="whitespace-nowrap border border-base-700 px-2 py-1 align-top">{j.date}</td>
+                  <td className="whitespace-nowrap border border-base-700 px-2 py-1 align-top">
+                    {j.date}
+                    {j.endDate && j.endDate > j.date && <span className="block">~ {j.endDate}</span>}
+                  </td>
                   <td className="border border-base-700 px-2 py-1 align-top">{j.siteName}</td>
+                  <td className="border border-base-700 px-2 py-1 text-right align-top">{daysOf(j.date, j.endDate)}</td>
                   <td className="border border-base-700 px-2 py-1 text-right align-top">{j.employeeCount || 0}</td>
                   <td className="border border-base-700 px-2 py-1 text-right align-top">{j.dayWorkerCount || 0}</td>
                   <td className="whitespace-nowrap border border-base-700 px-2 py-1 text-right align-top">{won(Number(j.dayWorkerRate) || 0)}</td>
@@ -402,7 +445,7 @@ export default function SpotJobs() {
                 </tr>
               ))}
             <tr className="bg-base-900 font-medium">
-              <td colSpan={5} className="border border-base-700 px-2 py-1 text-right">
+              <td colSpan={6} className="border border-base-700 px-2 py-1 text-right">
                 합계 ({jobs.length}건)
               </td>
               <td className="whitespace-nowrap border border-base-700 px-2 py-1 text-right">{won(jobs.reduce((n, j) => n + (j.dayWorkerTotal || 0), 0))}</td>
@@ -440,7 +483,7 @@ export default function SpotJobs() {
                     <div>
                       <p className="font-medium text-base-100">{j.siteName}</p>
                       <p className="flex items-center gap-2 text-xs text-base-400">
-                        <span>{j.date}</span>
+                        <span>{rangeLabel(j)}</span>
                         <span className="flex items-center gap-1">
                           <Users size={11} /> 직원 {j.employeeCount} · 일용 {j.dayWorkerCount}
                         </span>
@@ -493,7 +536,7 @@ export default function SpotJobs() {
                     <div className="no-print flex items-center gap-3">
                       <PrintButton
                         targetId={`print-spot-${j.id}`}
-                        title={`일회성 현장_${j.siteName}_${j.date}`}
+                        title={`일회성 현장_${j.siteName}_${j.date}${j.endDate && j.endDate > j.date ? `~${j.endDate}` : ''}`}
                         className="focus-ring flex items-center gap-1 text-xs text-base-500 hover:text-mist-500"
                       />
                       <button
