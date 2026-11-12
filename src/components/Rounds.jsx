@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
+import PushToggle from './PushToggle'
 import { Lock, CalendarRange, Building2, Camera, RefreshCw, MessagesSquare, FileText } from 'lucide-react'
 import { api } from '../lib/api'
 import RoundsCalendar from './rounds/RoundsCalendar'
@@ -59,7 +61,8 @@ const TABS = [
 export default function Rounds() {
   const [authed, setAuthed] = useState(true)
   const [state, setState] = useState({ loading: true, error: null, sites: [], visits: [], executions: [], tickets: [], reports: [] })
-  const [tab, setTab] = useState('calendar')
+  const [params] = useSearchParams()
+  const [tab, setTab] = useState(params.get('tab') || 'calendar')
   const [reportPrefill, setReportPrefill] = useState(null)
 
   const load = () => {
@@ -164,9 +167,12 @@ export default function Rounds() {
           <h1 className="text-xl font-semibold text-page-text">순회 관리</h1>
           <p className="mt-1 text-xs text-page-sub">점검 일정 · 업체 소통 · 월간 보고서 · 작업 전후 보고서</p>
         </div>
-        <button onClick={load} className="focus-ring flex items-center gap-1.5 rounded-lg border border-page-border px-3 py-1.5 text-xs text-page-sub hover:text-page-text">
-          <RefreshCw size={13} className={state.loading ? 'animate-spin' : ''} /> 새로고침
-        </button>
+        <div className="flex items-start gap-2">
+          <PushToggle role="admin" headers={api.adminHeaders()} />
+          <button onClick={load} className="focus-ring flex items-center gap-1.5 rounded-lg border border-page-border px-3 py-1.5 text-xs text-page-sub hover:text-page-text">
+            <RefreshCw size={13} className={state.loading ? 'animate-spin' : ''} /> 새로고침
+          </button>
+        </div>
       </div>
 
       <div className="mb-4 flex gap-1 overflow-x-auto rounded-xl border border-page-border bg-page-soft p-1">

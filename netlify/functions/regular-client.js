@@ -1,4 +1,5 @@
 import { getStore } from '@netlify/blobs'
+import { notify, clip } from '../lib/push.js'
 
 // 업체 담당자 전용 페이지(/client?c=접속코드) API — 로그인 없이, 현장마다 다른 추측 불가 코드로만 접근
 // GET  /api/regular-client?c=코드        → 현장명, 문의 내역, 공개된 월간 보고서와 보고서에 필요한 기록
@@ -101,6 +102,12 @@ export default async (req) => {
         }
         tickets.push(ticket)
         await store.setJSON('tickets', tickets)
+        await notify({ role: 'admin' }, {
+          title: `새 문의 · ${site.name}`,
+          body: `[${ticket.category}] ${clip(ticket.content)}`,
+          url: '/rounds?tab=tickets',
+          tag: `ticket-${ticket.id}`
+        })
         return Response.json({ ok: true, ticket: publicTicket(ticket) })
       }
 
@@ -113,6 +120,12 @@ export default async (req) => {
         t.updatedAt = now
         if (t.status === 'done') t.status = 'open' // 완료 후 다시 문의하면 다시 열림
         await store.setJSON('tickets', tickets)
+        await notify({ role: 'admin' }, {
+          title: `추가 문의 · ${site.name}`,
+          body: clip(text),
+          url: '/rounds?tab=tickets',
+          tag: `ticket-${t.id}`
+        })
         return Response.json({ ok: true, ticket: publicTicket(t) })
       }
 

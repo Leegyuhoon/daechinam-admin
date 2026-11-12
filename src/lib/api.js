@@ -241,6 +241,7 @@ export const api = {
 
   // 정기현장 순회 관리 (관리자 비밀번호는 업체 보고와 공용)
   hasClientAdminPassword: () => !!clientAdminPassword,
+  adminHeaders: () => ({ 'X-Client-Admin-Password': clientAdminPassword }),
   listRegularSiteNames: () => request('/regular-site-names'),
   listRegularOps: () =>
     request('/regular-ops', { headers: { 'X-Client-Admin-Password': clientAdminPassword } }),

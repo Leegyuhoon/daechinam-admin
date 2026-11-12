@@ -5,6 +5,7 @@ import { api } from '../lib/api'
 import { TICKET_CATEGORIES, TICKET_STATUS, fmtDateTime, collectMonth, reportLink } from '../lib/rounds'
 import MonthlyReportDoc from './rounds/MonthlyReportDoc'
 import ScopeView from './rounds/ScopeView'
+import PushToggle from './PushToggle'
 
 // 업체 담당자 전용 페이지 (/client?c=접속코드) — 문의 남기기 · 답변 확인 · 월간 보고서
 const inputCls = 'focus-ring w-full rounded-lg border border-base-700 bg-base-900 px-3 py-2.5 text-sm text-base-100'
@@ -179,6 +180,21 @@ export default function ClientPortal() {
     else load()
   }, [code])
 
+  // 홈 화면에 추가하면 관리 사이트가 아닌 이 업체 페이지로 열리도록 매니페스트 교체
+  useEffect(() => {
+    if (!code) return
+    const link = document.querySelector('link[rel="manifest"]')
+    const title = document.querySelector('meta[name="apple-mobile-web-app-title"]')
+    const prev = [link?.getAttribute('href'), title?.getAttribute('content')]
+    link?.setAttribute('href', `/api/client-manifest?c=${encodeURIComponent(code)}`)
+    title?.setAttribute('content', '대치남 고객센터')
+    document.title = '(주)이엘씨_대치남 고객센터'
+    return () => {
+      if (prev[0]) link?.setAttribute('href', prev[0])
+      if (prev[1]) title?.setAttribute('content', prev[1])
+    }
+  }, [code])
+
   const go = (t) => {
     setTab(t)
     setReportMonth(null)
@@ -206,6 +222,8 @@ export default function ClientPortal() {
           <p className="text-[11px] text-page-sub">(주)이엘씨_대치남 고객 전용</p>
           <p className="text-lg font-semibold text-page-text">{site.name}</p>
         </div>
+
+        <PushToggle role="client" code={code} variant="client" />
 
         <div className="no-print mb-4 flex gap-1 rounded-xl border border-page-border bg-page-soft p-1">
           {[
