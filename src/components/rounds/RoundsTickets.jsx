@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react'
 import { Plus, Send, Copy, Check, MessageCircle, Link2 } from 'lucide-react'
 import { TICKET_CATEGORIES, TICKET_STATUS, TICKET_SOURCES, needsReply, fmtDateTime, portalLink } from '../../lib/rounds'
 import { Modal, Label, Card, inputCls, btnPrimary, btnGhost } from './ui'
+import PrintButton from '../PrintButton'
+import TicketsPrint from './TicketsPrint'
 
 const STATUS_CLS = {
   open: 'bg-amber-400/10 text-amber-500',
@@ -255,10 +257,19 @@ export default function RoundsTickets({ data, ops }) {
             </option>
           ))}
         </select>
-        <button onClick={() => setCreating(true)} className={`${btnPrimary} ml-auto`}>
-          <Plus size={14} /> 직접 등록
-        </button>
+        <div className="ml-auto flex gap-2">
+          {list.length > 0 && (
+            <PrintButton
+              targetId="print-tickets"
+              title={`업체 문의내역_${siteFilter ? site(siteFilter)?.name : '전체'}_${new Date().toLocaleDateString('sv-SE')}`}
+            />
+          )}
+          <button onClick={() => setCreating(true)} className={btnPrimary}>
+            <Plus size={14} /> 직접 등록
+          </button>
+        </div>
       </div>
+      <TicketsPrint id="print-tickets" tickets={[...list].reverse()} siteName={(id) => site(id)?.name || ''} />
 
       {list.length === 0 ? (
         <Card>

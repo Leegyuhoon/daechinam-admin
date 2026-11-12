@@ -20,6 +20,7 @@ import {
   ArrowLeft
 } from 'lucide-react'
 import { api } from '../lib/api'
+import PrintButton from './PrintButton'
 
 const emptyCourse = { title: '', description: '', videoUrl: '', passRatio: 80, questions: [], targetIds: [] }
 const emptyRosterEntry = { name: '', birth: '', org: '' }
@@ -399,12 +400,19 @@ function ResultsPanel({ course, onClose }) {
   const notCompleted = targets.filter((t) => !passedNames.has(t.name))
 
   return (
-    <div className="rounded-xl border border-base-800 bg-base-950 p-4">
+    <div id={`print-safety-${course.id}`} className="rounded-xl border border-base-800 bg-base-950 p-4">
       <div className="mb-3 flex items-center justify-between">
         <p className="text-sm font-medium text-base-200">{course.title} — 이수 현황</p>
-        <button onClick={onClose} className="focus-ring text-xs text-base-500 hover:text-base-300">
-          닫기
-        </button>
+        <div className="no-print flex items-center gap-3">
+          <PrintButton
+            targetId={`print-safety-${course.id}`}
+            title={`안전교육 이수현황_${course.title}_${new Date().toLocaleDateString('sv-SE')}`}
+            className="focus-ring flex items-center gap-1 text-xs text-base-500 hover:text-mist-500"
+          />
+          <button onClick={onClose} className="focus-ring text-xs text-base-500 hover:text-base-300">
+            닫기
+          </button>
+        </div>
       </div>
 
       {!loading && targetIds.length > 0 && (

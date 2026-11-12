@@ -6,6 +6,8 @@ import { TICKET_CATEGORIES, TICKET_STATUS, fmtDateTime, collectMonth, reportLink
 import MonthlyReportDoc from './rounds/MonthlyReportDoc'
 import ScopeView from './rounds/ScopeView'
 import PushToggle from './PushToggle'
+import { printElement } from './PrintButton'
+import TicketsPrint from './rounds/TicketsPrint'
 
 // 업체 담당자 전용 페이지 (/client?c=접속코드) — 문의 남기기 · 답변 확인 · 월간 보고서
 const inputCls = 'focus-ring w-full rounded-lg border border-base-700 bg-base-900 px-3 py-2.5 text-sm text-base-100'
@@ -278,6 +280,15 @@ export default function ClientPortal() {
               <p className="py-8 text-center text-xs text-base-500">남기신 문의가 없어요.</p>
             ) : (
               <div className="space-y-2">
+                <div className="flex justify-end">
+                  <button
+                    onClick={() => printElement('print-portal-tickets', `${site.name}_문의내역_${new Date().toLocaleDateString('sv-SE')}`)}
+                    className="flex items-center gap-1 rounded-lg border border-base-700 px-2.5 py-1.5 text-xs text-base-300"
+                  >
+                    <Printer size={13} /> PDF 저장
+                  </button>
+                </div>
+                <TicketsPrint id="print-portal-tickets" tickets={[...tickets].reverse()} />
                 {tickets.map((t) => (
                   <TicketItem
                     key={t.id}
@@ -293,12 +304,11 @@ export default function ClientPortal() {
             <div>
               <div className="no-print mb-3 flex items-center justify-between">
                 <p className="text-xs text-base-500">계약된 청소 구역과 항목, 주기입니다. 변경이 필요하시면 "문의 남기기"로 알려 주세요.</p>
-                <button onClick={() => window.print()} className="flex shrink-0 items-center gap-1 rounded-lg border border-base-700 px-2.5 py-1.5 text-xs text-base-300">
-                  <Printer size={13} /> 인쇄
+                <button onClick={() => printElement('print-scope', `${site.name}_청소범위`)} className="flex shrink-0 items-center gap-1 rounded-lg border border-base-700 px-2.5 py-1.5 text-xs text-base-300">
+                  <Printer size={13} /> PDF 저장
                 </button>
               </div>
-              <div className="print-area">
-                <p className="mb-3 hidden text-base font-bold print:block">{site.name} 청소 범위 — (주)이엘씨_대치남</p>
+              <div id="print-scope">
                 <ScopeView scope={site.scope || []} services={site.services || []} />
               </div>
             </div>
@@ -311,11 +321,14 @@ export default function ClientPortal() {
                   <button onClick={() => setReportMonth(null)} className="flex items-center gap-0.5 text-xs text-base-400">
                     <ChevronLeft size={14} /> 목록
                   </button>
-                  <button onClick={() => window.print()} className="flex items-center gap-1 rounded-lg border border-base-700 px-2.5 py-1.5 text-xs text-base-300">
-                    <Printer size={13} /> 인쇄/PDF 저장
+                  <button
+                    onClick={() => printElement('print-portal-report', `${site.name}_${report.month}_월간보고서`)}
+                    className="flex items-center gap-1 rounded-lg border border-base-700 px-2.5 py-1.5 text-xs text-base-300"
+                  >
+                    <Printer size={13} /> PDF 저장
                   </button>
                 </div>
-                <div className="print-area">
+                <div id="print-portal-report">
                   <MonthlyReportDoc
                     siteName={site.name}
                     month={report.month}

@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, Printer, Check, MessageCircle, Sparkles, Eye
 import { thisMonth, shiftMonth, collectMonth, RATINGS, portalLink, reportLink } from '../../lib/rounds'
 import { Modal, Card, Label, inputCls, btnPrimary, btnGhost } from './ui'
 import MonthlyReportDoc from './MonthlyReportDoc'
+import PrintButton, { printElement } from '../PrintButton'
 
 // 기록을 바탕으로 총평 초안 만들기 (자유롭게 고쳐 쓰면 됨)
 function draftSummary(siteName, month, d) {
@@ -89,8 +90,8 @@ function ReportEditor({ site, month, initial, data, ops, onClose }) {
               <Eye size={14} /> 저장하고 업체에 공개
             </button>
           )}
-          <button onClick={() => window.print()} className={`${btnGhost} ml-auto`}>
-            <Printer size={14} /> 인쇄/PDF
+          <button onClick={() => printElement('print-monthly-doc', `${site.name}_${month}_월간보고서`)} className={`${btnGhost} ml-auto`}>
+            <Printer size={14} /> PDF 저장
           </button>
         </div>
         {r.published && (
@@ -104,7 +105,7 @@ function ReportEditor({ site, month, initial, data, ops, onClose }) {
         )}
         <p className="pt-2 text-xs font-semibold text-base-300">미리보기</p>
       </div>
-      <div className="print-area rounded-xl border border-base-800 bg-base-950 p-4">
+      <div id="print-monthly-doc" className="rounded-xl border border-base-800 bg-base-950 p-4">
         <MonthlyReportDoc siteName={site.name} month={month} report={r} data={data} serviceReportLink={reportLink} />
       </div>
     </Modal>
@@ -146,9 +147,12 @@ export default function RoundsMonthly({ data, ops }) {
               <ChevronRight size={16} />
             </button>
           </div>
-          <p className="text-xs text-base-400">
-            보고서 공개 <span className="font-semibold text-mist-500">{publishedCount}</span> / {rows.length}곳
-          </p>
+          <div className="flex items-center gap-3">
+            <p className="text-xs text-base-400">
+              보고서 공개 <span className="font-semibold text-mist-500">{publishedCount}</span> / {rows.length}곳
+            </p>
+            <PrintButton targetId="print-monthly-list" title={`월간 보고서 현황_${month}`} label="현황 PDF" small />
+          </div>
         </div>
         <p className="mt-3 text-[11px] text-base-500">
           점검 기록(월간 일정의 점검 메모), 문의·요청 처리 내역, 전후 보고서, 다음 달 일정이 자동으로 들어가요. 종합 평가와 총평만 적고 공개하면 업체 전용 페이지에서 바로 볼 수 있어요.
@@ -156,7 +160,7 @@ export default function RoundsMonthly({ data, ops }) {
         </p>
       </Card>
 
-      <div className="grid gap-2 md:grid-cols-2">
+      <div id="print-monthly-list" className="grid gap-2 md:grid-cols-2">
         {rows.map((row) => {
           const { site, d, report } = row
           const status = report?.published ? ['공개됨', 'bg-teal-400/10 text-teal-500'] : report ? ['작성 중', 'bg-amber-400/10 text-amber-500'] : ['작성 전', 'bg-base-800 text-base-400']

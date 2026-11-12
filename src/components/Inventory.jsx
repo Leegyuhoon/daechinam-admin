@@ -1,7 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Trash2, PackageSearch, TriangleAlert, Building2, ArrowLeft } from 'lucide-react'
+import { Plus, Trash2, PackageSearch, TriangleAlert, Building2, ArrowLeft, FileSpreadsheet } from 'lucide-react'
 import { api } from '../lib/api'
+import PrintButton from './PrintButton'
+import { downloadXlsx } from '../lib/xlsx'
+
+const todayLabel = () => new Date().toLocaleDateString('sv-SE')
 
 const emptyForm = {
   name: '',
@@ -78,16 +82,43 @@ export default function Inventory() {
     return true
   })
 
+  // 지금 보이는 목록(위치·분류 필터 적용)을 엑셀로
+  const exportExcel = () => {
+    const rows = [
+      ['품목', '위치', '분류', '수량', '단위', '최소 수량', '부족 여부', '세부위치'],
+      ...visible.map((i) => [
+        i.name,
+        i.scope || '본사',
+        i.category,
+        Number(i.quantity) || 0,
+        i.unit || '',
+        i.minQuantity !== '' && i.minQuantity != null ? Number(i.minQuantity) : '',
+        i.minQuantity && Number(i.quantity) <= Number(i.minQuantity) ? '부족' : '',
+        i.location || ''
+      ])
+    ]
+    downloadXlsx(rows, `재고현황_${scopeFilter}_${category}_${todayLabel()}`, '재고 현황')
+  }
+
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-xl font-semibold text-page-text">재고 현황</h1>
+        <div className="flex flex-wrap gap-2">
+          <PrintButton targetId="print-inventory" title={`재고 현황_${scopeFilter}_${category}_${todayLabel()}`} />
+          <button
+            onClick={exportExcel}
+            className="focus-ring flex items-center gap-1.5 rounded-lg border border-page-border bg-page-soft px-3 py-1.5 text-xs text-page-sub hover:text-page-text"
+          >
+            <FileSpreadsheet size={14} /> 엑셀 다운로드
+          </button>
         <button
           onClick={() => navigate(-1)}
           className="focus-ring flex items-center gap-1.5 rounded-lg border border-page-border bg-page-soft px-3 py-1.5 text-xs text-page-sub hover:bg-page-border hover:text-page-text"
         >
           <ArrowLeft size={14} /> 뒤로가기
         </button>
+        </div>
       </div>
 
       {error && (
@@ -189,7 +220,7 @@ export default function Inventory() {
         ))}
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-base-800 bg-base-950">
+      <div id="print-inventory" className="overflow-hidden rounded-xl border border-base-800 bg-base-950">
         {loading ? (
           <p className="p-8 text-center text-sm text-base-500">불러오는 중…</p>
         ) : visible.length === 0 ? (
@@ -229,7 +260,7 @@ export default function Inventory() {
                     </td>
                     <td className="px-4 py-3 text-base-400">{item.location || '—'}</td>
                     <td className="px-4 py-3 text-right">
-                      <button onClick={() => remove(item.id)} className="focus-ring text-base-500 hover:text-red-500">
+                      <button onClick={() => remove(item.id)} className="no-print focus-ring text-base-500 hover:text-red-500">
                         <Trash2 size={15} />
                       </button>
                     </td>

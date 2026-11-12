@@ -48,3 +48,55 @@ body {
     visibility: visible;
   }
 }
+
+/* 화면 일부만 PDF로 저장 (PrintButton) — 대상 영역과 그 상위 요소만 남기고 나머지는 숨김 */
+@media print {
+  @page { margin: 12mm; }
+  body.printing-target :not(.print-ancestor, .print-target, .print-target *) {
+    display: none !important;
+  }
+  body.printing-target .print-ancestor {
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: #fff !important;
+    box-shadow: none !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    position: static !important;
+    display: block !important;
+    visibility: visible !important;
+  }
+  body.printing-target .print-target,
+  body.printing-target .print-target * {
+    visibility: visible !important;
+  }
+  body.printing-target .print-target {
+    width: 100% !important;
+    max-height: none !important;
+    overflow: visible !important;
+    background: #fff;
+  }
+  body.printing-target .print-target .no-print {
+    display: none !important;
+  }
+  body.printing-target .print-target .text-page-text,
+  body.printing-target .print-target .text-page-sub {
+    color: #12161b !important;
+  }
+  body.printing-target .print-target::before {
+    content: attr(data-print-title);
+    display: block;
+    margin: 0 0 12px;
+    font-size: 16px;
+    font-weight: 700;
+    color: #12161b;
+  }
+  .print-only {
+    display: block !important;
+  }
+}
+.print-only {
+  display: none;
+}

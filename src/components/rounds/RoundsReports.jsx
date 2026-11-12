@@ -3,6 +3,7 @@ import { Plus, Copy, Check, ExternalLink, Pencil, Trash2, ImagePlus, X, Loader2 
 import { api } from '../../lib/api'
 import { todayStr, fmtDate, reportLink } from '../../lib/rounds'
 import { Modal, Label, Card, inputCls, btnPrimary, btnGhost, btnDanger } from './ui'
+import PrintButton from '../PrintButton'
 
 function PhotoPicker({ label, photos, onChange }) {
   const [uploading, setUploading] = useState(0)
@@ -211,9 +212,17 @@ export default function RoundsReports({ data, ops, prefill, clearPrefill }) {
             </option>
           ))}
         </select>
-        <button onClick={() => setModal(newExecution({ siteId: filter }))} className={btnPrimary}>
-          <Plus size={14} /> 전후 보고서 작성
-        </button>
+        <div className="flex gap-2">
+          {list.length > 0 && (
+            <PrintButton
+              targetId="print-executions"
+              title={`전후 보고서 목록_${filter ? sites.find((s) => s.id === filter)?.name : '전체'}_${new Date().toLocaleDateString('sv-SE')}`}
+            />
+          )}
+          <button onClick={() => setModal(newExecution({ siteId: filter }))} className={btnPrimary}>
+            <Plus size={14} /> 전후 보고서 작성
+          </button>
+        </div>
       </div>
 
       {justSaved && (
@@ -238,7 +247,7 @@ export default function RoundsReports({ data, ops, prefill, clearPrefill }) {
           </p>
         </Card>
       ) : (
-        <div className="grid gap-3 md:grid-cols-2">
+        <div id="print-executions" className="grid gap-3 md:grid-cols-2">
           {list.map((ex) => (
             <Card key={ex.id}>
               <div className="mb-2 flex items-start justify-between gap-2">
@@ -248,7 +257,7 @@ export default function RoundsReports({ data, ops, prefill, clearPrefill }) {
                     {siteName(ex)} · {fmtDate(ex.date)} {ex.worker && `· ${ex.worker}`}
                   </p>
                 </div>
-                <div className="flex gap-1">
+                <div className="no-print flex gap-1">
                   <button onClick={() => setModal({ ...newExecution(), ...ex })} className={btnGhost + ' !px-2 !py-1.5'}>
                     <Pencil size={13} />
                   </button>
@@ -268,11 +277,14 @@ export default function RoundsReports({ data, ops, prefill, clearPrefill }) {
                   </div>
                 ))}
               </div>
+              {ex.note && <p className="mb-2 line-clamp-3 whitespace-pre-line text-[11px] text-base-400">{ex.note}</p>}
               <div className="flex items-center gap-2">
-                <CopyLink id={ex.id} />
+                <span className="no-print flex items-center gap-2">
+                  <CopyLink id={ex.id} />
                 <a href={reportLink(ex.id)} target="_blank" rel="noreferrer" className={btnGhost + ' !px-3 !py-1.5 !text-xs'}>
                   <ExternalLink size={13} /> 미리보기
                 </a>
+                </span>
                 <span className="ml-auto text-[11px] text-base-500">
                   사진 {ex.before?.length || 0}+{ex.after?.length || 0}장
                 </span>

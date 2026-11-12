@@ -16,6 +16,7 @@ import {
   servicesDueIn,
   cycleLabel
 } from '../../lib/rounds'
+import { printElement } from '../PrintButton'
 import { Modal, Label, Card, inputCls, btnPrimary, btnGhost, btnDanger, TYPE_STYLE, STATUS_LABEL } from './ui'
 
 function VisitChip({ visit, siteName, onClick }) {
@@ -250,8 +251,8 @@ export default function RoundsCalendar({ data, ops, onWriteReport }) {
             <button onClick={runAutoPlan} disabled={planning} className={btnGhost}>
               <Wand2 size={14} /> {planning ? '배치 중…' : '자동 배치'}
             </button>
-            <button onClick={() => window.print()} className={btnGhost}>
-              <Printer size={14} /> 계획표 인쇄
+            <button onClick={() => printElement('print-calendar', `정기현장 순회 계획표_${month}`)} className={btnGhost}>
+              <Printer size={14} /> 계획표 PDF
             </button>
             <button onClick={() => newVisit()} className={btnPrimary}>
               <Plus size={14} /> 일정 추가
@@ -276,10 +277,7 @@ export default function RoundsCalendar({ data, ops, onWriteReport }) {
         </p>
       </Card>
 
-      <div className="print-area space-y-4">
-        <p className="hidden text-base font-bold print:block">
-          (주)이엘씨_대치남 정기현장 순회 계획표 — {y}년 {Number(m)}월
-        </p>
+      <div id="print-calendar" className="space-y-4">
 
         {/* 달력 (PC) */}
         <Card className="hidden !p-2 md:block print:block">

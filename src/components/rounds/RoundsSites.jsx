@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { Plus, Pencil, Trash2, Phone, Clock, MapPin, ChevronDown, ListChecks } from 'lucide-react'
+import { Plus, Pencil, Trash2, Phone, Clock, MapPin, ChevronDown, ListChecks, Printer } from 'lucide-react'
 import { cycleLabel, CYCLE_OPTIONS, serviceNextDue, lastInspection, nextInspectionDue, todayStr, fmtDate } from '../../lib/rounds'
 import { Modal, Label, Card, inputCls, btnPrimary, btnGhost, btnDanger } from './ui'
 import { scopeCount } from '../../lib/rounds'
 import ScopeEditor from './ScopeEditor'
 import ScopeView from './ScopeView'
+import PrintButton, { printElement } from '../PrintButton'
 
 const emptySite = (order) => ({
   name: '',
@@ -165,9 +166,12 @@ export default function RoundsSites({ data, ops }) {
     <div>
       <div className="mb-3 flex items-center justify-between">
         <p className="text-xs text-page-sub">현장 {sites.filter((s) => s.active !== false).length}곳 운영 중</p>
-        <button onClick={() => setModal(emptySite(sites.length))} className={btnPrimary}>
-          <Plus size={14} /> 현장 추가
-        </button>
+        <div className="flex gap-2">
+          <PrintButton targetId="print-sites" title={`정기현장 현황_${today}`} label="전체 PDF" />
+          <button onClick={() => setModal(emptySite(sites.length))} className={btnPrimary}>
+            <Plus size={14} /> 현장 추가
+          </button>
+        </div>
       </div>
 
       <div className="grid gap-3 md:grid-cols-2">
@@ -186,9 +190,14 @@ export default function RoundsSites({ data, ops }) {
                     )}
                   </p>
                 </div>
-                <button onClick={() => setModal(site)} className={btnGhost + ' !px-2 !py-1.5'}>
-                  <Pencil size={13} />
-                </button>
+                <div className="flex gap-1">
+                  <button onClick={() => printElement(`print-site-${site.id}`, `${site.name}_현장정보_청소범위`)} className={btnGhost + ' !px-2 !py-1.5'} title="이 현장 PDF 저장">
+                    <Printer size={13} />
+                  </button>
+                  <button onClick={() => setModal(site)} className={btnGhost + ' !px-2 !py-1.5'}>
+                    <Pencil size={13} />
+                  </button>
+                </div>
               </div>
 
               <div className="mb-3 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-base-400">
@@ -269,6 +278,44 @@ export default function RoundsSites({ data, ops }) {
             </Card>
           )
         })}
+      </div>
+
+      {/* PDF 저장용 현장 문서 (화면에는 안 보임) */}
+      <div id="print-sites" className="print-only text-base-100">
+        {sorted
+          .filter((s) => s.active !== false)
+          .map((site) => {
+            const last = lastInspection(site.id, visits)
+            const next = nextInspectionDue(site, visits)
+            const info = [
+              ['점검 주기', cycleLabel(site.inspectCycleMonths)],
+              ['마지막 점검 / 다음 예정', `${last || '기록 없음'}${next ? ` / ${next}` : ''}`],
+              ['업체 담당자', [site.contactName, site.contactPhone].filter(Boolean).join(' ')],
+              ['근무 시간', site.workHours],
+              ['주소', site.address],
+              ['메모', site.memo]
+            ].filter(([, v]) => v)
+            return (
+              <div key={site.id} id={`print-site-${site.id}`} className="mb-6" style={{ breakInside: 'avoid-page' }}>
+                <p className="mb-2 border-b border-base-700 pb-1 text-sm font-bold">{site.name}</p>
+                <table className="mb-3 w-full border-collapse text-[11px]">
+                  <tbody>
+                    {info.map(([k, v]) => (
+                      <tr key={k}>
+                        <td className="w-36 border border-base-700 bg-base-900 px-2 py-1 font-medium">{k}</td>
+                        <td className="whitespace-pre-line border border-base-700 px-2 py-1">{v}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <p className="mb-1 text-xs font-semibold">청소 범위 · 정기 특별 작업</p>
+                <ScopeView
+                  scope={site.scope || []}
+                  services={(site.services || []).map((sv) => ({ ...sv, next: serviceNextDue(sv) }))}
+                />
+              </div>
+            )
+          })}
       </div>
 
       {modal && <SiteModal initial={modal} ops={ops} otherSites={sites} onClose={() => setModal(null)} />}

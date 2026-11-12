@@ -19,6 +19,7 @@ import {
   Lock
 } from 'lucide-react'
 import { api } from '../lib/api'
+import PrintButton from './PrintButton'
 
 const emptyJob = {
   siteName: '',
@@ -369,7 +370,47 @@ export default function SpotJobs() {
         </div>
       )}
 
-      <p className="mb-3 text-xs font-medium text-base-400">직접 등록한 일회성 현장 ({jobs.length})</p>
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <p className="text-xs font-medium text-base-400">직접 등록한 일회성 현장 ({jobs.length})</p>
+        {jobs.length > 0 && <PrintButton targetId="print-spot-all" title={`일회성 현장 목록_${new Date().toLocaleDateString('sv-SE')}`} label="목록 PDF 저장" small />}
+      </div>
+
+      {/* PDF 저장용 목록 (화면에는 안 보임) */}
+      <div id="print-spot-all" className="print-only">
+        <table className="w-full border-collapse text-[11px] text-base-100">
+          <thead>
+            <tr className="bg-base-900 text-left">
+              {['날짜', '현장', '직원', '일용', '일용 인당', '일용 총액', '작업 내용'].map((h) => (
+                <th key={h} className="border border-base-700 px-2 py-1 font-medium">
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {[...jobs]
+              .sort((a, b) => (a.date || '').localeCompare(b.date || ''))
+              .map((j) => (
+                <tr key={j.id}>
+                  <td className="whitespace-nowrap border border-base-700 px-2 py-1 align-top">{j.date}</td>
+                  <td className="border border-base-700 px-2 py-1 align-top">{j.siteName}</td>
+                  <td className="border border-base-700 px-2 py-1 text-right align-top">{j.employeeCount || 0}</td>
+                  <td className="border border-base-700 px-2 py-1 text-right align-top">{j.dayWorkerCount || 0}</td>
+                  <td className="whitespace-nowrap border border-base-700 px-2 py-1 text-right align-top">{won(Number(j.dayWorkerRate) || 0)}</td>
+                  <td className="whitespace-nowrap border border-base-700 px-2 py-1 text-right align-top">{won(j.dayWorkerTotal)}</td>
+                  <td className="whitespace-pre-line border border-base-700 px-2 py-1 align-top">{j.workDescription}</td>
+                </tr>
+              ))}
+            <tr className="bg-base-900 font-medium">
+              <td colSpan={5} className="border border-base-700 px-2 py-1 text-right">
+                합계 ({jobs.length}건)
+              </td>
+              <td className="whitespace-nowrap border border-base-700 px-2 py-1 text-right">{won(jobs.reduce((n, j) => n + (j.dayWorkerTotal || 0), 0))}</td>
+              <td className="border border-base-700 px-2 py-1" />
+            </tr>
+          </tbody>
+        </table>
+      </div>
       {loading ? (
         <p className="p-8 text-center text-sm text-base-500">불러오는 중…</p>
       ) : jobs.length === 0 ? (
@@ -385,7 +426,7 @@ export default function SpotJobs() {
             const videoCount = j.media.filter((m) => m.kind === 'video').length
 
             return (
-              <div key={j.id} className="rounded-xl border border-base-800 bg-base-950 shadow-sm">
+              <div key={j.id} id={`print-spot-${j.id}`} className="rounded-xl border border-base-800 bg-base-950 shadow-sm">
                 <button
                   onClick={() => setOpenId(isOpen ? null : j.id)}
                   className="focus-ring flex w-full items-center justify-between p-4 text-left"
@@ -449,7 +490,12 @@ export default function SpotJobs() {
                       </div>
                     )}
 
-                    <div className="flex items-center gap-3">
+                    <div className="no-print flex items-center gap-3">
+                      <PrintButton
+                        targetId={`print-spot-${j.id}`}
+                        title={`일회성 현장_${j.siteName}_${j.date}`}
+                        className="focus-ring flex items-center gap-1 text-xs text-base-500 hover:text-mist-500"
+                      />
                       <button
                         onClick={() => openEdit(j)}
                         className="focus-ring flex items-center gap-1 text-xs text-base-500 hover:text-mist-500"

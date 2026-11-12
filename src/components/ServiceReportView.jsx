@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import { Printer } from 'lucide-react'
 import { api } from '../lib/api'
 import { fmtDate } from '../lib/rounds'
+import { printElement } from './PrintButton'
 
 // 업체 담당자용 "작업 전후 보고서" — 링크(/service-report?id=...)로만 열람, 관리 UI 없음
 export default function ServiceReportView() {
@@ -35,14 +36,14 @@ export default function ServiceReportView() {
       <div className="no-print mx-auto mb-3 flex max-w-[210mm] items-center justify-between">
         <p className="text-sm font-semibold text-page-text">(주)이엘씨_대치남</p>
         <button
-          onClick={() => window.print()}
+          onClick={() => printElement('print-service-report', `작업전후보고서_${r.siteName}_${r.serviceName}_${r.date}`)}
           className="focus-ring flex items-center gap-1 rounded-lg border border-base-700 bg-base-950 px-2.5 py-1.5 text-xs text-base-300 hover:bg-base-800"
         >
           <Printer size={13} /> 인쇄/PDF 저장
         </button>
       </div>
 
-      <div className="print-area mx-auto max-w-[210mm] rounded-xl border border-base-800 bg-base-950 p-5 text-base-100 shadow-sm">
+      <div id="print-service-report" className="mx-auto max-w-[210mm] rounded-xl border border-base-800 bg-base-950 p-5 text-base-100 shadow-sm">
         <div className="mb-4 border-b border-base-800 pb-3">
           <p className="text-[11px] text-base-500">작업 전후 보고서</p>
           <p className="text-lg font-bold">
