@@ -239,6 +239,46 @@ export const api = {
       headers: { 'X-Client-Admin-Password': clientAdminPassword }
     }),
 
+  // 정기현장 순회 관리 (관리자 비밀번호는 업체 보고와 공용)
+  hasClientAdminPassword: () => !!clientAdminPassword,
+  listRegularOps: () =>
+    request('/regular-ops', { headers: { 'X-Client-Admin-Password': clientAdminPassword } }),
+  saveRegular: (collection, item) =>
+    request('/regular-ops', {
+      method: 'POST',
+      body: JSON.stringify({ collection, item }),
+      headers: { 'X-Client-Admin-Password': clientAdminPassword }
+    }),
+  saveRegularMany: (collection, items) =>
+    request('/regular-ops', {
+      method: 'POST',
+      body: JSON.stringify({ collection, items }),
+      headers: { 'X-Client-Admin-Password': clientAdminPassword }
+    }),
+  deleteRegular: (collection, id) =>
+    request(`/regular-ops?collection=${encodeURIComponent(collection)}&id=${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+      headers: { 'X-Client-Admin-Password': clientAdminPassword }
+    }),
+  // 사진은 브라우저에서 긴 변 1600px JPEG로 줄인 뒤 올립니다 (저장 용량 절약)
+  uploadRegularPhoto: async (file) => {
+    const blob = await compressImage(file)
+    const res = await fetch('/api/regular-photo', {
+      method: 'POST',
+      headers: { 'Content-Type': blob.type || 'image/jpeg', 'X-Client-Admin-Password': clientAdminPassword },
+      body: blob
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) throw new Error(data.error || `사진 업로드 실패 (${res.status})`)
+    return data // { id, url }
+  },
+  viewServiceReport: async (id) => {
+    const res = await fetch(`/api/regular-report-view?id=${encodeURIComponent(id)}`)
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok || !data.ok) throw new Error(data.error || '보고서를 불러오지 못했습니다')
+    return data.report
+  },
+
   // 업체 담당자용 열람 (companyId + 업체별 비밀번호, period 생략 시 최신월)
   viewClientReport: async (companyId, password, period) => {
     const res = await fetch('/api/client-report-view', {
@@ -249,5 +289,24 @@ export const api = {
     const data = await res.json().catch(() => ({}))
     if (!res.ok || !data.ok) throw new Error(data.error || '조회에 실패했습니다')
     return data // { ok:true, companyName, siteName, periods, report }
+  }
+}
+
+// 사진 압축 — 긴 변 maxSide px, JPEG 품질 quality. 실패하면 원본 그대로 사용
+async function compressImage(file, maxSide = 1600, quality = 0.8) {
+  try {
+    if (!file.type?.startsWith('image/')) return file
+    const bitmap = await createImageBitmap(file)
+    const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height))
+    const w = Math.round(bitmap.width * scale)
+    const h = Math.round(bitmap.height * scale)
+    const canvas = document.createElement('canvas')
+    canvas.width = w
+    canvas.height = h
+    canvas.getContext('2d').drawImage(bitmap, 0, 0, w, h)
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', quality))
+    return blob && blob.size < file.size ? blob : file
+  } catch {
+    return file
   }
 }

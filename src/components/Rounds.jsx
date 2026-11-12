@@ -1,0 +1,174 @@
+import { useEffect, useState } from 'react'
+import { Lock, CalendarRange, Building2, Camera, RefreshCw } from 'lucide-react'
+import { api } from '../lib/api'
+import RoundsCalendar from './rounds/RoundsCalendar'
+import RoundsSites from './rounds/RoundsSites'
+import RoundsReports from './rounds/RoundsReports'
+import { inputCls, btnPrimary } from './rounds/ui'
+
+function PasswordGate({ onOk }) {
+  const [pw, setPw] = useState('')
+  const [error, setError] = useState(null)
+  const [checking, setChecking] = useState(false)
+
+  const submit = async (e) => {
+    e.preventDefault()
+    setError(null)
+    setChecking(true)
+    try {
+      await api.verifyClientAdminPassword(pw)
+      onOk()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setChecking(false)
+    }
+  }
+
+  return (
+    <div className="flex min-h-[60vh] items-center justify-center">
+      <form onSubmit={submit} className="w-full max-w-sm rounded-xl border border-base-800 bg-base-950 p-6 shadow-sm">
+        <div className="mb-3 flex items-center gap-2">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-mist-500/15 text-mist-500">
+            <Lock size={16} />
+          </div>
+          <p className="text-sm font-semibold text-base-100">순회 관리</p>
+        </div>
+        <p className="mb-4 text-xs text-base-400">"업체 보고"와 같은 관리자 비밀번호로 들어갈 수 있어요.</p>
+        <input type="password" autoFocus className={inputCls} placeholder="관리자 비밀번호" value={pw} onChange={(e) => setPw(e.target.value)} />
+        {error && <p className="mt-2 text-xs text-amber-500">{error}</p>}
+        <button type="submit" disabled={checking} className={`${btnPrimary} mt-3 w-full`}>
+          {checking ? '확인 중…' : '들어가기'}
+        </button>
+      </form>
+    </div>
+  )
+}
+
+const TABS = [
+  { key: 'calendar', label: '월간 일정', icon: CalendarRange },
+  { key: 'sites', label: '현장·서비스 항목', icon: Building2 },
+  { key: 'reports', label: '전후 보고서', icon: Camera }
+]
+
+export default function Rounds() {
+  const [authed, setAuthed] = useState(true)
+  const [state, setState] = useState({ loading: true, error: null, sites: [], visits: [], executions: [] })
+  const [tab, setTab] = useState('calendar')
+  const [reportPrefill, setReportPrefill] = useState(null)
+
+  const load = () => {
+    setState((s) => ({ ...s, loading: true, error: null }))
+    api
+      .listRegularOps()
+      .then((data) => setState({ loading: false, error: null, ...data }))
+      .catch((err) => {
+        if (String(err.message).includes('401')) {
+          api.clearClientAdminPassword()
+          setAuthed(false)
+        }
+        setState((s) => ({ ...s, loading: false, error: err.message }))
+      })
+  }
+  useEffect(load, [])
+
+  // 저장 후 화면 목록을 바로 갱신 (다시 불러오지 않고)
+  const upsertLocal = (collection, items) =>
+    setState((s) => {
+      const list = [...s[collection]]
+      for (const it of items) {
+        const i = list.findIndex((x) => x.id === it.id)
+        if (i >= 0) list[i] = it
+        else list.push(it)
+      }
+      return { ...s, [collection]: list }
+    })
+
+  const ops = {
+    save: async (collection, item) => {
+      const { item: saved } = await api.saveRegular(collection, item)
+      upsertLocal(collection, [saved])
+      return saved
+    },
+    saveMany: async (collection, items) => {
+      if (!items.length) return []
+      const { items: saved } = await api.saveRegularMany(collection, items)
+      upsertLocal(collection, saved)
+      return saved
+    },
+    remove: async (collection, id) => {
+      await api.deleteRegular(collection, id)
+      setState((s) => ({ ...s, [collection]: s[collection].filter((x) => x.id !== id) }))
+    },
+    // 서비스 항목의 마지막 실행일 갱신 (더 최근 날짜일 때만)
+    markServiceDone: async (siteId, serviceId, date) => {
+      const site = state.sites.find((s) => s.id === siteId)
+      if (!site || !serviceId) return
+      const services = (site.services || []).map((sv) =>
+        sv.id === serviceId && (!sv.lastDoneDate || date > sv.lastDoneDate) ? { ...sv, lastDoneDate: date } : sv
+      )
+      const { item: saved } = await api.saveRegular('sites', { ...site, services })
+      upsertLocal('sites', [saved])
+    }
+  }
+
+  const openReportFor = (prefill) => {
+    setReportPrefill(prefill)
+    setTab('reports')
+  }
+
+  if (!authed) {
+    return (
+      <PasswordGate
+        onOk={() => {
+          setAuthed(true)
+          load()
+        }}
+      />
+    )
+  }
+
+  const data = { sites: state.sites, visits: state.visits, executions: state.executions }
+
+  return (
+    <div className="mx-auto max-w-6xl">
+      <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold text-page-text">순회 관리</h1>
+          <p className="mt-1 text-xs text-page-sub">정기현장 점검 일정 · 현장별 서비스 항목 · 작업 전후 보고서</p>
+        </div>
+        <button onClick={load} className="focus-ring flex items-center gap-1.5 rounded-lg border border-page-border px-3 py-1.5 text-xs text-page-sub hover:text-page-text">
+          <RefreshCw size={13} className={state.loading ? 'animate-spin' : ''} /> 새로고침
+        </button>
+      </div>
+
+      <div className="mb-4 flex gap-1 overflow-x-auto rounded-xl border border-page-border bg-page-soft p-1">
+        {TABS.map(({ key, label, icon: Icon }) => (
+          <button
+            key={key}
+            onClick={() => setTab(key)}
+            className={`focus-ring flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-2 text-sm transition-colors ${
+              tab === key ? 'bg-base-950 font-medium text-base-100 shadow-sm' : 'text-page-sub hover:text-page-text'
+            }`}
+          >
+            <Icon size={15} /> {label}
+          </button>
+        ))}
+      </div>
+
+      {state.error && authed && (
+        <p className="mb-3 rounded-lg border border-amber-400/40 bg-amber-400/10 px-3 py-2 text-xs text-amber-400">{state.error}</p>
+      )}
+
+      {state.loading && state.sites.length === 0 ? (
+        <p className="py-16 text-center text-sm text-page-sub">불러오는 중…</p>
+      ) : tab === 'calendar' ? (
+        <RoundsCalendar data={data} ops={ops} onWriteReport={openReportFor} />
+      ) : tab === 'sites' ? (
+        <RoundsSites data={data} ops={ops} />
+      ) : (
+        <RoundsReports data={data} ops={ops} prefill={reportPrefill} clearPrefill={() => setReportPrefill(null)} />
+      )}
+    </div>
+  )
+}

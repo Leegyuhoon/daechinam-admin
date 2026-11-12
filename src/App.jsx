@@ -11,6 +11,8 @@ import SafetyTraining from './components/SafetyTraining'
 import Training from './components/Training'
 import ClientReports from './components/ClientReports'
 import ClientReportView from './components/ClientReportView'
+import Rounds from './components/Rounds'
+import ServiceReportView from './components/ServiceReportView'
 
 function AdminLayout({ children }) {
   return (
@@ -55,6 +57,7 @@ export default function App() {
         {/* 근로자용 / 업체 담당자용 — 관리 UI 없이 독립된 화면 */}
         <Route path="/training" element={<Training />} />
         <Route path="/client-report" element={<ClientReportView />} />
+        <Route path="/service-report" element={<ServiceReportView />} />
 
         {/* 본사 관리용 — 사이드바 포함 */}
         <Route
@@ -65,6 +68,7 @@ export default function App() {
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/workers" element={<Workers />} />
                 <Route path="/sites" element={<Sites />} />
+                <Route path="/rounds" element={<Rounds />} />
                 <Route path="/spot-jobs" element={<SpotJobs />} />
                 <Route path="/inventory" element={<Inventory />} />
                 <Route path="/safety" element={<SafetyTraining />} />
