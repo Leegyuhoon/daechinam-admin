@@ -100,3 +100,20 @@ body {
 .print-only {
   display: none;
 }
+
+/* 접속 인트로 화면 애니메이션 */
+@keyframes splash-logo-in {
+  0% { opacity: 0; transform: translateY(10px) scale(0.94); }
+  100% { opacity: 1; transform: none; }
+}
+@keyframes splash-bar-fill {
+  0% { width: 0; }
+  100% { width: 100%; }
+}
+@keyframes splash-fade-in {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+.splash-logo { animation: splash-logo-in 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.splash-bar { width: 0; animation: splash-bar-fill 1s 0.25s ease-in-out forwards; }
+.splash-caption { animation: splash-fade-in 0.5s 0.35s both; }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import Sidebar from './components/Sidebar'
 import MobileNav from './components/MobileNav'
 import Workers from './components/Workers'
@@ -24,35 +24,49 @@ function AdminLayout({ children }) {
   )
 }
 
-// 어플(daechinam-app)과 같은 다크 네이비 + 골드 브랜드로 맞춘 접속 인트로 화면
-function Splash() {
+// 접속 인트로 화면 — 회사 로고가 나타나고 골드 막대가 차오른 뒤 부드럽게 사라짐
+// 업체 담당자용 화면에서는 "고객센터", 근로자 교육 화면에서는 "안전교육", 관리 화면에서는 "통합 관리"
+function Splash({ leaving }) {
+  const { pathname } = useLocation()
+  const caption =
+    pathname.startsWith('/client') || pathname.startsWith('/service-report')
+      ? '고객센터'
+      : pathname.startsWith('/training')
+        ? '안전교육'
+        : '통합 관리'
   return (
     <div
-      className="fixed inset-0 z-[999] flex flex-col items-center justify-center gap-3"
+      className={`fixed inset-0 z-[999] flex flex-col items-center justify-center transition-opacity duration-300 ${leaving ? 'opacity-0' : 'opacity-100'}`}
       style={{ background: '#1D232A' }}
     >
-      <div
-        className="flex h-14 w-14 items-center justify-center rounded-2xl"
-        style={{ background: 'rgba(185,114,10,0.18)' }}
-      >
-        <span className="text-xl font-bold" style={{ color: '#EB9E18' }}>D</span>
+      <picture className="splash-logo block w-[200px] sm:w-[240px]">
+        <source srcSet="/brand/logo-vertical.webp" type="image/webp" />
+        <img src="/brand/logo-vertical.png" alt="DAECHINAM 대신 치워주는 남자" className="h-auto w-full" />
+      </picture>
+      <div className="mt-8 h-[3px] w-28 overflow-hidden rounded-full" style={{ background: '#343C45' }}>
+        <div className="splash-bar h-full rounded-full" style={{ background: '#EB9E18' }} />
       </div>
-      <p className="text-sm font-semibold tracking-wide" style={{ color: '#F5F1EA' }}>DAECHINAM</p>
-      <p className="text-[11px]" style={{ color: '#9BA3AB' }}>통합 관리</p>
+      <p className="splash-caption mt-3 text-[11px] tracking-[0.2em]" style={{ color: '#9BA3AB' }}>
+        {caption}
+      </p>
     </div>
   )
 }
 
 export default function App() {
-  const [showSplash, setShowSplash] = useState(true)
+  const [splash, setSplash] = useState('on') // on → leaving → off
   useEffect(() => {
-    const t = setTimeout(() => setShowSplash(false), 700)
-    return () => clearTimeout(t)
+    const t1 = setTimeout(() => setSplash('leaving'), 1300)
+    const t2 = setTimeout(() => setSplash('off'), 1600)
+    return () => {
+      clearTimeout(t1)
+      clearTimeout(t2)
+    }
   }, [])
 
   return (
     <>
-      {showSplash && <Splash />}
+      {splash !== 'off' && <Splash leaving={splash === 'leaving'} />}
       <Routes>
         {/* 근로자용 / 업체 담당자용 — 관리 UI 없이 독립된 화면 */}
         <Route path="/training" element={<Training />} />
