@@ -2,8 +2,8 @@ import { NavLink } from 'react-router-dom'
 import { Package, ShieldCheck, CalendarDays, Send, CalendarRange } from 'lucide-react'
 
 const items = [
-  { to: '/rounds', label: '순회 관리', icon: CalendarRange },
-  { to: '/spot-jobs', label: '일회성 현장', icon: CalendarDays },
+  { to: '/rounds', label: '정기 현장 관리', icon: CalendarRange },
+  { to: '/spot-jobs', label: '일회성 현장 관리', icon: CalendarDays },
   { to: '/inventory', label: '재고 현황', icon: Package },
   { to: '/safety', label: '안전교육', icon: ShieldCheck },
   { to: '/client-reports', label: '업체 보고', icon: Send }

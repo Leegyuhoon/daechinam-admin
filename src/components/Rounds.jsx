@@ -37,7 +37,7 @@ function PasswordGate({ onOk }) {
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-mist-500/15 text-mist-500">
             <Lock size={16} />
           </div>
-          <p className="text-sm font-semibold text-base-100">순회 관리</p>
+          <p className="text-sm font-semibold text-base-100">정기 현장 관리</p>
         </div>
         <p className="mb-4 text-xs text-base-400">"업체 보고"와 같은 관리자 비밀번호로 들어갈 수 있어요.</p>
         <input type="password" autoFocus className={inputCls} placeholder="관리자 비밀번호" value={pw} onChange={(e) => setPw(e.target.value)} />
@@ -164,7 +164,7 @@ export default function Rounds() {
     <div className="mx-auto max-w-6xl">
       <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-page-text">순회 관리</h1>
+          <h1 className="text-xl font-semibold text-page-text">정기 현장 관리</h1>
           <p className="mt-1 text-xs text-page-sub">점검 일정 · 업체 소통 · 월간 보고서 · 작업 전후 보고서</p>
         </div>
         <div className="flex items-start gap-2">

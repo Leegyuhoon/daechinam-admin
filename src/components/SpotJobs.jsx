@@ -240,7 +240,7 @@ function PasswordGate({ onOk }) {
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-mist-500/15 text-mist-500">
             <Lock size={16} />
           </div>
-          <p className="text-sm font-semibold text-base-100">일회성 현장</p>
+          <p className="text-sm font-semibold text-base-100">일회성 현장 관리</p>
         </div>
         <p className="mb-4 text-xs text-base-400">
           이름·연락처 등 개인정보가 포함된 화면이라 비밀번호가 필요해요.
@@ -318,7 +318,7 @@ export default function SpotJobs() {
   return (
     <div>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold text-page-text">일회성 현장</h1>
+        <h1 className="text-xl font-semibold text-page-text">일회성 현장 관리</h1>
         <div className="flex gap-2">
           <button
             onClick={() => navigate(-1)}
