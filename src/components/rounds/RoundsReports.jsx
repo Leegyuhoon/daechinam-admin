@@ -228,7 +228,7 @@ export default function RoundsReports({ data, ops, prefill, clearPrefill }) {
       {justSaved && (
         <Card className="mb-3 border-mist-500/40">
           <p className="text-sm font-medium">보고서가 저장됐어요.</p>
-          <p className="mt-0.5 text-xs text-base-400">링크를 복사해 카톡으로 업체 담당자에게 보내면 로그인 없이 바로 볼 수 있어요.</p>
+          <p className="mt-0.5 text-xs text-base-400">이달 월간 보고서에 자동으로 들어가요. 바로 보여 주고 싶으면 링크를 복사해 보내면 로그인 없이 볼 수 있어요.</p>
           <div className="mt-2 flex gap-2">
             <CopyLink id={justSaved.id} />
             <button onClick={() => setJustSaved(null)} className={btnGhost + ' !py-1.5 !text-xs'}>

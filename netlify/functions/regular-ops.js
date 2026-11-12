@@ -88,19 +88,23 @@ export default async (req) => {
         if (!t) return Response.json({ error: '문의를 찾을 수 없습니다' }, { status: 404 })
         const now = new Date().toISOString()
         const text = String(body.text || '').trim()
-        if (text) {
-          t.messages = [...(t.messages || []), { id: crypto.randomUUID(), from: 'admin', text, at: now }]
+        const media = (Array.isArray(body.media) ? body.media : [])
+          .filter((m) => typeof m?.url === 'string' && m.url.startsWith('/api/regular-'))
+          .slice(0, 10)
+          .map((m) => ({ url: m.url, kind: m.kind === 'video' ? 'video' : 'photo' }))
+        if (text || media.length) {
+          t.messages = [...(t.messages || []), { id: crypto.randomUUID(), from: 'admin', text, media, at: now }]
           t.lastAdminAt = now
         }
         if (['open', 'progress', 'done'].includes(body.status)) t.status = body.status
         t.updatedAt = now
         await store.setJSON('tickets', list)
-        if (text) {
+        if (text || media.length) {
           const site = (await readCol(store, 'sites')).find((s) => s.id === t.siteId)
           if (site?.accessCode) {
             await notify({ role: 'client', siteId: site.id }, {
               title: '(주)이엘씨_대치남 답변 도착',
-              body: clip(text),
+              body: clip(text) || '조치 사진·영상을 보냈습니다',
               url: `/client?c=${site.accessCode}&tab=tickets`,
               tag: `ticket-${t.id}`
             })

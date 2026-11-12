@@ -24,7 +24,10 @@ export default function MonthlyReportDoc({ siteName, month, report, data, servic
   const [y, m] = month.split('-')
   const { inspections, tickets, executions, nextVisits } = data
   const doneTickets = tickets.filter((t) => t.status === 'done').length
-  const lastAdmin = (t) => [...(t.messages || [])].reverse().find((x) => x.from === 'admin')?.text
+  const lastAdmin = (t) => {
+    const m = [...(t.messages || [])].reverse().find((x) => x.from === 'admin' && (x.text || (x.media || []).length))
+    return m ? m.text || '조치 사진·영상 전달' : ''
+  }
 
   return (
     <div className="text-base-100">
@@ -93,7 +96,7 @@ export default function MonthlyReportDoc({ siteName, month, report, data, servic
                 <tr key={t.id}>
                   <td className="border border-base-700 px-2 py-1 align-top text-base-400">{fmtDate((t.createdAt || '').slice(0, 10))}</td>
                   <td className="border border-base-700 px-2 py-1 align-top">
-                    <span className="text-base-500">[{t.category}]</span> {t.content}
+                    <span className="text-base-500">[{t.category}]</span> {t.content || '(사진·영상 첨부)'}
                   </td>
                   <td className="border border-base-700 px-2 py-1 align-top text-base-300">{lastAdmin(t) || '-'}</td>
                   <td className={`border border-base-700 px-2 py-1 align-top ${t.status === 'done' ? 'text-teal-500' : 'text-amber-500'}`}>
@@ -150,7 +153,7 @@ export default function MonthlyReportDoc({ siteName, month, report, data, servic
       </Section>
 
       <p className="mt-5 border-t border-base-800 pt-3 text-center text-[10px] text-base-500">
-        불편 사항이나 요청은 업체 전용 페이지 또는 카카오 채널로 남겨 주시면 빠르게 조치하겠습니다. — (주)이엘씨_대치남
+        불편 사항이나 요청은 업체 전용 페이지의 "문의 남기기"로 남겨 주시면 빠르게 조치하겠습니다. — (주)이엘씨_대치남
       </p>
     </div>
   )

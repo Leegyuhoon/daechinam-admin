@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
-import { Plus, Send, Copy, Check, MessageCircle, Link2 } from 'lucide-react'
-import { TICKET_CATEGORIES, TICKET_STATUS, TICKET_SOURCES, needsReply, fmtDateTime, portalLink } from '../../lib/rounds'
+import { Plus, Send, Copy, Check, Link2, BellRing, Paperclip } from 'lucide-react'
+import { TICKET_CATEGORIES, TICKET_STATUS, TICKET_SOURCES, sourceLabel, ticketMedia, needsReply, fmtDateTime, portalLink } from '../../lib/rounds'
+import { MediaPicker, MediaView } from './Media'
 import { Modal, Label, Card, inputCls, btnPrimary, btnGhost } from './ui'
 import PrintButton from '../PrintButton'
 import TicketsPrint from './TicketsPrint'
@@ -31,27 +32,23 @@ function TicketModal({ ticket, site, ops, onClose }) {
   const [sending, setSending] = useState(false)
   const [error, setError] = useState(null)
   const [sent, setSent] = useState(false)
-  const [copied, copy] = useCopy()
+  const [media, setMedia] = useState([])
+  const [uploading, setUploading] = useState(false)
 
   const send = async () => {
-    if (!text.trim() && status === ticket.status) return setError('답변을 입력하거나 상태를 바꿔 주세요.')
+    if (!text.trim() && !media.length && status === ticket.status) return setError('답변을 입력하거나 상태를 바꿔 주세요.')
     setSending(true)
     setError(null)
     try {
-      await ops.replyTicket(ticket.id, text.trim(), status)
+      await ops.replyTicket(ticket.id, text.trim(), status, media)
+      setSent(Boolean(text.trim() || media.length))
       setText('')
-      setSent(true)
+      setMedia([])
     } catch (err) {
       setError(err.message)
     } finally {
       setSending(false)
     }
-  }
-
-  const copyNotice = async () => {
-    const code = await ops.ensureAccessCode(site)
-    const msg = `[(주)이엘씨_대치남] ${site.name} 담당자님, 남겨주신 문의에 답변드렸습니다.\n아래 링크에서 확인해 주세요.\n${portalLink(code, 'tickets')}`
-    copy('notice', msg)
   }
 
   const msgs = ticket.messages || []
@@ -61,18 +58,12 @@ function TicketModal({ ticket, site, ops, onClose }) {
       <div className="space-y-3">
         <div className="rounded-lg bg-base-900 p-3">
           <p className="mb-1 text-[11px] text-base-500">
-            {ticket.authorName || '담당자'} · {fmtDateTime(ticket.createdAt)} · {TICKET_SOURCES[ticket.source] || '업체 페이지'}
+            {ticket.authorName || '담당자'} · {fmtDateTime(ticket.createdAt)} · {sourceLabel(ticket.source)}
           </p>
-          <p className="whitespace-pre-line text-sm">{ticket.content}</p>
-          {(ticket.photos || []).length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {ticket.photos.map((p) => (
-                <a key={p.url} href={p.url} target="_blank" rel="noreferrer">
-                  <img src={p.url} alt="" className="h-20 w-20 rounded-md object-cover" />
-                </a>
-              ))}
-            </div>
-          )}
+          {ticket.content && <p className="whitespace-pre-line text-sm">{ticket.content}</p>}
+          <div className="mt-2">
+            <MediaView media={ticketMedia(ticket)} />
+          </div>
         </div>
 
         {msgs.length > 0 && (
@@ -80,7 +71,12 @@ function TicketModal({ ticket, site, ops, onClose }) {
             {msgs.map((m) => (
               <div key={m.id || m.at} className={`flex ${m.from === 'admin' ? 'justify-end' : ''}`}>
                 <div className={`max-w-[85%] rounded-xl px-3 py-2 text-sm ${m.from === 'admin' ? 'bg-mist-500/15' : 'bg-base-900'}`}>
-                  <p className="whitespace-pre-line">{m.text}</p>
+                  {m.text && <p className="whitespace-pre-line">{m.text}</p>}
+                  {(m.media || []).length > 0 && (
+                    <div className="mt-1">
+                      <MediaView media={m.media} size="h-16 w-16" />
+                    </div>
+                  )}
                   <p className="mt-0.5 text-[10px] text-base-500">
                     {m.from === 'admin' ? '우리 답변' : '업체'} · {fmtDateTime(m.at)}
                   </p>
@@ -99,6 +95,10 @@ function TicketModal({ ticket, site, ops, onClose }) {
             placeholder="예: 말씀하신 3층 화장실 휴지 보충 주기를 매일로 변경했습니다. 불편을 드려 죄송합니다."
           />
         </Label>
+        <div>
+          <p className="mb-1 text-xs text-base-400">조치 사진·영상 (선택)</p>
+          <MediaPicker media={media} onChange={setMedia} onBusyChange={setUploading} />
+        </div>
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex gap-1 rounded-lg bg-base-900 p-1">
             {Object.entries(TICKET_STATUS).map(([key, label]) => (
@@ -111,19 +111,19 @@ function TicketModal({ ticket, site, ops, onClose }) {
               </button>
             ))}
           </div>
-          <button onClick={send} disabled={sending} className={`${btnPrimary} ml-auto`}>
+          <button onClick={send} disabled={sending || uploading} className={`${btnPrimary} ml-auto`}>
             <Send size={14} /> {sending ? '저장 중…' : '답변 등록'}
           </button>
         </div>
         {error && <p className="text-xs text-amber-500">{error}</p>}
 
         {sent && (
-          <div className="rounded-lg border border-mist-500/40 bg-mist-500/5 p-3">
-            <p className="text-xs font-medium">답변이 업체 페이지에 등록됐어요.</p>
-            <p className="mt-0.5 text-[11px] text-base-500">알림 문구를 복사해서 카카오 채널 1:1 채팅으로 담당자에게 보내 주세요.</p>
-            <button onClick={copyNotice} className={`${btnGhost} mt-2 !py-1.5 !text-xs`}>
-              {copied === 'notice' ? <Check size={13} /> : <MessageCircle size={13} />} {copied === 'notice' ? '복사됨' : '카톡 알림 문구 복사'}
-            </button>
+          <div className="flex items-start gap-2 rounded-lg border border-mist-500/40 bg-mist-500/5 p-3">
+            <BellRing size={15} className="mt-0.5 shrink-0 text-mist-500" />
+            <div>
+              <p className="text-xs font-medium">답변이 업체 페이지에 등록됐어요.</p>
+              <p className="mt-0.5 text-[11px] text-base-500">업체 페이지에서 알림을 켠 담당자에게는 알림이 바로 전송돼요.</p>
+            </div>
           </div>
         )}
       </div>
@@ -132,16 +132,18 @@ function TicketModal({ ticket, site, ops, onClose }) {
 }
 
 function NewTicketModal({ sites, ops, onClose }) {
-  const [t, setT] = useState({ siteId: '', category: '불편 사항', content: '', authorName: '', source: 'kakao' })
+  const [t, setT] = useState({ siteId: '', category: '불편 사항', content: '', authorName: '', source: 'phone' })
+  const [media, setMedia] = useState([])
+  const [uploading, setUploading] = useState(false)
   const [error, setError] = useState(null)
   const [saving, setSaving] = useState(false)
 
   const save = async () => {
-    if (!t.siteId || !t.content.trim()) return setError('현장과 내용을 입력해주세요.')
+    if (!t.siteId || (!t.content.trim() && !media.length)) return setError('현장과 내용을 입력해주세요.')
     setSaving(true)
     try {
       const now = new Date().toISOString()
-      await ops.save('tickets', { ...t, content: t.content.trim(), status: 'open', messages: [], photos: [], lastClientAt: now })
+      await ops.save('tickets', { ...t, content: t.content.trim(), status: 'open', messages: [], media, lastClientAt: now })
       onClose()
     } catch (err) {
       setError(err.message)
@@ -150,7 +152,7 @@ function NewTicketModal({ sites, ops, onClose }) {
   }
 
   return (
-    <Modal title="문의 직접 등록 (카톡·전화로 받은 내용)" onClose={onClose}>
+    <Modal title="문의 직접 등록 (전화·문자·방문 등으로 받은 내용)" onClose={onClose}>
       <div className="space-y-3">
         <Label text="현장">
           <select className={inputCls} value={t.siteId} onChange={(e) => setT({ ...t, siteId: e.target.value })}>
@@ -188,8 +190,12 @@ function NewTicketModal({ sites, ops, onClose }) {
         <Label text="내용">
           <textarea rows={4} className={inputCls} value={t.content} onChange={(e) => setT({ ...t, content: e.target.value })} />
         </Label>
+        <div>
+          <p className="mb-1 text-xs text-base-400">사진·영상 (선택)</p>
+          <MediaPicker media={media} onChange={setMedia} onBusyChange={setUploading} />
+        </div>
         {error && <p className="text-xs text-amber-500">{error}</p>}
-        <button onClick={save} disabled={saving} className={btnPrimary}>
+        <button onClick={save} disabled={saving || uploading} className={btnPrimary}>
           {saving ? '저장 중…' : '등록'}
         </button>
       </div>
@@ -287,10 +293,15 @@ export default function RoundsTickets({ data, ops }) {
                   {needsReply(t) && <span className="rounded bg-amber-500 px-1.5 py-0.5 font-medium text-white">답변 필요</span>}
                   <span className="ml-auto text-base-500">{fmtDateTime(t.updatedAt || t.createdAt)}</span>
                 </div>
-                <p className="line-clamp-2 text-sm text-base-200">{t.content}</p>
+                <p className="line-clamp-2 text-sm text-base-200">{t.content || '(사진·영상만 첨부)'}</p>
+                {ticketMedia(t).length > 0 && (
+                  <p className="mt-0.5 flex items-center gap-1 text-[11px] text-base-500">
+                    <Paperclip size={11} /> 사진 {ticketMedia(t).filter((m) => m.kind === 'photo').length} · 영상 {ticketMedia(t).filter((m) => m.kind === 'video').length}
+                  </p>
+                )}
                 {(t.messages || []).length > 0 && (
                   <p className="mt-1 truncate text-[11px] text-base-500">
-                    💬 {t.messages.length}개 메시지 · 마지막: {t.messages[t.messages.length - 1].text}
+                    💬 {t.messages.length}개 메시지 · 마지막: {t.messages[t.messages.length - 1].text || '(사진·영상)'}
                   </p>
                 )}
               </Card>
@@ -304,7 +315,7 @@ export default function RoundsTickets({ data, ops }) {
           <Link2 size={14} /> 업체 전용 페이지 링크
         </p>
         <p className="mb-3 text-[11px] text-base-500">
-          현장마다 다른 링크예요. 담당자에게 한 번 보내 두면 로그인 없이 문의 남기기 · 답변 확인 · 월간 보고서 열람을 할 수 있어요. 카카오 채널 대화방에 고정해 두시면 편해요.
+          현장마다 다른 링크예요. 담당자에게 한 번 보내 두면 로그인 없이 문의 남기기 · 답변 확인 · 월간 보고서 열람을 할 수 있어요. 처음 열 때 "알림 받기"를 눌러 두시라고 안내해 주세요.
         </p>
         <div className="grid gap-1.5 sm:grid-cols-2">
           {activeSites.map((s) => (

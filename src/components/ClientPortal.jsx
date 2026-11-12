@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { PenLine, MessagesSquare, FileText, ListChecks, ImagePlus, X, Loader2, Send, Printer, ChevronLeft, CheckCircle2 } from 'lucide-react'
+import { PenLine, MessagesSquare, FileText, ListChecks, Send, Printer, ChevronLeft, CheckCircle2, Paperclip } from 'lucide-react'
 import { api } from '../lib/api'
 import { TICKET_CATEGORIES, TICKET_STATUS, fmtDateTime, collectMonth, reportLink } from '../lib/rounds'
 import MonthlyReportDoc from './rounds/MonthlyReportDoc'
 import ScopeView from './rounds/ScopeView'
+import { MediaPicker, MediaView } from './rounds/Media'
 import PushToggle from './PushToggle'
 import { printElement } from './PrintButton'
 import TicketsPrint from './rounds/TicketsPrint'
@@ -15,33 +16,17 @@ const STATUS_CLS = { open: 'bg-amber-400/10 text-amber-500', progress: 'bg-teal-
 
 function NewTicket({ code, onDone }) {
   const [t, setT] = useState({ category: '불편 사항', content: '', authorName: '' })
-  const [photos, setPhotos] = useState([])
-  const [uploading, setUploading] = useState(0)
+  const [media, setMedia] = useState([])
+  const [uploading, setUploading] = useState(false)
   const [sending, setSending] = useState(false)
   const [error, setError] = useState(null)
 
-  const pick = async (e) => {
-    const files = [...(e.target.files || [])].slice(0, 6 - photos.length)
-    e.target.value = ''
-    setUploading(files.length)
-    const added = []
-    for (const f of files) {
-      try {
-        added.push(await api.clientPortalPhoto(code, f))
-      } catch (err) {
-        setError(err.message)
-      }
-      setUploading((n) => n - 1)
-    }
-    setPhotos((p) => [...p, ...added])
-  }
-
   const send = async () => {
-    if (!t.content.trim()) return setError('내용을 입력해주세요.')
+    if (!t.content.trim() && !media.length) return setError('내용을 입력해주세요.')
     setSending(true)
     setError(null)
     try {
-      await api.clientPortalPost(code, { action: 'ticket', ...t, photos })
+      await api.clientPortalPost(code, { action: 'ticket', ...t, media })
       onDone()
     } catch (err) {
       setError(err.message)
@@ -72,31 +57,18 @@ function NewTicket({ code, onDone }) {
         onChange={(e) => setT({ ...t, content: e.target.value })}
         placeholder="예: 3층 여자화장실 휴지가 오후에 자주 떨어져요. / 회의실 카펫 얼룩 제거가 가능할까요?"
       />
-      <div className="flex flex-wrap gap-1.5">
-        {photos.map((p, i) => (
-          <div key={p.url} className="relative h-16 w-16 overflow-hidden rounded-lg">
-            <img src={p.url} alt="" className="h-full w-full object-cover" />
-            <button onClick={() => setPhotos(photos.filter((_, j) => j !== i))} className="absolute right-0.5 top-0.5 rounded-full bg-black/60 p-0.5 text-white">
-              <X size={11} />
-            </button>
-          </div>
-        ))}
-        {photos.length < 6 && (
-          <label className="flex h-16 w-16 cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-base-700 text-[10px] text-base-500">
-            {uploading ? <Loader2 size={16} className="animate-spin" /> : <ImagePlus size={16} />}
-            사진(선택)
-            <input type="file" accept="image/*" multiple className="hidden" onChange={pick} disabled={uploading > 0} />
-          </label>
-        )}
+      <div>
+        <p className="mb-1 text-xs text-base-400">사진·영상 첨부 (선택, 영상은 300MB까지)</p>
+        <MediaPicker media={media} onChange={setMedia} code={code} onBusyChange={setUploading} />
       </div>
       <input className={inputCls} value={t.authorName} onChange={(e) => setT({ ...t, authorName: e.target.value })} placeholder="성함 또는 부서 (선택)" />
       {error && <p className="text-xs text-amber-500">{error}</p>}
       <button
         onClick={send}
-        disabled={sending || uploading > 0}
+        disabled={sending || uploading}
         className="focus-ring flex w-full items-center justify-center gap-1.5 rounded-lg bg-mist-500 py-3 text-sm font-medium text-base-950 hover:bg-mist-400 disabled:opacity-50"
       >
-        <Send size={15} /> {sending ? '보내는 중…' : '보내기'}
+        <Send size={15} /> {sending ? '보내는 중…' : uploading ? '첨부 올리는 중…' : '보내기'}
       </button>
     </div>
   )
@@ -105,15 +77,20 @@ function NewTicket({ code, onDone }) {
 function TicketItem({ t, code, onUpdated }) {
   const [open, setOpen] = useState(false)
   const [text, setText] = useState('')
+  const [media, setMedia] = useState([])
+  const [uploading, setUploading] = useState(false)
+  const [showAttach, setShowAttach] = useState(false)
   const [sending, setSending] = useState(false)
   const answered = (t.messages || []).some((m) => m.from === 'admin')
 
   const reply = async () => {
-    if (!text.trim()) return
+    if (!text.trim() && !media.length) return
     setSending(true)
     try {
-      const { ticket } = await api.clientPortalPost(code, { action: 'reply', ticketId: t.id, text })
+      const { ticket } = await api.clientPortalPost(code, { action: 'reply', ticketId: t.id, text, media })
       setText('')
+      setMedia([])
+      setShowAttach(false)
       onUpdated(ticket)
     } catch (err) {
       alert(err.message)
@@ -131,30 +108,46 @@ function TicketItem({ t, code, onUpdated }) {
           {answered && <span className="rounded bg-mist-500/15 px-1.5 py-0.5 text-mist-600">답변 있음</span>}
           <span className="ml-auto text-base-500">{fmtDateTime(t.createdAt)}</span>
         </div>
-        <p className={`text-sm ${open ? 'whitespace-pre-line' : 'line-clamp-2'}`}>{t.content}</p>
+        <p className={`text-sm ${open ? 'whitespace-pre-line' : 'line-clamp-2'}`}>{t.content || '(사진·영상 첨부)'}</p>
+        {!open && (t.media || []).length > 0 && (
+          <p className="mt-0.5 flex items-center gap-1 text-[11px] text-base-500">
+            <Paperclip size={11} /> 첨부 {t.media.length}개
+          </p>
+        )}
       </button>
       {open && (
         <div className="mt-3 space-y-2">
-          {(t.photos || []).length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {t.photos.map((p) => (
-                <img key={p.url} src={p.url} alt="" className="h-16 w-16 rounded-md object-cover" />
-              ))}
-            </div>
-          )}
+          <MediaView media={t.media || []} size="h-16 w-16" />
           {(t.messages || []).map((m, i) => (
             <div key={i} className={`flex ${m.from === 'admin' ? '' : 'justify-end'}`}>
               <div className={`max-w-[85%] rounded-xl px-3 py-2 text-sm ${m.from === 'admin' ? 'bg-mist-500/15' : 'bg-base-900'}`}>
-                <p className="whitespace-pre-line">{m.text}</p>
+                {m.text && <p className="whitespace-pre-line">{m.text}</p>}
+                {(m.media || []).length > 0 && (
+                  <div className="mt-1">
+                    <MediaView media={m.media} size="h-16 w-16" />
+                  </div>
+                )}
                 <p className="mt-0.5 text-[10px] text-base-500">
                   {m.from === 'admin' ? '(주)이엘씨_대치남' : '작성자'} · {fmtDateTime(m.at)}
                 </p>
               </div>
             </div>
           ))}
+          {showAttach && <MediaPicker media={media} onChange={setMedia} code={code} onBusyChange={setUploading} compact />}
           <div className="flex gap-1.5">
+            <button
+              onClick={() => setShowAttach(!showAttach)}
+              className={`focus-ring shrink-0 rounded-lg border px-2.5 ${showAttach || media.length ? 'border-mist-500 text-mist-500' : 'border-base-700 text-base-500'}`}
+              aria-label="사진·영상 첨부"
+            >
+              <Paperclip size={15} />
+            </button>
             <input className={inputCls + ' !py-2'} value={text} onChange={(e) => setText(e.target.value)} placeholder="추가로 남길 말씀" />
-            <button onClick={reply} disabled={sending || !text.trim()} className="focus-ring shrink-0 rounded-lg bg-mist-500 px-3 text-base-950 disabled:opacity-40">
+            <button
+              onClick={reply}
+              disabled={sending || uploading || (!text.trim() && !media.length)}
+              className="focus-ring shrink-0 rounded-lg bg-mist-500 px-3 text-base-950 disabled:opacity-40"
+            >
               <Send size={15} />
             </button>
           </div>

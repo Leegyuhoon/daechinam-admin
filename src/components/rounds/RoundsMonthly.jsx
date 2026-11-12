@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronLeft, ChevronRight, Printer, Check, MessageCircle, Sparkles, Eye, EyeOff } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Printer, Check, BellRing, Copy, Sparkles, Eye, EyeOff } from 'lucide-react'
 import { thisMonth, shiftMonth, collectMonth, RATINGS, portalLink, reportLink } from '../../lib/rounds'
 import { Modal, Card, Label, inputCls, btnPrimary, btnGhost } from './ui'
 import MonthlyReportDoc from './MonthlyReportDoc'
@@ -37,10 +37,10 @@ function ReportEditor({ site, month, initial, data, ops, onClose }) {
     }
   }
 
-  const copyNotice = async () => {
+  // 알림을 안 켠 담당자에게 직접 보낼 수 있도록 보고서 링크 복사
+  const copyLink = async () => {
     const code = await ops.ensureAccessCode(site)
-    const [y, m] = month.split('-')
-    const msg = `[(주)이엘씨_대치남] ${site.name} 담당자님, ${y}년 ${Number(m)}월 청소 관리 보고서를 보내드립니다.\n${portalLink(code, 'reports')}\n문의나 요청 사항도 같은 페이지에서 남겨 주시면 됩니다.`
+    const msg = portalLink(code, 'reports')
     try {
       await navigator.clipboard.writeText(msg)
       setCopied(true)
@@ -96,10 +96,12 @@ function ReportEditor({ site, month, initial, data, ops, onClose }) {
         </div>
         {r.published && (
           <div className="rounded-lg border border-mist-500/40 bg-mist-500/5 p-3">
-            <p className="text-xs font-medium">업체 전용 페이지에 공개됐어요.</p>
-            <p className="mt-0.5 text-[11px] text-base-500">알림 문구를 복사해서 카카오 채널로 담당자에게 보내 주세요.</p>
-            <button onClick={copyNotice} className={`${btnGhost} mt-2 !py-1.5 !text-xs`}>
-              {copied ? <Check size={13} /> : <MessageCircle size={13} />} {copied ? '복사됨' : '카톡 알림 문구 복사'}
+            <p className="flex items-center gap-1.5 text-xs font-medium">
+              <BellRing size={13} className="text-mist-500" /> 업체 전용 페이지에 공개됐어요.
+            </p>
+            <p className="mt-0.5 text-[11px] text-base-500">알림을 켠 담당자에게는 "월간 보고서 등록" 알림이 바로 전송돼요.</p>
+            <button onClick={copyLink} className={`${btnGhost} mt-2 !py-1.5 !text-xs`}>
+              {copied ? <Check size={13} /> : <Copy size={13} />} {copied ? '복사됨' : '보고서 링크 복사'}
             </button>
           </div>
         )}

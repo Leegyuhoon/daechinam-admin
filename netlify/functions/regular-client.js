@@ -22,14 +22,23 @@ async function readCol(store, name) {
   return Array.isArray(data) ? data : []
 }
 
+// 첨부: 사진(/api/regular-photo) · 영상(/api/regular-media)만 허용
+function cleanMedia(list) {
+  return (Array.isArray(list) ? list : [])
+    .filter((m) => typeof m?.url === 'string' && /^\/api\/regular-(photo|media)\?id=[0-9a-f-]{36}$/i.test(m.url))
+    .slice(0, 10)
+    .map((m) => ({ url: m.url, kind: m.url.startsWith('/api/regular-media') ? 'video' : 'photo' }))
+}
+const ticketMedia = (t) => [...(t.photos || []).map((p) => ({ url: p.url, kind: 'photo' })), ...(t.media || [])]
+
 const publicTicket = (t) => ({
   id: t.id,
   category: t.category,
   content: t.content,
   authorName: t.authorName || '',
-  photos: (t.photos || []).map((p) => ({ url: p.url })),
+  media: ticketMedia(t),
   status: t.status || 'open',
-  messages: (t.messages || []).map((m) => ({ from: m.from, text: m.text, at: m.at })),
+  messages: (t.messages || []).map((m) => ({ from: m.from, text: m.text, at: m.at, media: m.media || [] })),
   createdAt: t.createdAt
 })
 
@@ -82,17 +91,15 @@ export default async (req) => {
 
       if (body.action === 'ticket') {
         const content = String(body.content || '').trim()
-        if (!content) return Response.json({ ok: false, error: '내용을 입력해주세요' }, { status: 400 })
+        const media = cleanMedia(body.media || body.photos)
+        if (!content && !media.length) return Response.json({ ok: false, error: '내용을 입력해주세요' }, { status: 400 })
         const ticket = {
           id: crypto.randomUUID(),
           siteId: site.id,
           category: CATEGORIES.includes(body.category) ? body.category : '질문',
           content: content.slice(0, 2000),
           authorName: String(body.authorName || '').trim().slice(0, 40),
-          photos: (Array.isArray(body.photos) ? body.photos : [])
-            .filter((p) => typeof p?.url === 'string' && p.url.startsWith('/api/regular-photo?id='))
-            .slice(0, 6)
-            .map((p) => ({ url: p.url })),
+          media,
           source: 'web',
           status: 'open',
           messages: [],
@@ -104,7 +111,7 @@ export default async (req) => {
         await store.setJSON('tickets', tickets)
         await notify({ role: 'admin' }, {
           title: `새 문의 · ${site.name}`,
-          body: `[${ticket.category}] ${clip(ticket.content)}`,
+          body: `[${ticket.category}] ${clip(ticket.content) || '사진·영상 첨부'}`,
           url: '/rounds?tab=tickets',
           tag: `ticket-${ticket.id}`
         })
@@ -113,16 +120,17 @@ export default async (req) => {
 
       if (body.action === 'reply') {
         const text = String(body.text || '').trim()
+        const media = cleanMedia(body.media)
         const t = tickets.find((x) => x.id === body.ticketId && x.siteId === site.id)
-        if (!t || !text) return Response.json({ ok: false, error: '문의를 찾을 수 없거나 내용이 비어 있습니다' }, { status: 400 })
-        t.messages = [...(t.messages || []), { id: crypto.randomUUID(), from: 'client', text: text.slice(0, 2000), at: now }]
+        if (!t || (!text && !media.length)) return Response.json({ ok: false, error: '문의를 찾을 수 없거나 내용이 비어 있습니다' }, { status: 400 })
+        t.messages = [...(t.messages || []), { id: crypto.randomUUID(), from: 'client', text: text.slice(0, 2000), media, at: now }]
         t.lastClientAt = now
         t.updatedAt = now
         if (t.status === 'done') t.status = 'open' // 완료 후 다시 문의하면 다시 열림
         await store.setJSON('tickets', tickets)
         await notify({ role: 'admin' }, {
           title: `추가 문의 · ${site.name}`,
-          body: clip(text),
+          body: clip(text) || '사진·영상을 보냈습니다',
           url: '/rounds?tab=tickets',
           tag: `ticket-${t.id}`
         })

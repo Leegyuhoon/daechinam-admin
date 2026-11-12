@@ -274,10 +274,10 @@ export const api = {
     if (!res.ok) throw new Error(data.error || `사진 업로드 실패 (${res.status})`)
     return data // { id, url }
   },
-  replyTicket: (id, text, status) =>
+  replyTicket: (id, text, status, media = []) =>
     request('/regular-ops', {
       method: 'POST',
-      body: JSON.stringify({ collection: 'tickets', action: 'reply', id, text, status }),
+      body: JSON.stringify({ collection: 'tickets', action: 'reply', id, text, status, media }),
       headers: { 'X-Client-Admin-Password': clientAdminPassword }
     }),
 
@@ -308,6 +308,47 @@ export const api = {
     const data = await res.json().catch(() => ({}))
     if (!res.ok) throw new Error(data.error || '사진 업로드 실패')
     return data
+  },
+
+  // 사진·영상 첨부 (관리자는 비밀번호, 업체 페이지는 접속 코드로 확인)
+  // 사진은 압축 후 한 번에, 영상은 4MB씩 나눠 올림 → { url, kind }
+  uploadAttachment: async (file, { code, onProgress } = {}) => {
+    const auth = code ? { 'X-Client-Code': code } : { 'X-Client-Admin-Password': clientAdminPassword }
+    if (file.type?.startsWith('image/')) {
+      const blob = await compressImage(file)
+      const res = await fetch('/api/regular-photo', {
+        method: 'POST',
+        headers: { 'Content-Type': blob.type || 'image/jpeg', ...auth },
+        body: blob
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || '사진 업로드 실패')
+      onProgress?.(100)
+      return { url: data.url, kind: 'photo' }
+    }
+    if (!file.type?.startsWith('video/')) throw new Error('사진 또는 영상 파일만 올릴 수 있어요')
+    const MAX = 300 * 1024 * 1024
+    if (file.size > MAX) throw new Error('영상은 300MB 이하만 올릴 수 있어요')
+    const CHUNK = 4 * 1024 * 1024
+    const uploadId = crypto.randomUUID()
+    const total = Math.max(1, Math.ceil(file.size / CHUNK))
+    for (let i = 0; i < total; i++) {
+      const res = await fetch('/api/regular-media-chunk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/octet-stream', 'X-Upload-Id': uploadId, 'X-Chunk-Index': String(i), ...auth },
+        body: file.slice(i * CHUNK, Math.min(file.size, (i + 1) * CHUNK))
+      })
+      if (!res.ok) throw new Error(`영상 업로드 실패 (${i + 1}/${total})`)
+      onProgress?.(Math.round(((i + 1) / total) * 100))
+    }
+    const res = await fetch('/api/regular-media-finalize', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...auth },
+      body: JSON.stringify({ uploadId, totalChunks: total, size: file.size, chunkSize: CHUNK, contentType: file.type, filename: file.name })
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) throw new Error(data.error || '영상 업로드 마무리 실패')
+    return { url: data.url, kind: 'video' }
   },
 
   viewServiceReport: async (id) => {

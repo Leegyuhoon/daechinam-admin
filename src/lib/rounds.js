@@ -146,7 +146,12 @@ export function reportLink(executionId) {
 
 export const TICKET_CATEGORIES = ['질문', '불편 사항', '개선 요청', '작업 요청']
 export const TICKET_STATUS = { open: '접수', progress: '처리 중', done: '완료' }
-export const TICKET_SOURCES = { web: '업체 페이지', kakao: '카카오 채널', phone: '전화', visit: '방문' }
+// 직접 등록할 때 고르는 경로 (업체 페이지로 들어온 문의는 자동으로 'web')
+export const TICKET_SOURCES = { web: '업체 페이지', phone: '전화', sms: '문자', visit: '현장 방문', email: '이메일', etc: '기타' }
+export const sourceLabel = (s) => TICKET_SOURCES[s] || (s === 'kakao' ? '카카오' : '업체 페이지')
+
+// 문의 첨부 (예전 사진 필드 photos + 새 첨부 media)
+export const ticketMedia = (t) => [...(t.photos || []).map((p) => ({ url: p.url, kind: 'photo' })), ...(t.media || [])]
 export const RATINGS = ['우수', '양호', '보통', '미흡']
 
 export function newAccessCode() {

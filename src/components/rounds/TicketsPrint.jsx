@@ -1,4 +1,19 @@
-import { TICKET_STATUS, fmtDateTime } from '../../lib/rounds'
+import { TICKET_STATUS, fmtDateTime, ticketMedia } from '../../lib/rounds'
+
+function Attach({ media }) {
+  if (!media?.length) return null
+  const photos = media.filter((m) => m.kind === 'photo')
+  const videos = media.filter((m) => m.kind === 'video').length
+  return (
+    <span className="mt-1 flex flex-wrap items-center gap-1">
+      {photos.slice(0, 4).map((p) => (
+        <img key={p.url} src={p.url} alt="" style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 4 }} />
+      ))}
+      {photos.length > 4 && <span className="text-base-500">+사진 {photos.length - 4}</span>}
+      {videos > 0 && <span className="text-base-500">영상 {videos}개</span>}
+    </span>
+  )
+}
 
 // 문의 내역 PDF용 표 — 화면에는 안 보이고 PDF 저장 때만 나옴 (관리자 · 업체 페이지 공용)
 export default function TicketsPrint({ id, tickets, siteName }) {
@@ -24,6 +39,7 @@ export default function TicketsPrint({ id, tickets, siteName }) {
               <td className="whitespace-pre-line border border-base-700 px-2 py-1 align-top">
                 {t.content}
                 {t.authorName && <span className="block text-base-500">— {t.authorName}</span>}
+                <Attach media={ticketMedia(t)} />
               </td>
               <td className="border border-base-700 px-2 py-1 align-top">
                 {(t.messages || []).length === 0
@@ -34,6 +50,7 @@ export default function TicketsPrint({ id, tickets, siteName }) {
                           [{m.from === 'admin' ? '답변' : '업체'} {fmtDateTime(m.at)}]
                         </span>{' '}
                         {m.text}
+                        <Attach media={m.media} />
                       </p>
                     ))}
               </td>
