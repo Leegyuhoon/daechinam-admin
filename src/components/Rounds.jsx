@@ -53,12 +53,12 @@ function PasswordGate({ onOk }) {
 }
 
 const TABS = [
-  { key: 'calendar', label: '월간 일정', icon: CalendarRange },
-  { key: 'tickets', label: '업체 소통', icon: MessagesSquare },
-  { key: 'issues', label: '현장 이슈', icon: ClipboardList },
-  { key: 'monthly', label: '월간 보고서', icon: FileText },
-  { key: 'reports', label: '전후 보고서', icon: Camera },
-  { key: 'sites', label: '현장·서비스', icon: Building2 }
+  { key: 'calendar', label: '월간 일정', short: '일정', icon: CalendarRange },
+  { key: 'tickets', label: '업체 소통', short: '소통', icon: MessagesSquare },
+  { key: 'issues', label: '현장 이슈', short: '이슈', icon: ClipboardList },
+  { key: 'monthly', label: '월간 보고서', short: '월간보고', icon: FileText },
+  { key: 'reports', label: '전후 보고서', short: '전후보고', icon: Camera },
+  { key: 'sites', label: '현장·서비스', short: '현장', icon: Building2 }
 ]
 
 export default function Rounds() {
@@ -173,7 +173,7 @@ export default function Rounds() {
       <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold text-page-text">정기 현장 관리</h1>
-          <p className="mt-1 text-xs text-page-sub">점검 일정 · 업체 소통 · 현장 이슈 · 월간 보고서 · 작업 전후 보고서</p>
+          <p className="mt-1 hidden text-xs text-page-sub sm:block">점검 일정 · 업체 소통 · 현장 이슈 · 월간 보고서 · 작업 전후 보고서</p>
         </div>
         <div className="flex items-start gap-2">
           <PushToggle role="admin" headers={api.adminHeaders()} />
@@ -183,18 +183,20 @@ export default function Rounds() {
         </div>
       </div>
 
-      <div className="mb-4 flex gap-1 overflow-x-auto rounded-xl border border-page-border bg-page-soft p-1">
-        {TABS.map(({ key, label, icon: Icon }) => (
+      <div className="mb-4 grid grid-cols-6 gap-0.5 rounded-xl border border-page-border bg-page-soft p-1 md:flex md:gap-1">
+        {TABS.map(({ key, label, short, icon: Icon }) => (
           <button
             key={key}
             onClick={() => setTab(key)}
-            className={`focus-ring flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-2 text-sm transition-colors ${
-              tab === key ? 'bg-base-950 font-medium text-base-100 shadow-sm' : 'text-page-sub hover:text-page-text'
+            className={`focus-ring relative flex flex-col items-center justify-center gap-0.5 whitespace-nowrap rounded-lg px-0.5 py-1.5 text-[12px] transition-colors md:flex-1 md:flex-row md:gap-1.5 md:px-3 md:py-2 md:text-sm ${
+              tab === key ? 'bg-base-950 font-semibold text-base-100 shadow-sm' : 'text-page-sub hover:text-page-text'
             }`}
           >
-            <Icon size={15} /> {label}
+            <Icon size={16} />
+            <span className="md:hidden">{short}</span>
+            <span className="hidden md:inline">{label}</span>
             {key === 'tickets' && replyCount > 0 && (
-              <span className="rounded-full bg-amber-500 px-1.5 text-[10px] font-semibold leading-4 text-white">{replyCount}</span>
+              <span className="absolute right-0.5 top-0.5 rounded-full bg-amber-500 px-1.5 text-[12px] font-semibold leading-4 text-white md:static">{replyCount}</span>
             )}
           </button>
         ))}

@@ -107,7 +107,7 @@ function VideoUploader({ videoUrl, onUploaded }) {
       {videoUrl && !uploading && (
         <video src={videoUrl} controls className="mt-3 aspect-video w-full rounded-lg bg-black" />
       )}
-      <p className="mt-2 text-[11px] text-base-500">
+      <p className="mt-2 text-[12px] text-base-500">
         영상은 조각으로 나뉘어 업로드돼요 — 용량이 커도 괜찮지만 시간이 좀 걸릴 수 있어요. AI 자동 문제 생성(음성인식)은 25MB 이하 영상만 지원돼요.
       </p>
     </div>
@@ -244,7 +244,7 @@ function CourseForm({ initialCourse, onSaved, onCancel }) {
         <p className="mb-2 flex items-center gap-1.5 text-xs font-medium text-base-300">
           <Users size={13} className="text-violet-500" /> 대상자 지정 (선택)
         </p>
-        <p className="mb-2 text-[11px] text-base-500">
+        <p className="mb-2 text-[12px] text-base-500">
           체크해두면 아래 "이수 현황"에서 아직 안 들은 사람을 바로 확인할 수 있어요. 아무도 체크 안 하면 전체 응시자만 보여요.
         </p>
         {rosterLoading ? (

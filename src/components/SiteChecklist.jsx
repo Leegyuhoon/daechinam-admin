@@ -47,7 +47,7 @@ export default function SiteChecklist({ siteName, period, limit = 14, compact = 
     const totalVisits = days.reduce((sum, d) => sum + d.recs.length, 0)
     return (
       <div>
-        <p className="mb-1.5 text-[11px] text-base-500">
+        <p className="mb-1.5 text-[12px] text-base-500">
           근무일 {totalDays}일 · 총 {totalVisits}건
         </p>
         <div className="flex flex-wrap gap-1">
@@ -55,7 +55,7 @@ export default function SiteChecklist({ siteName, period, limit = 14, compact = 
             <span
               key={date}
               title={recs.map((r) => r.workerName).join(', ')}
-              className="rounded bg-base-900 px-1.5 py-0.5 text-[10px] text-base-300"
+              className="rounded bg-base-900 px-1.5 py-0.5 text-[11px] text-base-300"
             >
               {date.slice(5)} ({recs.length})
             </span>

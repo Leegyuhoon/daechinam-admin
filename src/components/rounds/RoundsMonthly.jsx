@@ -75,7 +75,7 @@ function ReportEditor({ site, month, initial, data, ops, onClose }) {
         <Label text="이번 달 총평">
           <textarea rows={4} className={inputCls} value={r.summary} onChange={(e) => setR({ ...r, summary: e.target.value })} />
         </Label>
-        <button onClick={() => setR({ ...r, summary: draftSummary(site.name, month, data) })} className="flex items-center gap-1 text-[11px] text-mist-500 hover:underline">
+        <button onClick={() => setR({ ...r, summary: draftSummary(site.name, month, data) })} className="flex items-center gap-1 text-[12px] text-mist-500 hover:underline">
           <Sparkles size={12} /> 이번 달 기록으로 초안 채우기
         </button>
         <Label text="다음 달 계획 · 건의 사항 (예정된 일정은 자동으로 들어가요)">
@@ -104,7 +104,7 @@ function ReportEditor({ site, month, initial, data, ops, onClose }) {
             <p className="flex items-center gap-1.5 text-xs font-medium">
               <BellRing size={13} className="text-mist-500" /> 업체 전용 페이지에 공개됐어요.
             </p>
-            <p className="mt-0.5 text-[11px] text-base-500">알림을 켠 담당자에게는 "월간 보고서 등록" 알림이 바로 전송돼요.</p>
+            <p className="mt-0.5 text-[12px] text-base-500">알림을 켠 담당자에게는 "월간 보고서 등록" 알림이 바로 전송돼요.</p>
             <button onClick={copyLink} className={`${btnGhost} mt-2 !py-1.5 !text-xs`}>
               {copied ? <Check size={13} /> : <Copy size={13} />} {copied ? '복사됨' : '보고서 링크 복사'}
             </button>
@@ -161,7 +161,7 @@ export default function RoundsMonthly({ data, ops }) {
             <PrintButton targetId="print-monthly-list" title={`월간 보고서 현황_${month}`} label="현황 PDF" small />
           </div>
         </div>
-        <p className="mt-3 text-[11px] text-base-500">
+        <p className="mt-3 text-[12px] text-base-500">
           점검 기록(월간 일정의 점검 메모), 문의·요청 처리 내역, 현장 이슈(팀장 보고), 전후 보고서, 다음 달 일정이 자동으로 들어가요. 종합 평가와 총평만 적고 공개하면 업체 전용 페이지에서 바로 볼 수 있어요.
           매월 초에는 지난달이 먼저 보여요.
         </p>
@@ -176,12 +176,12 @@ export default function RoundsMonthly({ data, ops }) {
               <Card className="!p-3 hover:border-mist-500/50">
                 <div className="mb-1.5 flex items-center justify-between">
                   <p className="text-sm font-semibold">{site.name}</p>
-                  <span className={`rounded px-1.5 py-0.5 text-[11px] ${status[1]}`}>
+                  <span className={`rounded px-1.5 py-0.5 text-[12px] ${status[1]}`}>
                     {report?.published && <Check size={10} className="mr-0.5 inline" />}
                     {status[0]}
                   </span>
                 </div>
-                <p className="text-[11px] text-base-500">
+                <p className="text-[12px] text-base-500">
                   점검 {d.inspections.length}회 · 문의 {d.tickets.length}건 (완료 {d.tickets.filter((t) => t.status === 'done').length}) · 현장 이슈 {d.issues.reduce((n, x) => n + (x.items || []).length, 0)}건 · 추가 작업 {d.executions.length}건
                   {report?.rating && ` · 평가 ${report.rating}`}
                 </p>

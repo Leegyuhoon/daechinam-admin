@@ -19,7 +19,7 @@ function Attach({ media }) {
 export default function TicketsPrint({ id, tickets, siteName }) {
   return (
     <div id={id} className="print-only text-base-100">
-      <table className="w-full border-collapse text-[11px]">
+      <table className="w-full border-collapse text-[12px]">
         <thead>
           <tr className="bg-base-900 text-left">
             <th className="w-20 border border-base-700 px-2 py-1 font-medium">접수일</th>

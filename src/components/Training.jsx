@@ -189,7 +189,7 @@ function AuthGate({ onAuthed }) {
           value={birth}
           onChange={(e) => setBirth(e.target.value.replace(/\D/g, '').slice(0, 6))}
         />
-        <p className="mt-1.5 text-[11px] text-base-500">소속 회사와 상관없이 누구나 입력하고 바로 응시할 수 있어요.</p>
+        <p className="mt-1.5 text-[12px] text-base-500">소속 회사와 상관없이 누구나 입력하고 바로 응시할 수 있어요.</p>
 
         {error && <p className="mt-3 text-xs text-amber-500">{error}</p>}
 

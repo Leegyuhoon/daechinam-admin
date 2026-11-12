@@ -46,7 +46,7 @@ function Splash({ leaving }) {
       <div className="mt-8 h-[3px] w-28 overflow-hidden rounded-full" style={{ background: '#343C45' }}>
         <div className="splash-bar h-full rounded-full" style={{ background: '#EB9E18' }} />
       </div>
-      <p className="splash-caption mt-3 text-[11px] tracking-[0.2em]" style={{ color: '#9BA3AB' }}>
+      <p className="splash-caption mt-3 text-[12px] tracking-[0.2em]" style={{ color: '#9BA3AB' }}>
         {caption}
       </p>
     </div>

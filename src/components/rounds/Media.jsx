@@ -57,13 +57,13 @@ export function MediaPicker({ media, onChange, code, max = 10, compact = false, 
           </div>
         ))}
         {uploads.map((u) => (
-          <div key={u.key} className={`flex ${size} flex-col items-center justify-center rounded-lg bg-base-900 text-[10px] text-base-500`}>
+          <div key={u.key} className={`flex ${size} flex-col items-center justify-center rounded-lg bg-base-900 text-[11px] text-base-500`}>
             <Loader2 size={16} className="animate-spin" />
             {u.kind === 'video' ? `${u.progress}%` : '올리는 중'}
           </div>
         ))}
         {media.length + uploads.length < max && (
-          <label className={`flex ${size} cursor-pointer flex-col items-center justify-center gap-0.5 rounded-lg border border-dashed border-base-700 text-[10px] text-base-500 hover:text-mist-500`}>
+          <label className={`flex ${size} cursor-pointer flex-col items-center justify-center gap-0.5 rounded-lg border border-dashed border-base-700 text-[11px] text-base-500 hover:text-mist-500`}>
             <span className="flex gap-0.5">
               <ImagePlus size={14} />
               <Video size={14} />
@@ -73,7 +73,7 @@ export function MediaPicker({ media, onChange, code, max = 10, compact = false, 
           </label>
         )}
       </div>
-      {error && <p className="mt-1 text-[11px] text-amber-500">{error}</p>}
+      {error && <p className="mt-1 text-[12px] text-amber-500">{error}</p>}
     </div>
   )
 }
@@ -118,7 +118,7 @@ export function MediaView({ media = [], size = 'h-20 w-20', name = '첨부' }) {
       type="button"
       onClick={() => one(m, i)}
       disabled={m.url in busy}
-      className={`no-print flex items-center gap-0.5 rounded bg-black/60 px-1.5 py-0.5 text-[10px] text-white ${className}`}
+      className={`no-print flex items-center gap-0.5 rounded bg-black/60 px-1.5 py-0.5 text-[11px] text-white ${className}`}
       aria-label="내려받기"
     >
       {m.url in busy ? <Loader2 size={10} className="animate-spin" /> : <Download size={10} />}
@@ -146,11 +146,11 @@ export function MediaView({ media = [], size = 'h-20 w-20', name = '첨부' }) {
         )}
       </div>
       {media.length > 1 && (
-        <button type="button" onClick={all} disabled={allBusy} className="no-print mt-1 flex items-center gap-1 text-[11px] text-base-500 hover:text-mist-500">
+        <button type="button" onClick={all} disabled={allBusy} className="no-print mt-1 flex items-center gap-1 text-[12px] text-base-500 hover:text-mist-500">
           {allBusy ? <Loader2 size={11} className="animate-spin" /> : <Download size={11} />} {allBusy ? '내려받는 중…' : `전체 다운로드 (${media.length}개)`}
         </button>
       )}
-      {error && <p className="mt-1 text-[11px] text-amber-500">{error}</p>}
+      {error && <p className="mt-1 text-[12px] text-amber-500">{error}</p>}
     </div>
   )
 }

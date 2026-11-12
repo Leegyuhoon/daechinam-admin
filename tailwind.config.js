@@ -44,6 +44,10 @@ export default {
           500: '#B06F08'
         }
       },
+      // 휴대폰에서 작은 글씨가 읽기 어려워 xs(기본 12px)를 13px로 키움
+      fontSize: {
+        xs: ['0.8125rem', { lineHeight: '1.15rem' }]
+      },
       fontFamily: {
         display: ['"Pretendard Variable"', 'Pretendard', 'sans-serif'],
         body: ['"Pretendard Variable"', 'Pretendard', 'sans-serif']

@@ -106,7 +106,7 @@ function SiteModal({ initial, onClose, ops, otherSites }) {
 
         <div className="rounded-lg border border-base-800 bg-base-900 p-3">
           <p className="mb-1 text-xs font-medium text-base-300">서비스 항목 (정기 청소 외에 주기적으로 하는 작업)</p>
-          <p className="mb-3 text-[11px] text-base-500">마지막 실행일과 주기를 넣으면 다음 예정일이 자동으로 계산되고, 월간 일정의 "자동 배치"에 포함돼요.</p>
+          <p className="mb-3 text-[12px] text-base-500">마지막 실행일과 주기를 넣으면 다음 예정일이 자동으로 계산되고, 월간 일정의 "자동 배치"에 포함돼요.</p>
           <div className="space-y-2">
             {site.services.map((sv, i) => (
               <div key={sv.id} className="grid grid-cols-2 gap-2 rounded-lg bg-base-950 p-2 sm:grid-cols-[1.4fr_1fr_1fr_auto]">
@@ -126,11 +126,11 @@ function SiteModal({ initial, onClose, ops, otherSites }) {
             ))}
           </div>
           <div className="mt-2 flex flex-wrap gap-1.5">
-            <button onClick={() => addSvc()} className="focus-ring flex items-center gap-1 rounded-md border border-base-700 bg-base-950 px-2 py-1 text-[11px] text-base-300">
+            <button onClick={() => addSvc()} className="focus-ring flex items-center gap-1 rounded-md border border-base-700 bg-base-950 px-2 py-1 text-[12px] text-base-300">
               <Plus size={11} /> 항목 추가
             </button>
             {SERVICE_EXAMPLES.filter((n) => !site.services.some((s) => s.name === n)).map((n) => (
-              <button key={n} onClick={() => addSvc(n)} className="focus-ring rounded-md px-2 py-1 text-[11px] text-base-500 hover:text-mist-500">
+              <button key={n} onClick={() => addSvc(n)} className="focus-ring rounded-md px-2 py-1 text-[12px] text-base-500 hover:text-mist-500">
                 + {n}
               </button>
             ))}
@@ -189,10 +189,10 @@ export default function RoundsSites({ data, ops }) {
               <div className="mb-2 flex items-start justify-between gap-2">
                 <div>
                   <p className="font-semibold">{site.name}</p>
-                  <p className="mt-0.5 text-[11px] text-base-500">
+                  <p className="mt-0.5 text-[12px] text-base-500">
                     점검 {cycleLabel(site.inspectCycleMonths)} · 마지막 {last ? fmtDate(last) : '기록 없음'}
                     {next && (
-                      <span className={next < today ? ' font-medium text-amber-500' : ''}> · 다음 {next}</span>
+                      <span className={`whitespace-nowrap ${next < today ? 'font-medium text-amber-500' : ''}`}> · 다음 {fmtDate(next)}</span>
                     )}
                   </p>
                 </div>
@@ -206,7 +206,7 @@ export default function RoundsSites({ data, ops }) {
                 </div>
               </div>
 
-              <div className="mb-3 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-base-400">
+              <div className="mb-3 flex flex-wrap gap-x-3 gap-y-1 text-[12px] text-base-400">
                 {site.contactName && (
                   <span className="flex items-center gap-1">
                     <Phone size={11} /> {site.contactName} {site.contactPhone}
@@ -228,18 +228,18 @@ export default function RoundsSites({ data, ops }) {
                   </span>
                 )}
               </div>
-              {site.memo && <p className="mb-3 whitespace-pre-line rounded-lg bg-base-900 px-2.5 py-1.5 text-[11px] text-base-400">{site.memo}</p>}
+              {site.memo && <p className="mb-3 whitespace-pre-line rounded-lg bg-base-900 px-2.5 py-1.5 text-[12px] text-base-400">{site.memo}</p>}
 
               <div className="mb-3">
                 {(site.scope || []).length === 0 ? (
-                  <button onClick={() => setModal(site)} className="w-full rounded-lg border border-dashed border-base-700 py-2 text-[11px] text-base-500 hover:text-mist-500">
+                  <button onClick={() => setModal(site)} className="w-full rounded-lg border border-dashed border-base-700 py-2 text-[12px] text-base-500 hover:text-mist-500">
                     + 청소 범위 등록 (구역 · 항목 · 주기)
                   </button>
                 ) : (
                   <>
                     <button
                       onClick={() => setOpenScope(openScope === site.id ? null : site.id)}
-                      className="flex w-full items-center justify-between rounded-lg bg-base-900 px-2.5 py-1.5 text-[11px] text-base-300"
+                      className="flex w-full items-center justify-between rounded-lg bg-base-900 px-2.5 py-1.5 text-[12px] text-base-300"
                     >
                       <span className="flex items-center gap-1">
                         <ListChecks size={12} /> 청소 범위 · 구역 {scopeCount(site.scope).zones}곳 · 항목 {scopeCount(site.scope).items}개
@@ -256,11 +256,11 @@ export default function RoundsSites({ data, ops }) {
               </div>
 
               {(site.services || []).length === 0 ? (
-                <button onClick={() => setModal(site)} className="w-full rounded-lg border border-dashed border-base-700 py-2 text-[11px] text-base-500 hover:text-mist-500">
+                <button onClick={() => setModal(site)} className="w-full rounded-lg border border-dashed border-base-700 py-2 text-[12px] text-base-500 hover:text-mist-500">
                   + 서비스 항목 등록 (카펫 세척, 유리창 등)
                 </button>
               ) : (
-                <table className="w-full text-[11px]">
+                <table className="w-full text-[12px]">
                   <thead>
                     <tr className="text-left text-base-500">
                       <th className="pb-1 font-normal">서비스 항목</th>
@@ -310,7 +310,7 @@ export default function RoundsSites({ data, ops }) {
             return (
               <div key={site.id} id={`print-site-${site.id}`} className="mb-6" style={{ breakInside: 'avoid-page' }}>
                 <p className="mb-2 border-b border-base-700 pb-1 text-sm font-bold">{site.name}</p>
-                <table className="mb-3 w-full border-collapse text-[11px]">
+                <table className="mb-3 w-full border-collapse text-[12px]">
                   <tbody>
                     {info.map(([k, v]) => (
                       <tr key={k}>

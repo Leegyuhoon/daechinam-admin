@@ -89,7 +89,7 @@ function TicketModal({ ticket, site, ops, onClose }) {
     <Modal title={`${site?.name || ''} · ${ticket.category}`} onClose={onClose} wide>
       <div className="space-y-3">
         <div className="rounded-lg bg-base-900 p-3">
-          <p className="mb-1 text-[11px] text-base-500">
+          <p className="mb-1 text-[12px] text-base-500">
             {ticket.authorName || '담당자'} · {fmtDateTime(ticket.createdAt)} · {sourceLabel(ticket.source)}
           </p>
           {ticket.content && <p className="whitespace-pre-line text-sm">{ticket.content}</p>}
@@ -110,11 +110,11 @@ function TicketModal({ ticket, site, ops, onClose }) {
                     </div>
                   )}
                   {m.executionId && (
-                    <a href={reportLink(m.executionId)} target="_blank" rel="noreferrer" className="mt-1 flex items-center gap-1 text-[11px] text-mist-600 hover:underline">
+                    <a href={reportLink(m.executionId)} target="_blank" rel="noreferrer" className="mt-1 flex items-center gap-1 text-[12px] text-mist-600 hover:underline">
                       <FileImage size={11} /> 전후 보고서 보기 <ExternalLink size={10} />
                     </a>
                   )}
-                  <p className="mt-0.5 text-[10px] text-base-500">
+                  <p className="mt-0.5 text-[11px] text-base-500">
                     {m.from === 'admin' ? '우리 답변' : '업체'} · {fmtDateTime(m.at)}
                   </p>
                 </div>
@@ -140,7 +140,7 @@ function TicketModal({ ticket, site, ops, onClose }) {
               <input type="checkbox" className="mt-0.5" checked={asReport} onChange={(e) => setAsReport(e.target.checked)} />
               <span>
                 전후 보고서로도 등록
-                <span className="block text-[11px] text-base-500">
+                <span className="block text-[12px] text-base-500">
                   업체가 올린 사진·영상 {clientMedia.length}개 → 작업 전, 조치 사진·영상 {media.length}개 → 작업 후. 이달 월간 보고서에도 자동으로 들어가요.
                 </span>
               </span>
@@ -170,9 +170,9 @@ function TicketModal({ ticket, site, ops, onClose }) {
             <BellRing size={15} className="mt-0.5 shrink-0 text-mist-500" />
             <div>
               <p className="text-xs font-medium">답변이 업체 페이지에 등록됐어요.</p>
-              <p className="mt-0.5 text-[11px] text-base-500">업체 페이지에서 알림을 켠 담당자에게는 알림이 바로 전송돼요.</p>
+              <p className="mt-0.5 text-[12px] text-base-500">업체 페이지에서 알림을 켠 담당자에게는 알림이 바로 전송돼요.</p>
               {madeReport && (
-                <p className="mt-1 text-[11px] text-base-400">
+                <p className="mt-1 text-[12px] text-base-400">
                   전후 보고서도 만들어졌어요 —{' '}
                   <a href={reportLink(madeReport.id)} target="_blank" rel="noreferrer" className="text-mist-600 underline">
                     보기
@@ -343,7 +343,7 @@ export default function RoundsTickets({ data, ops }) {
           {list.map((t) => (
             <button key={t.id} onClick={() => setOpenId(t.id)} className="focus-ring block w-full text-left">
               <Card className="!p-3 hover:border-mist-500/50">
-                <div className="mb-1 flex flex-wrap items-center gap-1.5 text-[11px]">
+                <div className="mb-1 flex flex-wrap items-center gap-1.5 text-[12px]">
                   <span className="font-medium text-base-200">{site(t.siteId)?.name || '(삭제된 현장)'}</span>
                   <span className="rounded bg-base-900 px-1.5 py-0.5 text-base-400">{t.category}</span>
                   <span className={`rounded px-1.5 py-0.5 ${STATUS_CLS[t.status] || STATUS_CLS.open}`}>{TICKET_STATUS[t.status] || '접수'}</span>
@@ -352,12 +352,12 @@ export default function RoundsTickets({ data, ops }) {
                 </div>
                 <p className="line-clamp-2 text-sm text-base-200">{t.content || '(사진·영상만 첨부)'}</p>
                 {ticketMedia(t).length > 0 && (
-                  <p className="mt-0.5 flex items-center gap-1 text-[11px] text-base-500">
+                  <p className="mt-0.5 flex items-center gap-1 text-[12px] text-base-500">
                     <Paperclip size={11} /> 사진 {ticketMedia(t).filter((m) => m.kind === 'photo').length} · 영상 {ticketMedia(t).filter((m) => m.kind === 'video').length}
                   </p>
                 )}
                 {(t.messages || []).length > 0 && (
-                  <p className="mt-1 truncate text-[11px] text-base-500">
+                  <p className="mt-1 truncate text-[12px] text-base-500">
                     💬 {t.messages.length}개 메시지 · 마지막: {t.messages[t.messages.length - 1].text || '(사진·영상)'}
                   </p>
                 )}
@@ -371,7 +371,7 @@ export default function RoundsTickets({ data, ops }) {
         <p className="mb-1 flex items-center gap-1.5 text-sm font-semibold">
           <Link2 size={14} /> 업체 전용 페이지 링크
         </p>
-        <p className="mb-3 text-[11px] text-base-500">
+        <p className="mb-3 text-[12px] text-base-500">
           현장마다 다른 링크예요. 담당자에게 한 번 보내 두면 로그인 없이 문의 남기기 · 답변 확인 · 월간 보고서 열람을 할 수 있어요. 처음 열 때 "알림 받기"를 눌러 두시라고 안내해 주세요.
         </p>
         <div className="grid gap-1.5 sm:grid-cols-2">

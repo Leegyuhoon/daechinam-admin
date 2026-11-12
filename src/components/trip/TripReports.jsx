@@ -56,7 +56,7 @@ function Section({ title, hint, children, right }) {
       <div className="mb-2 flex items-start justify-between gap-2">
         <div>
           <p className="text-sm font-semibold text-base-100">{title}</p>
-          {hint && <p className="mt-0.5 text-[11px] text-base-500">{hint}</p>}
+          {hint && <p className="mt-0.5 text-[12px] text-base-500">{hint}</p>}
         </div>
         {right}
       </div>
@@ -298,7 +298,7 @@ function Editor({ initial, jobs, onSaved, onCancel }) {
         }
       >
         {r.receipts.length === 0 ? (
-          <p className="text-[11px] text-base-500">아직 첨부한 영수증이 없어요.</p>
+          <p className="text-[12px] text-base-500">아직 첨부한 영수증이 없어요.</p>
         ) : (
           <div className="space-y-2">
             {r.receipts.map((x, i) => (
@@ -414,7 +414,7 @@ export default function TripReports({ jobs = [] }) {
             <div key={x.id} className="flex items-center gap-3 rounded-xl border border-base-800 bg-base-950 p-3">
               <button onClick={() => setViewing(x)} className="min-w-0 flex-1 text-left">
                 <p className="truncate text-sm font-semibold text-base-100">{x.place || '(장소 미입력)'}</p>
-                <p className="text-[11px] text-base-500">
+                <p className="text-[12px] text-base-500">
                   {fmtShort(x.startDate)}
                   {x.endDate && x.endDate > x.startDate ? ` ~ ${fmtShort(x.endDate)}` : ''} ({daysOf(x.startDate, x.endDate)}일) · {x.traveler || '출장자 미입력'} · 인원 {(x.members || []).filter((m) => m.name).length}명
                   {(x.receipts || []).length > 0 && ` · 영수증 ${x.receipts.length}장`}

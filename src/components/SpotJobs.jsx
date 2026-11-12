@@ -439,7 +439,7 @@ export default function SpotJobs() {
 
       {/* PDF 저장용 목록 (화면에는 안 보임) */}
       <div id="print-spot-all" className="print-only">
-        <table className="w-full border-collapse text-[11px] text-base-100">
+        <table className="w-full border-collapse text-[12px] text-base-100">
           <thead>
             <tr className="bg-base-900 text-left">
               {['날짜', '현장', '일수', '직원', '일용', '일용 인당(일)', '일용 총액', '작업 내용'].map((h) => (
@@ -495,20 +495,20 @@ export default function SpotJobs() {
               <div key={j.id} id={`print-spot-${j.id}`} className="rounded-xl border border-base-800 bg-base-950 shadow-sm">
                 <button
                   onClick={() => setOpenId(isOpen ? null : j.id)}
-                  className="focus-ring flex w-full items-center justify-between p-4 text-left"
+                  className="focus-ring flex w-full items-start justify-between gap-2 p-4 text-left"
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex min-w-0 items-start gap-2.5">
                     {isOpen ? (
                       <ChevronDown size={16} className="shrink-0 text-base-500" />
                     ) : (
                       <ChevronRight size={16} className="shrink-0 text-base-500" />
                     )}
-                    <div>
-                      <p className="font-medium text-base-100">{j.siteName}</p>
-                      <p className="flex items-center gap-2 text-xs text-base-400">
-                        <span>{rangeLabel(j)}</span>
-                        <span className="flex items-center gap-1">
-                          <Users size={11} /> 직원 {j.employeeCount} · 일용 {j.dayWorkerCount}
+                    <div className="min-w-0">
+                      <p className="truncate font-medium text-base-100">{j.siteName}</p>
+                      <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-base-400">
+                        <span className="whitespace-nowrap">{rangeLabel(j)}</span>
+                        <span className="flex items-center gap-1 whitespace-nowrap">
+                          <Users size={12} /> 직원 {j.employeeCount} · 일용 {j.dayWorkerCount}
                         </span>
                         {(photoCount > 0 || videoCount > 0) && (
                           <span className="flex items-center gap-1 text-base-500">
@@ -527,7 +527,7 @@ export default function SpotJobs() {
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1 text-xs text-base-400">
+                  <div className="flex shrink-0 items-center gap-1 whitespace-nowrap pt-0.5 text-xs font-medium text-base-300">
                     <Wallet size={12} className="text-red-500" />
                     {won(j.dayWorkerTotal)}
                   </div>

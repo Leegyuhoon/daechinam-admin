@@ -47,11 +47,11 @@ export default function ServiceReportView() {
 
       <div id="print-service-report" className="mx-auto max-w-[210mm] rounded-xl border border-base-800 bg-base-950 p-5 text-base-100 shadow-sm">
         <div className="mb-4 border-b border-base-800 pb-3">
-          <p className="text-[11px] text-base-500">작업 전후 보고서</p>
+          <p className="text-[12px] text-base-500">작업 전후 보고서</p>
           <p className="text-lg font-bold">
             {r.siteName} · {r.serviceName}
           </p>
-          {r.fromTicket && <p className="mt-0.5 text-[11px] text-base-500">고객 요청에 따른 조치 보고서입니다.</p>}
+          {r.fromTicket && <p className="mt-0.5 text-[12px] text-base-500">고객 요청에 따른 조치 보고서입니다.</p>}
         </div>
 
         <table className="mb-4 w-full border-collapse text-xs">
@@ -92,7 +92,7 @@ export default function ServiceReportView() {
                   {p ? (
                     <Thumb m={p} controls className="h-full w-full" alt={j === 0 ? '작업 전' : '작업 후'} />
                   ) : (
-                    <div className="flex h-full items-center justify-center text-[11px] text-base-600">-</div>
+                    <div className="flex h-full items-center justify-center text-[12px] text-base-600">-</div>
                   )}
                 </div>
               ))}
@@ -100,7 +100,7 @@ export default function ServiceReportView() {
           ))}
         </div>
 
-        <p className="mt-5 border-t border-base-800 pt-3 text-center text-[11px] text-base-500">
+        <p className="mt-5 border-t border-base-800 pt-3 text-center text-[12px] text-base-500">
           문의 사항은 담당 매니저에게 연락 주시면 빠르게 조치하겠습니다. — (주)이엘씨_대치남
         </p>
       </div>

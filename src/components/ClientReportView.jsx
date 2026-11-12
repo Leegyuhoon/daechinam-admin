@@ -5,9 +5,9 @@ import { api } from '../lib/api'
 
 function KVTable({ rows }) {
   const visible = rows.filter(([, v]) => v)
-  if (visible.length === 0) return <p className="text-[11px] text-base-500">입력된 내용이 없어요.</p>
+  if (visible.length === 0) return <p className="text-[12px] text-base-500">입력된 내용이 없어요.</p>
   return (
-    <table className="w-full border-collapse text-[11px]">
+    <table className="w-full border-collapse text-[12px]">
       <tbody>
         {visible.map(([label, value]) => (
           <tr key={label}>
@@ -22,9 +22,9 @@ function KVTable({ rows }) {
 
 function RowsTable({ columns, rows }) {
   const visible = (rows || []).filter((r) => r.some((c) => c))
-  if (visible.length === 0) return <p className="text-[11px] text-base-500">입력된 내용이 없어요.</p>
+  if (visible.length === 0) return <p className="text-[12px] text-base-500">입력된 내용이 없어요.</p>
   return (
-    <table className="w-full border-collapse text-[11px]">
+    <table className="w-full border-collapse text-[12px]">
       <thead>
         <tr>
           {columns.map((c) => (
@@ -227,19 +227,19 @@ export default function ClientReportView() {
 
           {r.companyOverview && (
             <Block title="회사 개요·수행실적">
-              <p className="whitespace-pre-line text-[11px] text-base-200">{r.companyOverview}</p>
+              <p className="whitespace-pre-line text-[12px] text-base-200">{r.companyOverview}</p>
             </Block>
           )}
 
           {r.safetyPolicy && (
             <Block title="안전보건·보안 정책">
-              <p className="whitespace-pre-line text-[11px] text-base-200">{r.safetyPolicy}</p>
+              <p className="whitespace-pre-line text-[12px] text-base-200">{r.safetyPolicy}</p>
             </Block>
           )}
 
           {r.differentiation && (
             <Block title="차별화 방안·부가서비스">
-              <p className="whitespace-pre-line text-[11px] text-base-200">{r.differentiation}</p>
+              <p className="whitespace-pre-line text-[12px] text-base-200">{r.differentiation}</p>
             </Block>
           )}
         </div>

@@ -103,7 +103,7 @@ function TicketItem({ t, code, onUpdated }) {
   return (
     <div className="rounded-xl border border-base-800 bg-base-950 p-3">
       <button onClick={() => setOpen(!open)} className="block w-full text-left">
-        <div className="mb-1 flex flex-wrap items-center gap-1.5 text-[11px]">
+        <div className="mb-1 flex flex-wrap items-center gap-1.5 text-[12px]">
           <span className="rounded bg-base-900 px-1.5 py-0.5 text-base-400">{t.category}</span>
           <span className={`rounded px-1.5 py-0.5 ${STATUS_CLS[t.status] || STATUS_CLS.open}`}>{TICKET_STATUS[t.status] || '접수'}</span>
           {answered && <span className="rounded bg-mist-500/15 px-1.5 py-0.5 text-mist-600">답변 있음</span>}
@@ -111,7 +111,7 @@ function TicketItem({ t, code, onUpdated }) {
         </div>
         <p className={`text-sm ${open ? 'whitespace-pre-line' : 'line-clamp-2'}`}>{t.content || '(사진·영상 첨부)'}</p>
         {!open && (t.media || []).length > 0 && (
-          <p className="mt-0.5 flex items-center gap-1 text-[11px] text-base-500">
+          <p className="mt-0.5 flex items-center gap-1 text-[12px] text-base-500">
             <Paperclip size={11} /> 첨부 {t.media.length}개
           </p>
         )}
@@ -129,11 +129,11 @@ function TicketItem({ t, code, onUpdated }) {
                   </div>
                 )}
                 {m.executionId && (
-                  <a href={reportLink(m.executionId)} target="_blank" rel="noreferrer" className="mt-1 block text-[11px] font-medium text-mist-600 underline">
+                  <a href={reportLink(m.executionId)} target="_blank" rel="noreferrer" className="mt-1 block text-[12px] font-medium text-mist-600 underline">
                     작업 전후 보고서 보기
                   </a>
                 )}
-                <p className="mt-0.5 text-[10px] text-base-500">
+                <p className="mt-0.5 text-[11px] text-base-500">
                   {m.from === 'admin' ? '(주)이엘씨_대치남' : '작성자'} · {fmtDateTime(m.at)}
                 </p>
               </div>
@@ -229,7 +229,7 @@ export default function ClientPortal() {
     <div className="min-h-screen bg-page-bg px-3 pb-10 pt-6 sm:px-6">
       <div className="mx-auto max-w-2xl">
         <div className="no-print mb-4">
-          <p className="text-[11px] text-page-sub">(주)이엘씨_대치남 고객 전용</p>
+          <p className="text-[12px] text-page-sub">(주)이엘씨_대치남 고객 전용</p>
           <p className="text-lg font-semibold text-page-text">{site.name}</p>
         </div>
 

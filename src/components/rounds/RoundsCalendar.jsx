@@ -26,7 +26,7 @@ function VisitChip({ visit, siteName, onClick }) {
   return (
     <button
       onClick={onClick}
-      className={`focus-ring flex w-full items-center gap-1 truncate rounded-md border px-1.5 py-0.5 text-left text-[11px] ${t.cls} ${
+      className={`focus-ring flex w-full items-center gap-1 truncate rounded-md border px-1.5 py-0.5 text-left text-[12px] ${t.cls} ${
         canceled ? 'line-through opacity-40' : ''
       }`}
       title={`${siteName} · ${visit.type === 'service' ? visit.serviceName : '점검'}`}
@@ -253,15 +253,15 @@ export default function RoundsCalendar({ data, ops, onWriteReport }) {
               </button>
             )}
           </div>
-          <div className="flex flex-wrap gap-2">
-            <button onClick={runAutoPlan} disabled={planning} className={btnGhost}>
-              <Wand2 size={14} /> {planning ? '배치 중…' : '자동 배치'}
+          <div className="grid w-full grid-cols-3 gap-2 sm:flex sm:w-auto">
+            <button onClick={runAutoPlan} disabled={planning} className={btnGhost + ' !px-2'}>
+              <Wand2 size={14} className="hidden sm:block" /> <span className="whitespace-nowrap">{planning ? '배치 중…' : '자동 배치'}</span>
             </button>
-            <button onClick={() => printElement('print-calendar', `정기현장 순회 계획표_${month}`)} className={btnGhost}>
-              <Printer size={14} /> 계획표 PDF
+            <button onClick={() => printElement('print-calendar', `정기현장 순회 계획표_${month}`)} className={btnGhost + ' !px-2'}>
+              <Printer size={14} className="hidden sm:block" /> <span className="whitespace-nowrap">계획표 PDF</span>
             </button>
-            <button onClick={() => newVisit()} className={btnPrimary}>
-              <Plus size={14} /> 일정 추가
+            <button onClick={() => newVisit()} className={btnPrimary + ' !px-2'}>
+              <Plus size={14} /> <span className="whitespace-nowrap">일정 추가</span>
             </button>
           </div>
         </div>
@@ -273,11 +273,11 @@ export default function RoundsCalendar({ data, ops, onWriteReport }) {
           ].map(([label, n, cls]) => (
             <div key={label} className="rounded-lg bg-base-900 py-2">
               <p className={`text-lg font-semibold ${cls}`}>{n}곳</p>
-              <p className="text-[11px] text-base-500">{label}</p>
+              <p className="text-[12px] text-base-500">{label}</p>
             </div>
           ))}
         </div>
-        <p className="mt-3 text-[11px] text-base-500">
+        <p className="mt-3 text-[12px] text-base-500">
           자동 배치: 이번 달 점검·서비스가 필요한데 일정이 없는 현장을 오늘 이후 화·수·목에 하루 1곳씩 채워 넣어요. 메트라이프 제주처럼 6개월 주기 현장은 첫 방문만 직접
           넣어 주시면 그다음부터 자동으로 계산돼요.
         </p>
@@ -287,7 +287,7 @@ export default function RoundsCalendar({ data, ops, onWriteReport }) {
 
         {/* 달력 (PC) */}
         <Card className="hidden !p-2 md:block print:block">
-          <div className="grid grid-cols-7 text-center text-[11px] text-base-500">
+          <div className="grid grid-cols-7 text-center text-[12px] text-base-500">
             {WEEKDAYS.map((w, i) => (
               <div key={w} className={`py-1.5 ${i === 0 ? 'text-red-500' : i === 6 ? 'text-blue-500' : ''}`}>
                 {w}
@@ -299,7 +299,7 @@ export default function RoundsCalendar({ data, ops, onWriteReport }) {
               date ? (
                 <div key={date} className={`group min-h-[92px] bg-base-950 p-1 ${date === today ? 'ring-2 ring-inset ring-mist-500' : ''}`}>
                   <div className="mb-1 flex items-center justify-between">
-                    <span className={`text-[11px] ${date < today ? 'text-base-600' : 'text-base-300'}`}>{Number(date.slice(8))}</span>
+                    <span className={`text-[12px] ${date < today ? 'text-base-600' : 'text-base-300'}`}>{Number(date.slice(8))}</span>
                     <button onClick={() => newVisit(date)} className="no-print rounded p-0.5 text-base-500 opacity-0 hover:bg-base-800 group-hover:opacity-100">
                       <Plus size={12} />
                     </button>
@@ -336,7 +336,7 @@ export default function RoundsCalendar({ data, ops, onWriteReport }) {
 
           {mobileView === 'calendar' ? (
             <>
-              <div className="grid grid-cols-7 text-center text-[10px] text-base-500">
+              <div className="grid grid-cols-7 text-center text-[11px] text-base-500">
                 {WEEKDAYS.map((w, i) => (
                   <div key={w} className={`pb-1 ${i === 0 ? 'text-red-500' : i === 6 ? 'text-blue-500' : ''}`}>
                     {w}
@@ -372,12 +372,12 @@ export default function RoundsCalendar({ data, ops, onWriteReport }) {
                           ))}
                         </span>
                       )}
-                      {list.length > 4 && <span className="text-[9px] leading-none">+{list.length - 4}</span>}
+                      {list.length > 4 && <span className="text-[10px] leading-none">+{list.length - 4}</span>}
                     </button>
                   )
                 })}
               </div>
-              <div className="mt-2 flex justify-center gap-3 text-[10px] text-base-500">
+              <div className="mt-2 flex justify-center gap-3 text-[11px] text-base-500">
                 <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-teal-500" /> 점검</span>
                 <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-violet-500" /> 서비스</span>
                 <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-base-500" /> 완료</span>
@@ -389,7 +389,7 @@ export default function RoundsCalendar({ data, ops, onWriteReport }) {
                     {selDate?.startsWith(month) ? fmtDate(selDate) : '날짜를 눌러 보세요'} {selDate === today && <span className="text-mist-500">· 오늘</span>}
                   </p>
                   {selDate?.startsWith(month) && (
-                    <button onClick={() => newVisit(selDate)} className="flex items-center gap-0.5 text-[11px] text-mist-500">
+                    <button onClick={() => newVisit(selDate)} className="flex items-center gap-0.5 text-[12px] text-mist-500">
                       <Plus size={12} /> 이 날 일정 추가
                     </button>
                   )}
@@ -401,7 +401,7 @@ export default function RoundsCalendar({ data, ops, onWriteReport }) {
                     ))}
                   </div>
                 ) : (
-                  selDate?.startsWith(month) && <p className="py-2 text-center text-[11px] text-base-500">이 날은 일정이 없어요.</p>
+                  selDate?.startsWith(month) && <p className="py-2 text-center text-[12px] text-base-500">이 날은 일정이 없어요.</p>
                 )}
               </div>
             </>
@@ -428,7 +428,34 @@ export default function RoundsCalendar({ data, ops, onWriteReport }) {
         {/* 현장별 현황 */}
         <Card>
           <p className="mb-3 text-sm font-semibold">현장별 이번 달 현황</p>
-          <div className="overflow-x-auto">
+          {/* 휴대폰: 현장별 한 줄 요약 */}
+          <div className="divide-y divide-base-800 md:hidden print:hidden">
+            {siteRows.map(({ site, last, insp, due, services, serviceVisits }) => (
+              <div key={site.id} className="py-2.5">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="truncate text-sm font-medium text-base-200">{site.name}</p>
+                  {insp ? (
+                    <button onClick={() => setModal(insp)} className={`shrink-0 text-xs font-medium ${insp.status === 'done' ? 'text-mist-500' : 'text-teal-500'}`}>
+                      {insp.status === 'done' ? '✓ 완료' : '예정'} {fmtDate(insp.date)}
+                    </button>
+                  ) : due ? (
+                    <span className="shrink-0 text-xs font-medium text-amber-500">점검 미배치</span>
+                  ) : (
+                    <span className="shrink-0 text-xs text-base-500">점검 대상 아님</span>
+                  )}
+                </div>
+                <p className="mt-0.5 truncate text-xs text-base-500">
+                  {cycleLabel(site.inspectCycleMonths)} · 마지막 {last ? fmtDate(last) : '기록 없음'}
+                  {serviceVisits.map((v) => ` · ${v.status === 'done' ? '✓' : ''}${v.serviceName} ${fmtDate(v.date)}`).join('')}
+                  {services
+                    .filter((s) => !serviceVisits.some((v) => v.serviceId === s.id))
+                    .map((s) => ` · ${s.name} 미배치`)
+                    .join('')}
+                </p>
+              </div>
+            ))}
+          </div>
+          <div className="hidden overflow-x-auto md:block print:block">
             <table className="w-full min-w-[620px] text-xs">
               <thead>
                 <tr className="border-b border-base-800 text-left text-base-500">
@@ -446,7 +473,7 @@ export default function RoundsCalendar({ data, ops, onWriteReport }) {
                     <td className="py-2 pr-2 text-base-400">{cycleLabel(site.inspectCycleMonths)}</td>
                     <td className="py-2 pr-2 text-base-400">
                       {last ? fmtDate(last) : '기록 없음'}
-                      {next && <span className="block text-[10px] text-base-500">다음 {next}</span>}
+                      {next && <span className="block text-[11px] text-base-500">다음 {next}</span>}
                     </td>
                     <td className="py-2 pr-2">
                       {insp ? (

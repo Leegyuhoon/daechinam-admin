@@ -17,7 +17,7 @@ export default function MobileNav() {
           to={to}
           end={end}
           className={({ isActive }) =>
-            `focus-ring flex flex-1 flex-col items-center gap-1 py-2.5 text-[10px] whitespace-nowrap ${
+            `focus-ring flex flex-1 flex-col items-center gap-1 py-2.5 text-[11px] whitespace-nowrap ${
               isActive ? 'text-mist-400' : 'text-page-sub'
             }`
           }

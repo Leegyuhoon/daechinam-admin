@@ -49,7 +49,7 @@ export default function PushToggle({ role, code, headers, variant = 'admin' }) {
           {status === 'on' ? <BellRing size={13} /> : status === 'denied' ? <BellOff size={13} /> : <Bell size={13} />}
           {busy ? '설정 중…' : status === 'on' ? '새 문의 알림 켜짐' : status === 'denied' ? '알림 차단됨' : '새 문의 알림 켜기'}
         </button>
-        {error && <p className="mt-1 max-w-xs text-right text-[11px] text-amber-400">{error}</p>}
+        {error && <p className="mt-1 max-w-xs text-right text-[12px] text-amber-400">{error}</p>}
       </div>
     )
   }
@@ -69,7 +69,7 @@ export default function PushToggle({ role, code, headers, variant = 'admin' }) {
           <span className="flex items-center gap-1.5 text-page-sub">
             <BellRing size={14} className="text-mist-400" /> 답변이 등록되면 이 기기로 알려 드려요.
           </span>
-          <button onClick={turnOff} disabled={busy} className="shrink-0 text-[11px] text-page-sub underline">
+          <button onClick={turnOff} disabled={busy} className="shrink-0 text-[12px] text-page-sub underline">
             알림 끄기
           </button>
         </div>
@@ -87,7 +87,7 @@ export default function PushToggle({ role, code, headers, variant = 'admin' }) {
           </button>
         </div>
       )}
-      {error && <p className="mt-1.5 text-[11px] text-amber-400">{error}</p>}
+      {error && <p className="mt-1.5 text-[12px] text-amber-400">{error}</p>}
     </div>
   )
 }

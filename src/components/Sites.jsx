@@ -104,7 +104,7 @@ export default function Sites() {
                       style={{ width: `${Math.max(6, (totalHours / maxHours) * 100)}%` }}
                     />
                   </div>
-                  <div className="flex items-center gap-2 text-[11px] text-base-500">
+                  <div className="flex items-center gap-2 text-[12px] text-base-500">
                     <span className="flex items-center gap-0.5">
                       <Users size={10} /> {workerCount}명
                     </span>
@@ -130,7 +130,7 @@ export default function Sites() {
                             onClick={() => setOpenDateKey(isDateOpen ? null : dateKey)}
                             className="focus-ring flex w-full items-center justify-between px-2.5 py-1.5 text-left"
                           >
-                            <span className="flex items-center gap-1 text-[11px] font-medium text-base-200">
+                            <span className="flex items-center gap-1 text-[12px] font-medium text-base-200">
                               {isDateOpen ? (
                                 <ChevronDown size={11} className="text-base-500" />
                               ) : (
@@ -138,7 +138,7 @@ export default function Sites() {
                               )}
                               <CalendarDays size={11} className="text-teal-500" /> {date}
                             </span>
-                            <span className="text-[10px] text-base-500">{dateRecords.length}명</span>
+                            <span className="text-[11px] text-base-500">{dateRecords.length}명</span>
                           </button>
 
                           {isDateOpen && (
@@ -146,7 +146,7 @@ export default function Sites() {
                               {dateRecords.map((r) => (
                                 <li
                                   key={r.id}
-                                  className="flex items-center justify-between rounded-md bg-base-950 px-2 py-1.5 text-[11px]"
+                                  className="flex items-center justify-between rounded-md bg-base-950 px-2 py-1.5 text-[12px]"
                                 >
                                   <span className="text-base-300">{r.workerName}</span>
                                   <div className="flex items-center gap-1.5 text-base-400">

@@ -122,7 +122,7 @@ function IssueModal({ initial, sites, ops, onClose }) {
                   <button
                     key={k}
                     onClick={() => setItem(i, { status: k })}
-                    className={`focus-ring flex-1 rounded-md border py-1 text-[11px] ${it.status === k ? `${STATUS_CLS[k]} border-current font-medium` : 'border-base-700 text-base-500'}`}
+                    className={`focus-ring flex-1 rounded-md border py-1 text-[12px] ${it.status === k ? `${STATUS_CLS[k]} border-current font-medium` : 'border-base-700 text-base-500'}`}
                   >
                     {v}
                   </button>
@@ -144,7 +144,7 @@ function IssueModal({ initial, sites, ops, onClose }) {
           <input type="checkbox" className="mt-0.5" checked={r.showInReport !== false} onChange={(e) => setR({ ...r, showInReport: e.target.checked })} />
           <span>
             월간 보고서에 포함
-            <span className="block text-[11px] text-base-500">체크를 풀면 내부 기록으로만 남고 업체에는 보이지 않아요. 보고자 이름은 업체에 보이지 않아요.</span>
+            <span className="block text-[12px] text-base-500">체크를 풀면 내부 기록으로만 남고 업체에는 보이지 않아요. 보고자 이름은 업체에 보이지 않아요.</span>
           </span>
         </label>
 
@@ -236,9 +236,9 @@ export default function RoundsIssues({ data, ops }) {
           <label className="flex items-center gap-1 text-xs text-base-400">
             <input type="checkbox" checked={onlyOpen} onChange={(e) => setOnlyOpen(e.target.checked)} /> 조치 중·확인 필요만
           </label>
-          {openCount > 0 && <span className="ml-auto text-[11px] text-amber-500">미완료 이슈 전체 {openCount}건</span>}
+          {openCount > 0 && <span className="ml-auto text-[12px] text-amber-500">미완료 이슈 전체 {openCount}건</span>}
         </div>
-        <p className="mt-3 text-[11px] text-base-500">
+        <p className="mt-3 text-[12px] text-base-500">
           팀장과 통화하면서 들은 그날·그 주의 이슈와 처리 내용을 적어 두세요. 한 번 통화에 여러 건을 함께 적을 수 있고, "월간 보고서에 포함"한 기록은 그달 보고서의 "현장 이슈 · 조치
           내역"에 자동으로 들어가요.
         </p>
@@ -257,7 +257,7 @@ export default function RoundsIssues({ data, ops }) {
                   <p className="text-sm font-semibold">
                     {siteName(x.siteId)} <span className="font-normal text-base-500">· {fmtDate(x.date)}</span>
                   </p>
-                  <p className="text-[11px] text-base-500">
+                  <p className="text-[12px] text-base-500">
                     {[x.reporter, ISSUE_SOURCES[x.source]].filter(Boolean).join(' · ')}
                     {x.showInReport === false && (
                       <span className="ml-1 inline-flex items-center gap-0.5 text-base-400">
@@ -275,7 +275,7 @@ export default function RoundsIssues({ data, ops }) {
                   <div key={it.id} className="rounded-lg bg-base-900 px-2.5 py-2 text-xs">
                     <div className="flex items-start justify-between gap-2">
                       <p className="whitespace-pre-line text-base-200">{it.issue || '-'}</p>
-                      <span className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] ${STATUS_CLS[it.status] || STATUS_CLS.done}`}>{ISSUE_STATUS[it.status] || '조치 완료'}</span>
+                      <span className={`shrink-0 rounded px-1.5 py-0.5 text-[11px] ${STATUS_CLS[it.status] || STATUS_CLS.done}`}>{ISSUE_STATUS[it.status] || '조치 완료'}</span>
                     </div>
                     {it.action && <p className="mt-1 whitespace-pre-line text-base-400">→ {it.action}</p>}
                   </div>
@@ -288,7 +288,7 @@ export default function RoundsIssues({ data, ops }) {
               )}
             </Card>
           ))}
-          <p className="text-right text-[11px] text-base-500">
+          <p className="text-right text-[12px] text-base-500">
             {list.length}회 보고 · 이슈 {issueItemCount(list)}건
           </p>
         </div>

@@ -22,7 +22,7 @@ export default function ScopeEditor({ scope, onChange, otherSites = [] }) {
   return (
     <div className="rounded-lg border border-base-800 bg-base-900 p-3">
       <p className="mb-1 text-xs font-medium text-base-300">청소 범위 (구역 · 항목 · 주기)</p>
-      <p className="mb-3 text-[11px] text-base-500">업체 전용 페이지의 "청소 범위"에 그대로 보여요. 계약서 내용을 기준으로 적어 두면 점검할 때 기준표로도 쓸 수 있어요.</p>
+      <p className="mb-3 text-[12px] text-base-500">업체 전용 페이지의 "청소 범위"에 그대로 보여요. 계약서 내용을 기준으로 적어 두면 점검할 때 기준표로도 쓸 수 있어요.</p>
 
       <div className="space-y-2">
         {scope.map((z, zi) => (
@@ -49,7 +49,7 @@ export default function ScopeEditor({ scope, onChange, otherSites = [] }) {
                 </div>
               ))}
             </div>
-            <button onClick={() => addItem(zi)} className="mt-1 flex items-center gap-1 text-[11px] text-base-400 hover:text-mist-500">
+            <button onClick={() => addItem(zi)} className="mt-1 flex items-center gap-1 text-[12px] text-base-400 hover:text-mist-500">
               <Plus size={11} /> 항목 추가
             </button>
           </div>
@@ -57,19 +57,19 @@ export default function ScopeEditor({ scope, onChange, otherSites = [] }) {
       </div>
 
       <div className="mt-2 flex flex-wrap items-center gap-1.5">
-        <button onClick={() => onChange([...scope, makeZone('')])} className="focus-ring flex items-center gap-1 rounded-md border border-base-700 bg-base-950 px-2 py-1 text-[11px] text-base-300">
+        <button onClick={() => onChange([...scope, makeZone('')])} className="focus-ring flex items-center gap-1 rounded-md border border-base-700 bg-base-950 px-2 py-1 text-[12px] text-base-300">
           <Plus size={11} /> 빈 구역
         </button>
         {Object.keys(ZONE_TEMPLATES).map((name) => (
-          <button key={name} onClick={() => onChange([...scope, makeZone(name, ZONE_TEMPLATES[name])])} className="focus-ring rounded-md px-2 py-1 text-[11px] text-base-500 hover:text-mist-500">
+          <button key={name} onClick={() => onChange([...scope, makeZone(name, ZONE_TEMPLATES[name])])} className="focus-ring rounded-md px-2 py-1 text-[12px] text-base-500 hover:text-mist-500">
             + {name}
           </button>
         ))}
       </div>
       {withScope.length > 0 && (
-        <div className="mt-2 flex items-center gap-1.5 text-[11px] text-base-500">
+        <div className="mt-2 flex items-center gap-1.5 text-[12px] text-base-500">
           <Copy size={11} />
-          <select className="rounded border border-base-700 bg-base-950 px-1.5 py-1 text-[11px]" value="" onChange={(e) => copyFrom(e.target.value)}>
+          <select className="rounded border border-base-700 bg-base-950 px-1.5 py-1 text-[12px]" value="" onChange={(e) => copyFrom(e.target.value)}>
             <option value="">다른 현장에서 복사…</option>
             {withScope.map((s) => (
               <option key={s.id} value={s.id}>

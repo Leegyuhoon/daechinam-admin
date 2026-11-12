@@ -110,7 +110,7 @@ export default function Workers() {
                       style={{ width: `${Math.max(6, (monthHours / maxMonthHours) * 100)}%` }}
                     />
                   </div>
-                  <div className="flex items-center gap-2 text-[11px] text-base-500">
+                  <div className="flex items-center gap-2 text-[12px] text-base-500">
                     <span>{monthHours.toFixed(1)}h 이번달</span>
                     {flagCount > 0 && (
                       <span className="flex items-center gap-0.5 text-amber-500">
@@ -122,7 +122,7 @@ export default function Workers() {
 
                 {isOpen && (
                   <div className="border-t border-base-800 p-3 pt-3">
-                    <div className="mb-2 flex justify-center gap-3 text-[11px] text-base-500">
+                    <div className="mb-2 flex justify-center gap-3 text-[12px] text-base-500">
                       <span>누적 {totalHours.toFixed(1)}h</span>
                       <span>기록 {records.length}건</span>
                     </div>
@@ -145,7 +145,7 @@ export default function Workers() {
                                 onClick={() => setOpenSiteKey(isSiteOpen ? null : siteKey)}
                                 className="focus-ring flex w-full items-center justify-between px-2.5 py-1.5 text-left"
                               >
-                                <span className="flex items-center gap-1 text-[11px] font-medium text-base-200">
+                                <span className="flex items-center gap-1 text-[12px] font-medium text-base-200">
                                   {isSiteOpen ? (
                                     <ChevronDown size={11} className="text-base-500" />
                                   ) : (
@@ -153,7 +153,7 @@ export default function Workers() {
                                   )}
                                   <Building2 size={11} className="text-teal-500" /> {siteName}
                                 </span>
-                                <span className="text-[10px] text-base-500">{siteHours.toFixed(1)}h</span>
+                                <span className="text-[11px] text-base-500">{siteHours.toFixed(1)}h</span>
                               </button>
 
                               {isSiteOpen && (
@@ -161,7 +161,7 @@ export default function Workers() {
                                   {siteRecords.slice(0, 15).map((r) => (
                                     <li
                                       key={r.id}
-                                      className="flex items-center justify-between rounded-md bg-base-950 px-2 py-1.5 text-[11px]"
+                                      className="flex items-center justify-between rounded-md bg-base-950 px-2 py-1.5 text-[12px]"
                                     >
                                       <span className="text-base-300">{r.date}</span>
                                       <div className="flex items-center gap-1.5 text-base-400">

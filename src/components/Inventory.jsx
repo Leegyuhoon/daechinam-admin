@@ -117,7 +117,7 @@ export default function Inventory() {
           onClick={() => navigate(-1)}
           className="focus-ring flex items-center gap-1.5 rounded-lg border border-page-border bg-page-soft px-3 py-1.5 text-xs text-page-sub hover:bg-page-border hover:text-page-text"
         >
-          <ArrowLeft size={14} /> 뒤로가기
+          <ArrowLeft size={14} /> <span className="hidden sm:inline">뒤로가기</span>
         </button>
         </div>
       </div>
@@ -230,7 +230,34 @@ export default function Inventory() {
             <p className="text-sm">등록된 재고가 없어요.</p>
           </div>
         ) : (
-          <table className="w-full text-sm">
+          <>
+          <div className="divide-y divide-base-800 md:hidden print:hidden">
+            {visible.map((item) => {
+              const low = item.minQuantity && item.quantity <= item.minQuantity
+              return (
+                <div key={item.id} className="flex items-center gap-3 px-4 py-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-base-100">{item.name}</p>
+                    <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-base-500">
+                      <span className="flex items-center gap-1 whitespace-nowrap">
+                        <Building2 size={12} className="text-teal-500" /> {item.scope || '본사'}
+                      </span>
+                      <span className="whitespace-nowrap">{item.category}</span>
+                      {item.location && <span className="whitespace-nowrap">{item.location}</span>}
+                    </p>
+                  </div>
+                  <span className={`flex shrink-0 items-center gap-1 whitespace-nowrap text-sm font-semibold ${low ? 'text-amber-500' : 'text-base-200'}`}>
+                    {low && <TriangleAlert size={13} />}
+                    {item.quantity} {item.unit}
+                  </span>
+                  <button onClick={() => remove(item.id)} className="no-print focus-ring shrink-0 text-base-500 hover:text-red-500" aria-label="삭제">
+                    <Trash2 size={15} />
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+          <table className="hidden w-full text-sm md:table print:table">
             <thead>
               <tr className="border-b border-base-800 text-left text-xs text-base-500">
                 <th className="px-4 py-3 font-medium">품목</th>
@@ -270,6 +297,7 @@ export default function Inventory() {
               })}
             </tbody>
           </table>
+          </>
         )}
       </div>
     </div>

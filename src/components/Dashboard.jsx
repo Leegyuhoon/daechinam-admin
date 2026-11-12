@@ -65,7 +65,7 @@ function Panel({ title, icon: Icon, children, badge, tone = 'mist', action }) {
         </p>
         <div className="flex items-center gap-2">
           {badge != null && badge > 0 && (
-            <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-medium text-amber-500">
+            <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[12px] font-medium text-amber-500">
               {badge}
             </span>
           )}
@@ -104,7 +104,7 @@ function FilterChips({ options, value, onChange }) {
         <button
           key={opt.value}
           onClick={() => onChange(opt.value)}
-          className={`focus-ring rounded-full px-2.5 py-1 text-[11px] font-medium ${
+          className={`focus-ring rounded-full px-2.5 py-1 text-[12px] font-medium ${
             value === opt.value ? 'bg-mist-500/15 text-mist-500' : 'border border-base-800 text-base-400 hover:bg-base-800'
           }`}
         >
@@ -369,7 +369,7 @@ export default function Dashboard() {
                               <span className="flex items-center gap-1.5">
                                 {r.workerName}
                                 {leaderNames.has(r.workerName) && (
-                                  <span className="flex items-center gap-0.5 rounded-full bg-violet-500/15 px-1.5 py-0.5 text-[10px] font-medium text-violet-500">
+                                  <span className="flex items-center gap-0.5 rounded-full bg-violet-500/15 px-1.5 py-0.5 text-[11px] font-medium text-violet-500">
                                     <Crown size={9} /> 팀장
                                   </span>
                                 )}
@@ -448,7 +448,7 @@ export default function Dashboard() {
               <p className="text-2xl font-semibold text-base-100">
                 {chartData.reduce((sum, d) => sum + (d.checkedIn || 0), 0)}
               </p>
-              <p className="text-[11px] text-base-500">건 · 월별 합계</p>
+              <p className="text-[12px] text-base-500">건 · 월별 합계</p>
             </div>
           </div>
           {!state.loading && chartData.length === 0 && !state.error && (
@@ -516,7 +516,7 @@ export default function Dashboard() {
             (state.notices || []).length > 0 && (
               <button
                 onClick={() => setNoticesOpen(true)}
-                className="focus-ring rounded-full border border-base-800 px-2.5 py-1 text-[11px] text-base-400 hover:bg-base-800"
+                className="focus-ring rounded-full border border-base-800 px-2.5 py-1 text-[12px] text-base-400 hover:bg-base-800"
               >
                 전체보기 ({state.notices.length})
               </button>
@@ -535,10 +535,10 @@ export default function Dashboard() {
                   >
                     <div className="flex items-center justify-between gap-2">
                       <p className="font-medium text-base-100">{n.title}</p>
-                      <span className="shrink-0 text-[11px] text-base-500">{timeAgo(n.createdAt)}</span>
+                      <span className="shrink-0 text-[12px] text-base-500">{timeAgo(n.createdAt)}</span>
                     </div>
                     <p className="mt-1 line-clamp-2 whitespace-pre-line text-xs text-base-400">{n.message}</p>
-                    <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-base-500">
+                    <div className="mt-2 flex flex-wrap items-center gap-2 text-[12px] text-base-500">
                       {n.siteName && <span className="text-mist-500">{n.siteName}</span>}
                       <span>· {n.createdByName || '관리자'} 작성</span>
                       {typeof n.readBy?.length === 'number' && (
@@ -564,7 +564,7 @@ export default function Dashboard() {
             (state.siteReports || []).length > 0 && (
               <button
                 onClick={() => setReportsOpen(true)}
-                className="focus-ring rounded-full border border-base-800 px-2.5 py-1 text-[11px] text-base-400 hover:bg-base-800"
+                className="focus-ring rounded-full border border-base-800 px-2.5 py-1 text-[12px] text-base-400 hover:bg-base-800"
               >
                 전체보기 ({state.siteReports.length})
               </button>
@@ -583,10 +583,10 @@ export default function Dashboard() {
                   >
                     <div className="flex items-center justify-between">
                       <p className="font-medium text-base-100">{r.category || '기타'}</p>
-                      <span className="text-[11px] text-base-500">{timeAgo(r.createdAt)}</span>
+                      <span className="text-[12px] text-base-500">{timeAgo(r.createdAt)}</span>
                     </div>
                     <p className="mt-0.5 line-clamp-2 whitespace-pre-line text-xs text-base-400">{r.note}</p>
-                    <p className="mt-1 flex items-center gap-2 text-[11px] text-mist-500">
+                    <p className="mt-1 flex items-center gap-2 text-[12px] text-mist-500">
                       {r.siteName} · {r.workerName}
                       {(r.mediaUrls || []).length > 0 && (
                         <span className="text-teal-500">첨부 {r.mediaUrls.length}개</span>
@@ -608,7 +608,7 @@ export default function Dashboard() {
             (state.supplyRequests || []).length > 0 && (
               <button
                 onClick={() => setSuppliesOpen(true)}
-                className="focus-ring rounded-full border border-base-800 px-2.5 py-1 text-[11px] text-base-400 hover:bg-base-800"
+                className="focus-ring rounded-full border border-base-800 px-2.5 py-1 text-[12px] text-base-400 hover:bg-base-800"
               >
                 전체보기 ({state.supplyRequests.length})
               </button>
@@ -630,7 +630,7 @@ export default function Dashboard() {
                     </p>
                   </div>
                   <span
-                    className={`rounded-full px-2 py-0.5 text-[11px] ${
+                    className={`rounded-full px-2 py-0.5 text-[12px] ${
                       s.status === 'delivered' ? 'bg-mist-500/15 text-mist-500' : 'bg-amber-500/15 text-amber-500'
                     }`}
                   >
@@ -761,19 +761,19 @@ export default function Dashboard() {
                         )}
                         <span className="text-sm font-medium text-base-100">{n.title}</span>
                       </span>
-                      <span className="shrink-0 text-[11px] text-base-500">{(n.createdAt || '').slice(0, 10)}</span>
+                      <span className="shrink-0 text-[12px] text-base-500">{(n.createdAt || '').slice(0, 10)}</span>
                     </button>
                     {isOpen && (
                       <div className="border-t border-base-800 p-3 pt-2.5">
                         {n.message && (
                           <p className="whitespace-pre-line text-sm text-base-300">{n.message}</p>
                         )}
-                        <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-base-500">
+                        <div className="mt-2 flex flex-wrap items-center gap-2 text-[12px] text-base-500">
                           {n.siteName && <span className="text-mist-500">{n.siteName}</span>}
                           <span>작성자: {n.createdByName || '관리자'}</span>
                         </div>
                         <div className="mt-2">
-                          <p className="mb-1 text-[11px] font-medium text-base-400">
+                          <p className="mb-1 text-[12px] font-medium text-base-400">
                             확인 {n.readBy?.length ?? 0}명
                           </p>
                           {n.readBy?.length > 0 ? (
@@ -781,14 +781,14 @@ export default function Dashboard() {
                               {n.readBy.map((rb, i) => (
                                 <span
                                   key={i}
-                                  className="rounded-full bg-teal-500/10 px-2 py-0.5 text-[10px] text-teal-500"
+                                  className="rounded-full bg-teal-500/10 px-2 py-0.5 text-[11px] text-teal-500"
                                 >
                                   {rb.workerName || rb.name || '이름없음'}
                                 </span>
                               ))}
                             </div>
                           ) : (
-                            <p className="text-[11px] text-base-500">확인 기록이 없어요.</p>
+                            <p className="text-[12px] text-base-500">확인 기록이 없어요.</p>
                           )}
                         </div>
                       </div>
@@ -838,12 +838,12 @@ export default function Dashboard() {
                         <span className="text-sm font-medium text-base-100">{r.category || '기타'}</span>
                         <span className="text-xs text-base-500">{r.siteName}</span>
                       </span>
-                      <span className="shrink-0 text-[11px] text-base-500">{r.date}</span>
+                      <span className="shrink-0 text-[12px] text-base-500">{r.date}</span>
                     </button>
                     {isOpen && (
                       <div className="border-t border-base-800 p-3 pt-2.5">
                         {r.note && <p className="whitespace-pre-line text-sm text-base-300">{r.note}</p>}
-                        <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-base-500">
+                        <div className="mt-2 flex flex-wrap items-center gap-2 text-[12px] text-base-500">
                           <span>작성자: {r.workerName || '알수없음'}</span>
                           {r.authorRole && (
                             <span>({r.authorRole === 'leader' ? '팀장' : r.authorRole === 'admin' ? '관리자' : '근로자'})</span>
@@ -863,7 +863,7 @@ export default function Dashboard() {
                                   download
                                   target="_blank"
                                   rel="noreferrer"
-                                  className="focus-ring absolute bottom-1 right-1 flex items-center gap-1 rounded-full bg-black/60 px-2 py-1 text-[10px] text-white opacity-0 transition-opacity group-hover:opacity-100"
+                                  className="focus-ring absolute bottom-1 right-1 flex items-center gap-1 rounded-full bg-black/60 px-2 py-1 text-[11px] text-white opacity-0 transition-opacity group-hover:opacity-100"
                                 >
                                   <Download size={10} /> 저장
                                 </a>
@@ -887,23 +887,23 @@ export default function Dashboard() {
           {noticeDetail.message && (
             <p className="whitespace-pre-line text-sm text-base-300">{noticeDetail.message}</p>
           )}
-          <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-base-500">
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-[12px] text-base-500">
             {noticeDetail.siteName && <span className="text-mist-500">{noticeDetail.siteName}</span>}
             <span>작성자: {noticeDetail.createdByName || '관리자'}</span>
             <span>{(noticeDetail.createdAt || '').slice(0, 16).replace('T', ' ')}</span>
           </div>
           <div className="mt-3 border-t border-base-800 pt-3">
-            <p className="mb-1.5 text-[11px] font-medium text-base-400">확인 {noticeDetail.readBy?.length ?? 0}명</p>
+            <p className="mb-1.5 text-[12px] font-medium text-base-400">확인 {noticeDetail.readBy?.length ?? 0}명</p>
             {noticeDetail.readBy?.length > 0 ? (
               <div className="flex flex-wrap gap-1">
                 {noticeDetail.readBy.map((rb, i) => (
-                  <span key={i} className="rounded-full bg-teal-500/10 px-2 py-0.5 text-[10px] text-teal-500">
+                  <span key={i} className="rounded-full bg-teal-500/10 px-2 py-0.5 text-[11px] text-teal-500">
                     {rb.workerName || rb.name || '이름없음'}
                   </span>
                 ))}
               </div>
             ) : (
-              <p className="text-[11px] text-base-500">확인 기록이 없어요.</p>
+              <p className="text-[12px] text-base-500">확인 기록이 없어요.</p>
             )}
           </div>
         </Modal>
@@ -913,7 +913,7 @@ export default function Dashboard() {
       {reportDetail && (
         <Modal title={reportDetail.category || '기타'} onClose={() => setReportDetail(null)} wide>
           {reportDetail.note && <p className="whitespace-pre-line text-sm text-base-300">{reportDetail.note}</p>}
-          <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-base-500">
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-[12px] text-base-500">
             <span className="text-mist-500">{reportDetail.siteName}</span>
             <span>작성자: {reportDetail.workerName || '알수없음'}</span>
             {reportDetail.authorRole && (
@@ -937,7 +937,7 @@ export default function Dashboard() {
                     download
                     target="_blank"
                     rel="noreferrer"
-                    className="focus-ring absolute bottom-1 right-1 flex items-center gap-1 rounded-full bg-black/60 px-2 py-1 text-[10px] text-white opacity-0 transition-opacity group-hover:opacity-100"
+                    className="focus-ring absolute bottom-1 right-1 flex items-center gap-1 rounded-full bg-black/60 px-2 py-1 text-[11px] text-white opacity-0 transition-opacity group-hover:opacity-100"
                   >
                     <Download size={10} /> 저장
                   </a>
@@ -974,14 +974,14 @@ export default function Dashboard() {
                       {s.itemName} <span className="text-base-400">× {s.qty}</span>
                     </span>
                     <span
-                      className={`rounded-full px-2 py-0.5 text-[11px] ${
+                      className={`rounded-full px-2 py-0.5 text-[12px] ${
                         s.status === 'delivered' ? 'bg-mist-500/15 text-mist-500' : 'bg-amber-500/15 text-amber-500'
                       }`}
                     >
                       {s.status === 'delivered' ? '완료' : s.status === 'approved' ? '승인' : '대기'}
                     </span>
                   </div>
-                  <p className="mt-1 text-[11px] text-base-500">
+                  <p className="mt-1 text-[12px] text-base-500">
                     {s.siteName} · {s.workerName} · {s.date}
                     {s.vendor && ` · ${s.vendor}`}
                     {s.totalPrice != null && ` · ${s.totalPrice.toLocaleString('ko-KR')}원`}

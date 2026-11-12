@@ -19,7 +19,7 @@ function Section({ title, children }) {
   )
 }
 
-const Empty = ({ text }) => <p className="text-[11px] text-base-500">{text}</p>
+const Empty = ({ text }) => <p className="text-[12px] text-base-500">{text}</p>
 
 export default function MonthlyReportDoc({ siteName, month, report, data, serviceReportLink }) {
   const [y, m] = month.split('-')
@@ -36,12 +36,12 @@ export default function MonthlyReportDoc({ siteName, month, report, data, servic
     <div className="text-base-100">
       <div className="mb-4 flex items-end justify-between border-b border-base-800 pb-3">
         <div>
-          <p className="text-[11px] text-base-500">
+          <p className="text-[12px] text-base-500">
             {y}년 {Number(m)}월 청소 관리 보고서
           </p>
           <p className="text-lg font-bold">{siteName}</p>
         </div>
-        <p className="text-[11px] text-base-500">(주)이엘씨_대치남</p>
+        <p className="text-[12px] text-base-500">(주)이엘씨_대치남</p>
       </div>
 
       <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-5">
@@ -54,7 +54,7 @@ export default function MonthlyReportDoc({ siteName, month, report, data, servic
         ].map(([label, value, cls]) => (
           <div key={label} className="rounded-lg bg-base-900 px-2 py-2 text-center">
             <p className={`text-sm font-semibold ${cls}`}>{value}</p>
-            <p className="text-[10px] text-base-500">{label}</p>
+            <p className="text-[11px] text-base-500">{label}</p>
           </div>
         ))}
       </div>
@@ -69,7 +69,7 @@ export default function MonthlyReportDoc({ siteName, month, report, data, servic
         {inspections.length === 0 ? (
           <Empty text="이번 달 점검 기록이 없습니다." />
         ) : (
-          <table className="w-full border-collapse text-[11px]">
+          <table className="w-full border-collapse text-[12px]">
             <tbody>
               {inspections.map((v) => (
                 <tr key={v.id}>
@@ -86,7 +86,7 @@ export default function MonthlyReportDoc({ siteName, month, report, data, servic
         {issueRows.length === 0 ? (
           <Empty text="이번 달 보고된 현장 이슈가 없습니다." />
         ) : (
-          <table className="w-full border-collapse text-[11px]">
+          <table className="w-full border-collapse text-[12px]">
             <thead>
               <tr className="bg-base-900 text-left text-base-300">
                 <th className="w-16 border border-base-700 px-2 py-1 font-medium">날짜</th>
@@ -113,7 +113,7 @@ export default function MonthlyReportDoc({ siteName, month, report, data, servic
         {tickets.length === 0 ? (
           <Empty text="이번 달 접수된 문의·요청이 없습니다." />
         ) : (
-          <table className="w-full border-collapse text-[11px]">
+          <table className="w-full border-collapse text-[12px]">
             <thead>
               <tr className="bg-base-900 text-left text-base-300">
                 <th className="w-16 border border-base-700 px-2 py-1 font-medium">접수일</th>
@@ -154,7 +154,7 @@ export default function MonthlyReportDoc({ siteName, month, report, data, servic
           <div className="grid gap-2 sm:grid-cols-2">
             {executions.map((e) => (
               <a key={e.id} href={serviceReportLink(e.id)} target="_blank" rel="noreferrer" className="block rounded-lg border border-base-800 p-2 hover:border-mist-500">
-                <p className="mb-1 text-[11px] font-medium">
+                <p className="mb-1 text-[12px] font-medium">
                   {e.ticketId && <span className="mr-1 text-amber-500">[요청 처리]</span>}
                   {fmtDate(e.date)} · {e.serviceName}
                 </p>
@@ -162,7 +162,7 @@ export default function MonthlyReportDoc({ siteName, month, report, data, servic
                   {[e.before?.[0], e.after?.[0]].map((p, i) => (
                     <div key={i} className="relative aspect-[4/3] overflow-hidden rounded bg-base-900">
                       {p && <Thumb m={p} className="h-full w-full" />}
-                      <span className="absolute left-1 top-1 rounded bg-black/60 px-1 text-[9px] text-white">{i === 0 ? '전' : '후'}</span>
+                      <span className="absolute left-1 top-1 rounded bg-black/60 px-1 text-[10px] text-white">{i === 0 ? '전' : '후'}</span>
                     </div>
                   ))}
                 </div>
@@ -178,7 +178,7 @@ export default function MonthlyReportDoc({ siteName, month, report, data, servic
         ) : (
           <div className="space-y-1.5">
             {nextVisits.length > 0 && (
-              <ul className="space-y-0.5 text-[11px]">
+              <ul className="space-y-0.5 text-[12px]">
                 {nextVisits.map((v) => (
                   <li key={v.id}>
                     · {fmtDate(v.date)} {v.type === 'service' ? `${v.serviceName} 작업 예정` : '정기 점검 방문 예정'}
@@ -186,12 +186,12 @@ export default function MonthlyReportDoc({ siteName, month, report, data, servic
                 ))}
               </ul>
             )}
-            {report.nextPlan && <p className="whitespace-pre-line text-[11px] text-base-200">{report.nextPlan}</p>}
+            {report.nextPlan && <p className="whitespace-pre-line text-[12px] text-base-200">{report.nextPlan}</p>}
           </div>
         )}
       </Section>
 
-      <p className="mt-5 border-t border-base-800 pt-3 text-center text-[10px] text-base-500">
+      <p className="mt-5 border-t border-base-800 pt-3 text-center text-[11px] text-base-500">
         불편 사항이나 요청은 업체 전용 페이지의 "문의 남기기"로 남겨 주시면 빠르게 조치하겠습니다. — (주)이엘씨_대치남
       </p>
     </div>

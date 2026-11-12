@@ -98,7 +98,7 @@ function ExecutionModal({ initial, sites, visits, ops, onClose }) {
             </div>
           ))}
         </div>
-        <p className="text-[11px] text-base-500">같은 위치를 같은 각도로 찍어 순서대로 올리면 보고서에서 전/후가 나란히 짝지어져요.</p>
+        <p className="text-[12px] text-base-500">같은 위치를 같은 각도로 찍어 순서대로 올리면 보고서에서 전/후가 나란히 짝지어져요.</p>
 
         {error && <p className="text-xs text-amber-500">{error}</p>}
         <div className="flex gap-2">
@@ -218,10 +218,10 @@ export default function RoundsReports({ data, ops, prefill, clearPrefill }) {
               <div className="mb-2 flex items-start justify-between gap-2">
                 <div>
                   <p className="font-semibold">
-                    {ex.ticketId && <span className="mr-1 rounded bg-amber-400/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-500">요청 처리</span>}
+                    {ex.ticketId && <span className="mr-1 rounded bg-amber-400/10 px-1.5 py-0.5 text-[11px] font-medium text-amber-500">요청 처리</span>}
                     {ex.serviceName}
                   </p>
-                  <p className="text-[11px] text-base-500">
+                  <p className="text-[12px] text-base-500">
                     {siteName(ex)} · {fmtDate(ex.date)} {ex.worker && `· ${ex.worker}`}
                   </p>
                 </div>
@@ -240,12 +240,12 @@ export default function RoundsReports({ data, ops, prefill, clearPrefill }) {
                   ['후', ex.after?.[0]]
                 ].map(([label, p]) => (
                   <div key={label} className="relative aspect-[4/3] overflow-hidden rounded-lg bg-base-900">
-                    {p ? <Thumb m={p} className="h-full w-full" /> : <div className="flex h-full items-center justify-center text-[11px] text-base-600">사진 없음</div>}
-                    <span className="absolute left-1.5 top-1.5 rounded bg-black/60 px-1.5 py-0.5 text-[10px] text-white">작업 {label}</span>
+                    {p ? <Thumb m={p} className="h-full w-full" /> : <div className="flex h-full items-center justify-center text-[12px] text-base-600">사진 없음</div>}
+                    <span className="absolute left-1.5 top-1.5 rounded bg-black/60 px-1.5 py-0.5 text-[11px] text-white">작업 {label}</span>
                   </div>
                 ))}
               </div>
-              {ex.note && <p className="mb-2 line-clamp-3 whitespace-pre-line text-[11px] text-base-400">{ex.note}</p>}
+              {ex.note && <p className="mb-2 line-clamp-3 whitespace-pre-line text-[12px] text-base-400">{ex.note}</p>}
               <div className="flex items-center gap-2">
                 <span className="no-print flex items-center gap-2">
                   <CopyLink id={ex.id} />
@@ -253,7 +253,7 @@ export default function RoundsReports({ data, ops, prefill, clearPrefill }) {
                   <ExternalLink size={13} /> 미리보기
                 </a>
                 </span>
-                <span className="ml-auto text-[11px] text-base-500">
+                <span className="ml-auto text-[12px] text-base-500">
                   사진 {ex.before?.length || 0}+{ex.after?.length || 0}장
                 </span>
               </div>

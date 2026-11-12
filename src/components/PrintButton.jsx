@@ -41,7 +41,7 @@ export default function PrintButton({ targetId, title, label = 'PDF 저장', cla
       className={
         className ||
         `no-print focus-ring inline-flex items-center gap-1.5 rounded-lg border border-page-border bg-page-soft text-page-sub hover:text-page-text ${
-          small ? 'px-2 py-1 text-[11px]' : 'px-3 py-1.5 text-xs'
+          small ? 'px-2 py-1 text-[12px]' : 'px-3 py-1.5 text-xs'
         }`
       }
     >

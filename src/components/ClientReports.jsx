@@ -167,7 +167,7 @@ function RowsEditor({ columns, rows, onChange }) {
       </div>
       <button
         onClick={addRow}
-        className="focus-ring mt-1.5 flex items-center gap-1 text-[11px] text-base-400 hover:text-mist-500"
+        className="focus-ring mt-1.5 flex items-center gap-1 text-[12px] text-base-400 hover:text-mist-500"
       >
         <Plus size={11} /> 행 추가
       </button>
@@ -397,7 +397,7 @@ function CopyLinkButton({ url }) {
   return (
     <button
       onClick={copy}
-      className="focus-ring flex items-center gap-1 rounded-full border border-base-800 px-2 py-1 text-[11px] text-base-400 hover:bg-base-800"
+      className="focus-ring flex items-center gap-1 rounded-full border border-base-800 px-2 py-1 text-[12px] text-base-400 hover:bg-base-800"
     >
       {copied ? <Check size={11} className="text-mist-500" /> : <Copy size={11} />}
       {copied ? '복사됨' : '링크 복사'}
@@ -484,7 +484,7 @@ function CompanyRow({ company, onEditCompany, onRemoveCompany }) {
                 setEditingPeriod(null)
                 setShowPeriodForm(true)
               }}
-              className="focus-ring flex items-center gap-1 rounded-full border border-base-800 px-2 py-1 text-[11px] text-base-400 hover:bg-base-800"
+              className="focus-ring flex items-center gap-1 rounded-full border border-base-800 px-2 py-1 text-[12px] text-base-400 hover:bg-base-800"
             >
               <Plus size={11} /> 이번달 보고 등록
             </button>
@@ -531,7 +531,7 @@ function CompanyRow({ company, onEditCompany, onRemoveCompany }) {
                             setEditingPeriod(p)
                             setShowPeriodForm(true)
                           }}
-                          className="cursor-pointer text-[11px] text-base-500 hover:text-mist-500"
+                          className="cursor-pointer text-[12px] text-base-500 hover:text-mist-500"
                         >
                           수정
                         </span>
@@ -540,7 +540,7 @@ function CompanyRow({ company, onEditCompany, onRemoveCompany }) {
                             e.stopPropagation()
                             removePeriod(p.id)
                           }}
-                          className="cursor-pointer text-[11px] text-base-500 hover:text-red-500"
+                          className="cursor-pointer text-[12px] text-base-500 hover:text-red-500"
                         >
                           삭제
                         </span>
