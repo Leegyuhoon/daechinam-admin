@@ -7,6 +7,15 @@ import { getStore } from '@netlify/blobs'
 //   { action: 'reply', ticketId, text }                          → 기존 문의에 추가 메시지
 const CATEGORIES = ['질문', '불편 사항', '개선 요청', '작업 요청']
 
+function nextDue(sv) {
+  if (!sv.lastDoneDate) return null
+  const [y, m, d] = sv.lastDoneDate.split('-').map(Number)
+  const t = new Date(Date.UTC(y, m - 1 + (Number(sv.cycleMonths) || 1), 1))
+  const last = new Date(Date.UTC(t.getUTCFullYear(), t.getUTCMonth() + 1, 0)).getUTCDate()
+  t.setUTCDate(Math.min(d, last))
+  return t.toISOString().slice(0, 10)
+}
+
 async function readCol(store, name) {
   const data = await store.get(name, { type: 'json' }).catch(() => null)
   return Array.isArray(data) ? data : []
@@ -42,7 +51,11 @@ export default async (req) => {
       const mine = (x) => x.siteId === site.id
       return Response.json({
         ok: true,
-        site: { name: site.name },
+        site: {
+          name: site.name,
+          scope: (site.scope || []).map((z) => ({ zone: z.zone, note: z.note || '', items: (z.items || []).map((it) => ({ task: it.task, freq: it.freq })) })),
+          services: (site.services || []).map((sv) => ({ name: sv.name, cycleMonths: sv.cycleMonths, next: nextDue(sv) }))
+        },
         tickets: tickets.filter(mine).map(publicTicket).sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || '')),
         reports: reports
           .filter((r) => mine(r) && r.published)

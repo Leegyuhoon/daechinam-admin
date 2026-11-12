@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { PenLine, MessagesSquare, FileText, ImagePlus, X, Loader2, Send, Printer, ChevronLeft, CheckCircle2 } from 'lucide-react'
+import { PenLine, MessagesSquare, FileText, ListChecks, ImagePlus, X, Loader2, Send, Printer, ChevronLeft, CheckCircle2 } from 'lucide-react'
 import { api } from '../lib/api'
 import { TICKET_CATEGORIES, TICKET_STATUS, fmtDateTime, collectMonth, reportLink } from '../lib/rounds'
 import MonthlyReportDoc from './rounds/MonthlyReportDoc'
+import ScopeView from './rounds/ScopeView'
 
 // 업체 담당자 전용 페이지 (/client?c=접속코드) — 문의 남기기 · 답변 확인 · 월간 보고서
 const inputCls = 'focus-ring w-full rounded-lg border border-base-700 bg-base-900 px-3 py-2.5 text-sm text-base-100'
@@ -210,7 +211,8 @@ export default function ClientPortal() {
           {[
             ['new', '문의 남기기', PenLine],
             ['tickets', `문의 내역${tickets.length ? ` ${tickets.length}` : ''}`, MessagesSquare],
-            ['reports', '월간 보고서', FileText]
+            ['reports', '월간 보고서', FileText],
+            ['scope', '청소 범위', ListChecks]
           ].map(([key, label, Icon]) => (
             <button
               key={key}
@@ -219,7 +221,7 @@ export default function ClientPortal() {
                 tab === key ? 'bg-base-950 font-medium text-base-100' : 'text-page-sub'
               }`}
             >
-              <Icon size={14} /> {label}
+              <Icon size={14} className="hidden sm:block" /> {label}
             </button>
           ))}
         </div>
@@ -268,6 +270,21 @@ export default function ClientPortal() {
                 ))}
               </div>
             ))}
+
+          {tab === 'scope' && (
+            <div>
+              <div className="no-print mb-3 flex items-center justify-between">
+                <p className="text-xs text-base-500">계약된 청소 구역과 항목, 주기입니다. 변경이 필요하시면 "문의 남기기"로 알려 주세요.</p>
+                <button onClick={() => window.print()} className="flex shrink-0 items-center gap-1 rounded-lg border border-base-700 px-2.5 py-1.5 text-xs text-base-300">
+                  <Printer size={13} /> 인쇄
+                </button>
+              </div>
+              <div className="print-area">
+                <p className="mb-3 hidden text-base font-bold print:block">{site.name} 청소 범위 — (주)이엘씨_대치남</p>
+                <ScopeView scope={site.scope || []} services={site.services || []} />
+              </div>
+            </div>
+          )}
 
           {tab === 'reports' &&
             (report ? (

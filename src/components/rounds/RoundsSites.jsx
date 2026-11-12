@@ -1,7 +1,10 @@
 import { useState } from 'react'
-import { Plus, Pencil, Trash2, Phone, Clock, MapPin } from 'lucide-react'
+import { Plus, Pencil, Trash2, Phone, Clock, MapPin, ChevronDown, ListChecks } from 'lucide-react'
 import { cycleLabel, CYCLE_OPTIONS, serviceNextDue, lastInspection, nextInspectionDue, todayStr, fmtDate } from '../../lib/rounds'
 import { Modal, Label, Card, inputCls, btnPrimary, btnGhost, btnDanger } from './ui'
+import { scopeCount } from '../../lib/rounds'
+import ScopeEditor from './ScopeEditor'
+import ScopeView from './ScopeView'
 
 const emptySite = (order) => ({
   name: '',
@@ -13,6 +16,7 @@ const emptySite = (order) => ({
   address: '',
   memo: '',
   active: true,
+  scope: [],
   services: []
 })
 
@@ -20,8 +24,8 @@ const emptyService = () => ({ id: crypto.randomUUID(), name: '', cycleMonths: 1,
 
 const SERVICE_EXAMPLES = ['카펫 세척', '유리창 청소', '바닥 왁스', '에어컨 필터', '방역·소독', '외벽·간판']
 
-function SiteModal({ initial, onClose, ops }) {
-  const [site, setSite] = useState({ ...initial, services: (initial.services || []).map((s) => ({ ...s })) })
+function SiteModal({ initial, onClose, ops, otherSites }) {
+  const [site, setSite] = useState({ ...initial, scope: initial.scope || [], services: (initial.services || []).map((s) => ({ ...s })) })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
 
@@ -38,6 +42,10 @@ function SiteModal({ initial, onClose, ops }) {
         ...site,
         name: site.name.trim(),
         inspectCycleMonths: Number(site.inspectCycleMonths) || 1,
+        scope: site.scope
+          .map((z) => ({ ...z, zone: z.zone.trim(), items: z.items.filter((it) => it.task.trim()) }))
+          .filter((z) => z.zone || z.items.length)
+          .map((z) => ({ ...z, zone: z.zone || '기타' })),
         services: site.services.filter((s) => s.name.trim()).map((s) => ({ ...s, name: s.name.trim(), cycleMonths: Number(s.cycleMonths) || 1 }))
       })
       onClose()
@@ -86,6 +94,8 @@ function SiteModal({ initial, onClose, ops }) {
             <textarea rows={2} className={inputCls} value={site.memo} onChange={(e) => setSite({ ...site, memo: e.target.value })} placeholder="출입 방법, 주의사항 등" />
           </Label>
         </div>
+
+        <ScopeEditor scope={site.scope} onChange={(scope) => setSite((s) => ({ ...s, scope }))} otherSites={otherSites.filter((o) => o.id !== site.id)} />
 
         <div className="rounded-lg border border-base-800 bg-base-900 p-3">
           <p className="mb-1 text-xs font-medium text-base-300">서비스 항목 (정기 청소 외에 주기적으로 하는 작업)</p>
@@ -147,6 +157,7 @@ function SiteModal({ initial, onClose, ops }) {
 export default function RoundsSites({ data, ops }) {
   const { sites, visits } = data
   const [modal, setModal] = useState(null)
+  const [openScope, setOpenScope] = useState(null)
   const today = todayStr()
   const sorted = [...sites].sort((a, b) => (a.active === false) - (b.active === false) || (a.order ?? 99) - (b.order ?? 99))
 
@@ -199,6 +210,31 @@ export default function RoundsSites({ data, ops }) {
               </div>
               {site.memo && <p className="mb-3 whitespace-pre-line rounded-lg bg-base-900 px-2.5 py-1.5 text-[11px] text-base-400">{site.memo}</p>}
 
+              <div className="mb-3">
+                {(site.scope || []).length === 0 ? (
+                  <button onClick={() => setModal(site)} className="w-full rounded-lg border border-dashed border-base-700 py-2 text-[11px] text-base-500 hover:text-mist-500">
+                    + 청소 범위 등록 (구역 · 항목 · 주기)
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => setOpenScope(openScope === site.id ? null : site.id)}
+                      className="flex w-full items-center justify-between rounded-lg bg-base-900 px-2.5 py-1.5 text-[11px] text-base-300"
+                    >
+                      <span className="flex items-center gap-1">
+                        <ListChecks size={12} /> 청소 범위 · 구역 {scopeCount(site.scope).zones}곳 · 항목 {scopeCount(site.scope).items}개
+                      </span>
+                      <ChevronDown size={13} className={openScope === site.id ? 'rotate-180' : ''} />
+                    </button>
+                    {openScope === site.id && (
+                      <div className="mt-2">
+                        <ScopeView scope={site.scope} compact />
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+
               {(site.services || []).length === 0 ? (
                 <button onClick={() => setModal(site)} className="w-full rounded-lg border border-dashed border-base-700 py-2 text-[11px] text-base-500 hover:text-mist-500">
                   + 서비스 항목 등록 (카펫 세척, 유리창 등)
@@ -235,7 +271,7 @@ export default function RoundsSites({ data, ops }) {
         })}
       </div>
 
-      {modal && <SiteModal initial={modal} ops={ops} onClose={() => setModal(null)} />}
+      {modal && <SiteModal initial={modal} ops={ops} otherSites={sites} onClose={() => setModal(null)} />}
     </div>
   )
 }
