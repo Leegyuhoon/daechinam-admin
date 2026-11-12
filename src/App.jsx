@@ -39,9 +39,9 @@ function Splash({ leaving }) {
       className={`fixed inset-0 z-[999] flex flex-col items-center justify-center transition-opacity duration-300 ${leaving ? 'opacity-0' : 'opacity-100'}`}
       style={{ background: '#1D232A' }}
     >
-      <picture className="splash-logo block w-[200px] sm:w-[240px]">
-        <source srcSet="/brand/logo-vertical.webp" type="image/webp" />
-        <img src="/brand/logo-vertical.png" alt="DAECHINAM 대신 치워주는 남자" className="h-auto w-full" />
+      <picture className="splash-logo block w-[220px] max-w-[70vw] sm:w-[280px]">
+        <source srcSet="/brand/logo-wordmark.webp" type="image/webp" />
+        <img src="/brand/logo-wordmark.png" alt="DAECHINAM 대신 치워주는 남자" className="h-auto w-full" />
       </picture>
       <div className="mt-8 h-[3px] w-28 overflow-hidden rounded-full" style={{ background: '#343C45' }}>
         <div className="splash-bar h-full rounded-full" style={{ background: '#EB9E18' }} />
