@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import {
   ArrowLeft,
   RefreshCw,
@@ -21,6 +21,7 @@ import {
 import { api } from '../lib/api'
 import PrintButton from './PrintButton'
 import LoadingBar from './LoadingBar'
+import TripReports from './trip/TripReports'
 
 const emptyJob = {
   siteName: '',
@@ -309,6 +310,9 @@ function PasswordGate({ onOk }) {
 
 export default function SpotJobs() {
   const navigate = useNavigate()
+  // 탭: 현장 기록 / 출장 보고서 (주소 ?view=trip → 뒤로 가기로 이전 탭)
+  const [params, setParams] = useSearchParams()
+  const view = params.get('view') === 'trip' ? 'trip' : 'jobs'
   const [unlocked, setUnlocked] = useState(false)
   const [checkingStored, setCheckingStored] = useState(true)
   const [jobs, setJobs] = useState([])
@@ -373,12 +377,12 @@ export default function SpotJobs() {
           >
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
           </button>
-          <button
+          {view === 'jobs' && <button
             onClick={() => (showForm ? setShowForm(false) : openNew())}
             className="focus-ring flex items-center gap-1.5 rounded-lg border border-page-border bg-page-soft px-3 py-1.5 text-xs text-page-sub hover:bg-page-border hover:text-page-text"
           >
             <Plus size={14} /> 등록
-          </button>
+          </button>}
           <button
             onClick={() => {
               api.clearSpotPassword()
@@ -391,7 +395,25 @@ export default function SpotJobs() {
         </div>
       </div>
 
+      <div className="mb-4 flex gap-1 rounded-xl border border-page-border bg-page-soft p-1">
+        {[
+          ['jobs', '현장 기록'],
+          ['trip', '출장 보고서']
+        ].map(([key, label]) => (
+          <button
+            key={key}
+            onClick={() => key !== view && setParams(key === 'trip' ? { view: 'trip' } : {})}
+            className={`focus-ring flex-1 rounded-lg py-2 text-sm ${view === key ? 'bg-base-950 font-medium text-base-100 shadow-sm' : 'text-page-sub hover:text-page-text'}`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
 
+      {view === 'trip' ? (
+        <TripReports jobs={jobs} />
+      ) : (
+      <>
       {showForm && (
         <div className="mb-6">
           <JobForm
@@ -559,6 +581,8 @@ export default function SpotJobs() {
             )
           })}
         </div>
+      )}
+      </>
       )}
     </div>
   )

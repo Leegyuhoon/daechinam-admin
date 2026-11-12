@@ -185,6 +185,26 @@ export const api = {
     return { ...data, url: `${data.url}&pw=${encodeURIComponent(spotPassword)}` }
   },
 
+  // 출장 보고서 (일회성 현장 관리 비밀번호 공용)
+  listTripReports: () => request('/trip-reports', { headers: { 'X-Spot-Password': spotPassword } }),
+  saveTripReport: (report) =>
+    request('/trip-reports', {
+      method: 'POST',
+      body: JSON.stringify(report),
+      headers: { 'X-Spot-Password': spotPassword }
+    }),
+  deleteTripReport: (id) =>
+    request(`/trip-reports?id=${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+      headers: { 'X-Spot-Password': spotPassword }
+    }),
+  // 영수증 사진 — 줄여서 올림
+  uploadReceipt: async (file) => {
+    const blob = await compressImage(file, 2000, 0.85)
+    const named = new File([blob], file.name || 'receipt.jpg', { type: blob.type || file.type || 'image/jpeg' })
+    return api.uploadSpotMedia(named, 'photo')
+  },
+
   // 업체 보고 — 관리자 CRUD는 관리자 비밀번호로, 각 업체별 열람은 업체마다 다른 비밀번호로 보호
   setClientAdminPassword: (pw) => {
     clientAdminPassword = pw
