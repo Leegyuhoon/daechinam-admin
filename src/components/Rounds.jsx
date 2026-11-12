@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react'
-import { Lock, CalendarRange, Building2, Camera, RefreshCw } from 'lucide-react'
+import { Lock, CalendarRange, Building2, Camera, RefreshCw, MessagesSquare, FileText } from 'lucide-react'
 import { api } from '../lib/api'
 import RoundsCalendar from './rounds/RoundsCalendar'
 import RoundsSites from './rounds/RoundsSites'
 import RoundsReports from './rounds/RoundsReports'
+import RoundsTickets from './rounds/RoundsTickets'
+import RoundsMonthly from './rounds/RoundsMonthly'
+import { needsReply, newAccessCode } from '../lib/rounds'
 import { inputCls, btnPrimary } from './rounds/ui'
 
 function PasswordGate({ onOk }) {
@@ -47,13 +50,15 @@ function PasswordGate({ onOk }) {
 
 const TABS = [
   { key: 'calendar', label: '월간 일정', icon: CalendarRange },
-  { key: 'sites', label: '현장·서비스 항목', icon: Building2 },
-  { key: 'reports', label: '전후 보고서', icon: Camera }
+  { key: 'tickets', label: '업체 소통', icon: MessagesSquare },
+  { key: 'monthly', label: '월간 보고서', icon: FileText },
+  { key: 'reports', label: '전후 보고서', icon: Camera },
+  { key: 'sites', label: '현장·서비스', icon: Building2 }
 ]
 
 export default function Rounds() {
   const [authed, setAuthed] = useState(true)
-  const [state, setState] = useState({ loading: true, error: null, sites: [], visits: [], executions: [] })
+  const [state, setState] = useState({ loading: true, error: null, sites: [], visits: [], executions: [], tickets: [], reports: [] })
   const [tab, setTab] = useState('calendar')
   const [reportPrefill, setReportPrefill] = useState(null)
 
@@ -61,7 +66,15 @@ export default function Rounds() {
     setState((s) => ({ ...s, loading: true, error: null }))
     api
       .listRegularOps()
-      .then((data) => setState({ loading: false, error: null, ...data }))
+      .then(async (data) => {
+        setState({ loading: false, error: null, tickets: [], reports: [], ...data })
+        // 업체 전용 페이지 접속 코드가 없는 현장은 미리 만들어 둠 (링크 복사를 바로 할 수 있게)
+        const missing = (data.sites || []).filter((s) => !s.accessCode)
+        if (missing.length) {
+          const { items } = await api.saveRegularMany('sites', missing.map((s) => ({ ...s, accessCode: newAccessCode() })))
+          upsertLocal('sites', items)
+        }
+      })
       .catch((err) => {
         if (String(err.message).includes('401')) {
           api.clearClientAdminPassword()
@@ -100,6 +113,19 @@ export default function Rounds() {
       await api.deleteRegular(collection, id)
       setState((s) => ({ ...s, [collection]: s[collection].filter((x) => x.id !== id) }))
     },
+    replyTicket: async (id, text, status) => {
+      const { item } = await api.replyTicket(id, text, status)
+      upsertLocal('tickets', [item])
+      return item
+    },
+    ensureAccessCode: async (site) => {
+      if (site.accessCode) return site.accessCode
+      const latest = state.sites.find((s) => s.id === site.id)
+      if (latest?.accessCode) return latest.accessCode
+      const { item } = await api.saveRegular('sites', { ...site, accessCode: newAccessCode() })
+      upsertLocal('sites', [item])
+      return item.accessCode
+    },
     // 서비스 항목의 마지막 실행일 갱신 (더 최근 날짜일 때만)
     markServiceDone: async (siteId, serviceId, date) => {
       const site = state.sites.find((s) => s.id === siteId)
@@ -128,14 +154,15 @@ export default function Rounds() {
     )
   }
 
-  const data = { sites: state.sites, visits: state.visits, executions: state.executions }
+  const data = { sites: state.sites, visits: state.visits, executions: state.executions, tickets: state.tickets, reports: state.reports }
+  const replyCount = state.tickets.filter(needsReply).length
 
   return (
     <div className="mx-auto max-w-6xl">
       <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold text-page-text">순회 관리</h1>
-          <p className="mt-1 text-xs text-page-sub">정기현장 점검 일정 · 현장별 서비스 항목 · 작업 전후 보고서</p>
+          <p className="mt-1 text-xs text-page-sub">점검 일정 · 업체 소통 · 월간 보고서 · 작업 전후 보고서</p>
         </div>
         <button onClick={load} className="focus-ring flex items-center gap-1.5 rounded-lg border border-page-border px-3 py-1.5 text-xs text-page-sub hover:text-page-text">
           <RefreshCw size={13} className={state.loading ? 'animate-spin' : ''} /> 새로고침
@@ -152,6 +179,9 @@ export default function Rounds() {
             }`}
           >
             <Icon size={15} /> {label}
+            {key === 'tickets' && replyCount > 0 && (
+              <span className="rounded-full bg-amber-500 px-1.5 text-[10px] font-semibold leading-4 text-white">{replyCount}</span>
+            )}
           </button>
         ))}
       </div>
@@ -166,6 +196,10 @@ export default function Rounds() {
         <RoundsCalendar data={data} ops={ops} onWriteReport={openReportFor} />
       ) : tab === 'sites' ? (
         <RoundsSites data={data} ops={ops} />
+      ) : tab === 'tickets' ? (
+        <RoundsTickets data={data} ops={ops} />
+      ) : tab === 'monthly' ? (
+        <RoundsMonthly data={data} ops={ops} />
       ) : (
         <RoundsReports data={data} ops={ops} prefill={reportPrefill} clearPrefill={() => setReportPrefill(null)} />
       )}

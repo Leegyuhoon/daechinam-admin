@@ -1,10 +1,11 @@
 import { getStore } from '@netlify/blobs'
 
-// 정기현장 순회 관리 — 현장(서비스 항목 포함), 일정(점검·서비스 방문), 서비스 실행(전후 기록)
+// 정기현장 순회 관리 — 현장(서비스 항목 포함), 일정(점검·서비스 방문), 서비스 실행(전후 기록),
+// 업체 문의(tickets), 월간 보고서(reports)
 // 관리자 비밀번호는 "업체 보고"와 같은 CLIENT_REPORT_ADMIN_PASSWORD를 함께 씁니다.
 const STORE_NAME = 'regular-ops'
 const ADMIN_PASSWORD = process.env.CLIENT_REPORT_ADMIN_PASSWORD
-const COLLECTIONS = ['sites', 'visits', 'executions']
+const COLLECTIONS = ['sites', 'visits', 'executions', 'tickets', 'reports']
 
 // 처음 열 때 한 번만 자동 등록되는 현장 목록 (이후엔 화면에서 수정·추가·삭제)
 const SEED_SITES = [
@@ -67,8 +68,10 @@ export default async (req) => {
         await store.setJSON('sites', sites)
         await store.setJSON('seeded', { at: new Date().toISOString() })
       }
-      const [visits, executions] = await Promise.all([readCol(store, 'visits'), readCol(store, 'executions')])
-      return Response.json({ sites, visits, executions })
+      const [visits, executions, tickets, reports] = await Promise.all(
+        ['visits', 'executions', 'tickets', 'reports'].map((c) => readCol(store, c))
+      )
+      return Response.json({ sites, visits, executions, tickets, reports })
     }
 
     if (req.method === 'POST') {
@@ -77,6 +80,23 @@ export default async (req) => {
       if (!COLLECTIONS.includes(collection)) {
         return Response.json({ error: '알 수 없는 항목입니다' }, { status: 400 })
       }
+      // 문의 답변·상태 변경은 서버에서 메시지를 덧붙여서, 그사이 업체가 남긴 메시지를 덮어쓰지 않게 함
+      if (collection === 'tickets' && body.action === 'reply') {
+        const list = await readCol(store, 'tickets')
+        const t = list.find((x) => x.id === body.id)
+        if (!t) return Response.json({ error: '문의를 찾을 수 없습니다' }, { status: 404 })
+        const now = new Date().toISOString()
+        const text = String(body.text || '').trim()
+        if (text) {
+          t.messages = [...(t.messages || []), { id: crypto.randomUUID(), from: 'admin', text, at: now }]
+          t.lastAdminAt = now
+        }
+        if (['open', 'progress', 'done'].includes(body.status)) t.status = body.status
+        t.updatedAt = now
+        await store.setJSON('tickets', list)
+        return Response.json({ item: t, items: [t] })
+      }
+
       const incoming = Array.isArray(body.items) ? body.items : body.item ? [body.item] : []
       if (incoming.length === 0) return Response.json({ error: '저장할 내용이 없습니다' }, { status: 400 })
 

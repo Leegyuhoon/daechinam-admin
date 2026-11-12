@@ -13,6 +13,7 @@ import ClientReports from './components/ClientReports'
 import ClientReportView from './components/ClientReportView'
 import Rounds from './components/Rounds'
 import ServiceReportView from './components/ServiceReportView'
+import ClientPortal from './components/ClientPortal'
 
 function AdminLayout({ children }) {
   return (
@@ -58,6 +59,7 @@ export default function App() {
         <Route path="/training" element={<Training />} />
         <Route path="/client-report" element={<ClientReportView />} />
         <Route path="/service-report" element={<ServiceReportView />} />
+        <Route path="/client" element={<ClientPortal />} />
 
         {/* 본사 관리용 — 사이드바 포함 */}
         <Route

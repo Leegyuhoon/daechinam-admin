@@ -272,6 +272,42 @@ export const api = {
     if (!res.ok) throw new Error(data.error || `사진 업로드 실패 (${res.status})`)
     return data // { id, url }
   },
+  replyTicket: (id, text, status) =>
+    request('/regular-ops', {
+      method: 'POST',
+      body: JSON.stringify({ collection: 'tickets', action: 'reply', id, text, status }),
+      headers: { 'X-Client-Admin-Password': clientAdminPassword }
+    }),
+
+  // 업체 담당자 페이지 (/client?c=접속코드)
+  clientPortalLoad: async (code) => {
+    const res = await fetch(`/api/regular-client?c=${encodeURIComponent(code)}`)
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok || !data.ok) throw new Error(data.error || '불러오지 못했습니다')
+    return data
+  },
+  clientPortalPost: async (code, payload) => {
+    const res = await fetch(`/api/regular-client?c=${encodeURIComponent(code)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok || !data.ok) throw new Error(data.error || '전송에 실패했습니다')
+    return data
+  },
+  clientPortalPhoto: async (code, file) => {
+    const blob = await compressImage(file)
+    const res = await fetch('/api/regular-photo', {
+      method: 'POST',
+      headers: { 'Content-Type': blob.type || 'image/jpeg', 'X-Client-Code': code },
+      body: blob
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) throw new Error(data.error || '사진 업로드 실패')
+    return data
+  },
+
   viewServiceReport: async (id) => {
     const res = await fetch(`/api/regular-report-view?id=${encodeURIComponent(id)}`)
     const data = await res.json().catch(() => ({}))

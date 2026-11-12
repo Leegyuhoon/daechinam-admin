@@ -141,3 +141,50 @@ export function autoPlan(month, sites, visits) {
 export function reportLink(executionId) {
   return `${window.location.origin}/service-report?id=${executionId}`
 }
+
+// ── 업체 소통 · 월간 보고서 ─────────────────────────────
+
+export const TICKET_CATEGORIES = ['질문', '불편 사항', '개선 요청', '작업 요청']
+export const TICKET_STATUS = { open: '접수', progress: '처리 중', done: '완료' }
+export const TICKET_SOURCES = { web: '업체 페이지', kakao: '카카오 채널', phone: '전화', visit: '방문' }
+export const RATINGS = ['우수', '양호', '보통', '미흡']
+
+export function newAccessCode() {
+  return crypto.randomUUID().replace(/-/g, '').slice(0, 16)
+}
+
+export function portalLink(code, tab) {
+  return `${window.location.origin}/client?c=${code}${tab ? `&tab=${tab}` : ''}`
+}
+
+// 답변이 필요한 문의: 완료가 아니고, 업체의 마지막 메시지 이후 우리 답변이 없음
+export function needsReply(t) {
+  if (t.status === 'done') return false
+  const msgs = t.messages || []
+  const last = msgs[msgs.length - 1]
+  return !last || last.from === 'client'
+}
+
+export function fmtDateTime(iso) {
+  if (!iso) return ''
+  const d = new Date(iso)
+  return `${d.getMonth() + 1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+// 월간 보고서에 들어갈 그달 기록을 모음 (관리자 화면·업체 페이지 공용)
+export function collectMonth({ siteId, month, visits, tickets, executions }) {
+  const mine = (x) => !siteId || x.siteId === siteId
+  const next = shiftMonth(month, 1)
+  return {
+    inspections: visits
+      .filter((v) => mine(v) && v.type === 'inspection' && v.status === 'done' && v.date?.startsWith(month))
+      .sort((a, b) => a.date.localeCompare(b.date)),
+    tickets: tickets
+      .filter((t) => mine(t) && (t.createdAt || '').slice(0, 7) === month)
+      .sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || '')),
+    executions: executions.filter((e) => mine(e) && e.date?.startsWith(month)).sort((a, b) => a.date.localeCompare(b.date)),
+    nextVisits: visits
+      .filter((v) => mine(v) && v.status !== 'canceled' && v.date?.startsWith(next))
+      .sort((a, b) => a.date.localeCompare(b.date))
+  }
+}

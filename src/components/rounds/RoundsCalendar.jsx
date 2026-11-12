@@ -107,8 +107,14 @@ function VisitModal({ initial, sites, onClose, ops, onWriteReport }) {
             </select>
           </Label>
         )}
-        <Label text="메모">
-          <textarea rows={2} className={inputCls} value={v.memo || ''} onChange={(e) => setV({ ...v, memo: e.target.value })} placeholder="예: 담당자 면담, 화장실 집중 확인" />
+        <Label text={v.type === 'inspection' ? '점검 결과 (점검 완료 시 월간 보고서에 그대로 들어가요)' : '메모'}>
+          <textarea
+            rows={3}
+            className={inputCls}
+            value={v.memo || ''}
+            onChange={(e) => setV({ ...v, memo: e.target.value })}
+            placeholder={v.type === 'inspection' ? '예: 화장실·탕비실 상태 양호. 3층 복도 모서리 먼지 → 근무자에게 전달 완료.' : '예: 작업 시간, 준비물'}
+          />
         </Label>
         {!isNew && (
           <div className="flex gap-1 rounded-lg bg-base-900 p-1">
