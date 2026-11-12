@@ -20,6 +20,7 @@ import {
   Wrench
 } from 'lucide-react'
 import { api } from '../lib/api'
+import LoadingBar from './LoadingBar'
 
 const emptyCompany = () => ({ companyName: '', password: '', siteName: '' })
 
@@ -509,7 +510,7 @@ function CompanyRow({ company, onEditCompany, onRemoveCompany }) {
           )}
 
           {loading ? (
-            <p className="text-xs text-base-500">불러오는 중…</p>
+            <LoadingBar size="sm" />
           ) : periods.length === 0 ? (
             <p className="text-xs text-base-500">등록된 월별 보고가 없어요.</p>
           ) : (
@@ -649,7 +650,7 @@ export default function ClientReports() {
       )}
 
       {loading ? (
-        <p className="p-8 text-center text-sm text-base-500">불러오는 중…</p>
+        <LoadingBar tone="dark" />
       ) : companies.length === 0 ? (
         <div className="flex flex-col items-center gap-2 rounded-xl border border-base-800 bg-base-950 p-10 text-base-500">
           <Building2 size={28} />

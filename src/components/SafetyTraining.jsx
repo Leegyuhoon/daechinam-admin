@@ -21,6 +21,7 @@ import {
 } from 'lucide-react'
 import { api } from '../lib/api'
 import PrintButton from './PrintButton'
+import LoadingBar from './LoadingBar'
 
 const emptyCourse = { title: '', description: '', videoUrl: '', passRatio: 80, questions: [], targetIds: [] }
 const emptyRosterEntry = { name: '', birth: '', org: '' }
@@ -247,7 +248,7 @@ function CourseForm({ initialCourse, onSaved, onCancel }) {
           체크해두면 아래 "이수 현황"에서 아직 안 들은 사람을 바로 확인할 수 있어요. 아무도 체크 안 하면 전체 응시자만 보여요.
         </p>
         {rosterLoading ? (
-          <p className="text-xs text-base-500">불러오는 중…</p>
+          <LoadingBar size="sm" />
         ) : roster.length === 0 ? (
           <p className="text-xs text-base-500">
             등록된 대상자가 없어요. 안전교육 화면의 "대상자 명단"에서 먼저 등록해주세요.
@@ -358,7 +359,7 @@ function RosterManager() {
       {error && <p className="mb-3 text-xs text-amber-500">{error}</p>}
 
       {loading ? (
-        <p className="py-4 text-center text-sm text-base-500">불러오는 중…</p>
+        <LoadingBar size="sm" className="!py-6" />
       ) : items.length === 0 ? (
         <p className="py-4 text-center text-sm text-base-500">등록된 대상자가 없어요.</p>
       ) : (
@@ -435,7 +436,7 @@ function ResultsPanel({ course, onClose }) {
       )}
 
       {loading ? (
-        <p className="py-4 text-center text-sm text-base-500">불러오는 중…</p>
+        <LoadingBar size="sm" className="!py-6" />
       ) : results.length === 0 ? (
         <p className="py-4 text-center text-sm text-base-500">아직 응시 기록이 없어요.</p>
       ) : (
@@ -671,7 +672,7 @@ export default function SafetyTraining() {
       )}
 
       {loading ? (
-        <p className="p-8 text-center text-sm text-base-500">불러오는 중…</p>
+        <LoadingBar tone="dark" />
       ) : courses.length === 0 ? (
         <div className="flex flex-col items-center gap-2 rounded-xl border border-base-800 bg-base-950 p-10 text-base-500">
           <ShieldCheck size={28} />

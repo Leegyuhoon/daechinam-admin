@@ -5,6 +5,7 @@ import { api } from '../lib/api'
 import { fmtDate } from '../lib/rounds'
 import { printElement } from './PrintButton'
 import { Thumb } from './rounds/Media'
+import LoadingBar from './LoadingBar'
 
 // 업체 담당자용 "작업 전후 보고서" — 링크(/service-report?id=...)로만 열람, 관리 UI 없음
 export default function ServiceReportView() {
@@ -25,7 +26,7 @@ export default function ServiceReportView() {
   if (loading || error) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-page-bg px-4">
-        <p className="text-sm text-page-sub">{loading ? '불러오는 중…' : error}</p>
+        {loading ? <LoadingBar tone="dark" /> : <p className="text-sm text-page-sub">{error}</p>}
       </div>
     )
   }

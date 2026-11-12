@@ -117,3 +117,18 @@ body {
 .splash-logo { animation: splash-logo-in 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
 .splash-bar { width: 0; animation: splash-bar-fill 1s 0.25s ease-in-out forwards; }
 .splash-caption { animation: splash-fade-in 0.5s 0.35s both; }
+
+/* 불러오는 중 막대 — 빠르게 차오르다 끝 무렵 천천히, 오래 걸리면 반짝이며 대기 */
+@keyframes loading-bar-fill {
+  0% { width: 0; }
+  60% { width: 70%; }
+  100% { width: 92%; }
+}
+@keyframes loading-bar-glow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+.loading-bar {
+  width: 0;
+  animation: loading-bar-fill 1.6s cubic-bezier(0.2, 0.8, 0.3, 1) forwards, loading-bar-glow 1.2s 1.6s ease-in-out infinite;
+}

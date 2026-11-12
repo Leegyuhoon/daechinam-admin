@@ -11,6 +11,7 @@ import RoundsMonthly from './rounds/RoundsMonthly'
 import RoundsIssues from './rounds/RoundsIssues'
 import { needsReply, newAccessCode } from '../lib/rounds'
 import { inputCls, btnPrimary } from './rounds/ui'
+import LoadingBar from './LoadingBar'
 
 function PasswordGate({ onOk }) {
   const [pw, setPw] = useState('')
@@ -204,7 +205,7 @@ export default function Rounds() {
       )}
 
       {state.loading && state.sites.length === 0 ? (
-        <p className="py-16 text-center text-sm text-page-sub">불러오는 중…</p>
+        <LoadingBar tone="dark" className="!py-20" />
       ) : tab === 'calendar' ? (
         <RoundsCalendar data={data} ops={ops} onWriteReport={openReportFor} />
       ) : tab === 'sites' ? (

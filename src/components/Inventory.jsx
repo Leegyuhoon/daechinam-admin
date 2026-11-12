@@ -4,6 +4,7 @@ import { Plus, Trash2, PackageSearch, TriangleAlert, Building2, ArrowLeft, FileS
 import { api } from '../lib/api'
 import PrintButton from './PrintButton'
 import { downloadXlsx } from '../lib/xlsx'
+import LoadingBar from './LoadingBar'
 
 const todayLabel = () => new Date().toLocaleDateString('sv-SE')
 
@@ -222,7 +223,7 @@ export default function Inventory() {
 
       <div id="print-inventory" className="overflow-hidden rounded-xl border border-base-800 bg-base-950">
         {loading ? (
-          <p className="p-8 text-center text-sm text-base-500">불러오는 중…</p>
+          <LoadingBar />
         ) : visible.length === 0 ? (
           <div className="flex flex-col items-center gap-2 p-10 text-base-500">
             <PackageSearch size={28} />

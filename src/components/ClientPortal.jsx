@@ -9,6 +9,7 @@ import { MediaPicker, MediaView } from './rounds/Media'
 import PushToggle from './PushToggle'
 import { printElement } from './PrintButton'
 import TicketsPrint from './rounds/TicketsPrint'
+import LoadingBar from './LoadingBar'
 
 // 업체 담당자 전용 페이지 (/client?c=접속코드) — 문의 남기기 · 답변 확인 · 월간 보고서
 const inputCls = 'focus-ring w-full rounded-lg border border-base-700 bg-base-900 px-3 py-2.5 text-sm text-base-100'
@@ -215,7 +216,7 @@ export default function ClientPortal() {
   if (state.loading || state.error) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-page-bg px-4">
-        <p className="text-sm text-page-sub">{state.loading ? '불러오는 중…' : state.error}</p>
+        {state.loading ? <LoadingBar tone="dark" /> : <p className="text-sm text-page-sub">{state.error}</p>}
       </div>
     )
   }

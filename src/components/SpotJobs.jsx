@@ -20,6 +20,7 @@ import {
 } from 'lucide-react'
 import { api } from '../lib/api'
 import PrintButton from './PrintButton'
+import LoadingBar from './LoadingBar'
 
 const emptyJob = {
   siteName: '',
@@ -455,7 +456,7 @@ export default function SpotJobs() {
         </table>
       </div>
       {loading ? (
-        <p className="p-8 text-center text-sm text-base-500">불러오는 중…</p>
+        <LoadingBar tone="dark" />
       ) : jobs.length === 0 ? (
         <div className="flex flex-col items-center gap-2 rounded-xl border border-base-800 bg-base-950 p-10 text-base-500">
           <CalendarDays size={28} />
