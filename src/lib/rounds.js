@@ -177,7 +177,7 @@ export function fmtDateTime(iso) {
 }
 
 // 월간 보고서에 들어갈 그달 기록을 모음 (관리자 화면·업체 페이지 공용)
-export function collectMonth({ siteId, month, visits, tickets, executions }) {
+export function collectMonth({ siteId, month, visits, tickets, executions, issues }) {
   const mine = (x) => !siteId || x.siteId === siteId
   const next = shiftMonth(month, 1)
   return {
@@ -188,6 +188,9 @@ export function collectMonth({ siteId, month, visits, tickets, executions }) {
       .filter((t) => mine(t) && (t.createdAt || '').slice(0, 7) === month)
       .sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || '')),
     executions: executions.filter((e) => mine(e) && e.date?.startsWith(month)).sort((a, b) => a.date.localeCompare(b.date)),
+    issues: (issues || [])
+      .filter((x) => mine(x) && x.showInReport !== false && x.date?.startsWith(month))
+      .sort((a, b) => a.date.localeCompare(b.date)),
     nextVisits: visits
       .filter((v) => mine(v) && v.status !== 'canceled' && v.date?.startsWith(next))
       .sort((a, b) => a.date.localeCompare(b.date))
@@ -254,3 +257,10 @@ export function makeZone(name, rows = []) {
 export function scopeCount(scope = []) {
   return { zones: scope.length, items: scope.reduce((n, z) => n + (z.items || []).length, 0) }
 }
+
+// ── 현장 이슈 (팀장 통화 보고 등) ─────────────────────
+export const ISSUE_STATUS = { done: '조치 완료', progress: '조치 중', check: '확인 필요' }
+export const ISSUE_SOURCES = { phone: '전화', visit: '현장 방문', sms: '문자', etc: '기타' }
+export const issueItemCount = (list) => list.reduce((n, x) => n + (x.items || []).length, 0)
+export const openIssueItems = (list) =>
+  list.flatMap((x) => (x.items || []).filter((it) => it.status !== 'done').map((it) => ({ ...it, record: x })))

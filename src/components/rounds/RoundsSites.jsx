@@ -85,6 +85,12 @@ function SiteModal({ initial, onClose, ops, otherSites }) {
           <Label text="담당자 연락처">
             <input className={inputCls} value={site.contactPhone} onChange={(e) => setSite({ ...site, contactPhone: e.target.value })} placeholder="010-0000-0000" />
           </Label>
+          <Label text="현장 팀장 (내부용, 업체에 안 보임)">
+            <input className={inputCls} value={site.teamLeaderName || ''} onChange={(e) => setSite({ ...site, teamLeaderName: e.target.value })} placeholder="예: 김OO" />
+          </Label>
+          <Label text="팀장 연락처">
+            <input className={inputCls} value={site.teamLeaderPhone || ''} onChange={(e) => setSite({ ...site, teamLeaderPhone: e.target.value })} placeholder="010-0000-0000" />
+          </Label>
           <Label text="근무 시간">
             <input className={inputCls} value={site.workHours} onChange={(e) => setSite({ ...site, workHours: e.target.value })} placeholder="예: 평일 05:00~08:00" />
           </Label>
@@ -206,6 +212,11 @@ export default function RoundsSites({ data, ops }) {
                     <Phone size={11} /> {site.contactName} {site.contactPhone}
                   </span>
                 )}
+                {site.teamLeaderName && (
+                  <a href={site.teamLeaderPhone ? `tel:${site.teamLeaderPhone}` : undefined} className="flex items-center gap-1">
+                    <Phone size={11} className="text-mist-500" /> 팀장 {site.teamLeaderName} {site.teamLeaderPhone}
+                  </a>
+                )}
                 {site.workHours && (
                   <span className="flex items-center gap-1">
                     <Clock size={11} /> {site.workHours}
@@ -291,6 +302,7 @@ export default function RoundsSites({ data, ops }) {
               ['점검 주기', cycleLabel(site.inspectCycleMonths)],
               ['마지막 점검 / 다음 예정', `${last || '기록 없음'}${next ? ` / ${next}` : ''}`],
               ['업체 담당자', [site.contactName, site.contactPhone].filter(Boolean).join(' ')],
+              ['현장 팀장', [site.teamLeaderName, site.teamLeaderPhone].filter(Boolean).join(' ')],
               ['근무 시간', site.workHours],
               ['주소', site.address],
               ['메모', site.memo]

@@ -1,4 +1,4 @@
-import { fmtDate, TICKET_STATUS } from '../../lib/rounds'
+import { fmtDate, TICKET_STATUS, ISSUE_STATUS } from '../../lib/rounds'
 import { Thumb } from './Media'
 
 // 월간 이슈·점검 보고서 본문 — 관리자 미리보기와 업체 페이지에서 같이 씀
@@ -24,6 +24,8 @@ const Empty = ({ text }) => <p className="text-[11px] text-base-500">{text}</p>
 export default function MonthlyReportDoc({ siteName, month, report, data, serviceReportLink }) {
   const [y, m] = month.split('-')
   const { inspections, tickets, executions, nextVisits } = data
+  const issues = data.issues || []
+  const issueRows = issues.flatMap((x) => (x.items || []).map((it, i) => ({ ...it, key: `${x.id}-${i}`, date: x.date })))
   const doneTickets = tickets.filter((t) => t.status === 'done').length
   const lastAdmin = (t) => {
     const m = [...(t.messages || [])].reverse().find((x) => x.from === 'admin' && (x.text || (x.media || []).length))
@@ -42,11 +44,12 @@ export default function MonthlyReportDoc({ siteName, month, report, data, servic
         <p className="text-[11px] text-base-500">(주)이엘씨_대치남</p>
       </div>
 
-      <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-5">
         {[
           ['종합 평가', report.rating || '-', RATING_CLS[report.rating] || ''],
           ['점검 방문', `${inspections.length}회`, ''],
           ['문의·요청', `${tickets.length}건 (완료 ${doneTickets})`, ''],
+          ['현장 이슈', `${issueRows.length}건 (조치 ${issueRows.filter((r) => r.status === 'done').length})`, ''],
           ['추가 작업', `${executions.length}건`, '']
         ].map(([label, value, cls]) => (
           <div key={label} className="rounded-lg bg-base-900 px-2 py-2 text-center">
@@ -72,6 +75,33 @@ export default function MonthlyReportDoc({ siteName, month, report, data, servic
                 <tr key={v.id}>
                   <td className="w-20 border border-base-700 bg-base-900 px-2 py-1 align-top text-base-300">{fmtDate(v.date)}</td>
                   <td className="whitespace-pre-line border border-base-700 px-2 py-1">{v.memo || '정기 점검 완료'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </Section>
+
+      <Section title="현장 이슈 · 조치 내역">
+        {issueRows.length === 0 ? (
+          <Empty text="이번 달 보고된 현장 이슈가 없습니다." />
+        ) : (
+          <table className="w-full border-collapse text-[11px]">
+            <thead>
+              <tr className="bg-base-900 text-left text-base-300">
+                <th className="w-16 border border-base-700 px-2 py-1 font-medium">날짜</th>
+                <th className="border border-base-700 px-2 py-1 font-medium">이슈</th>
+                <th className="border border-base-700 px-2 py-1 font-medium">조치 내용</th>
+                <th className="w-16 border border-base-700 px-2 py-1 font-medium">상태</th>
+              </tr>
+            </thead>
+            <tbody>
+              {issueRows.map((r) => (
+                <tr key={r.key}>
+                  <td className="border border-base-700 px-2 py-1 align-top text-base-400">{fmtDate(r.date)}</td>
+                  <td className="whitespace-pre-line border border-base-700 px-2 py-1 align-top">{r.issue}</td>
+                  <td className="whitespace-pre-line border border-base-700 px-2 py-1 align-top text-base-300">{r.action || '-'}</td>
+                  <td className={`border border-base-700 px-2 py-1 align-top ${r.status === 'done' ? 'text-teal-500' : 'text-amber-500'}`}>{ISSUE_STATUS[r.status] || '조치 완료'}</td>
                 </tr>
               ))}
             </tbody>

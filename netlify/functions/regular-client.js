@@ -56,8 +56,8 @@ export default async (req) => {
     if (!site) return Response.json({ ok: false, error: '링크가 만료되었거나 올바르지 않습니다' }, { status: 404 })
 
     if (req.method === 'GET') {
-      const [tickets, reports, visits, executions] = await Promise.all(
-        ['tickets', 'reports', 'visits', 'executions'].map((c) => readCol(store, c))
+      const [tickets, reports, visits, executions, issues] = await Promise.all(
+        ['tickets', 'reports', 'visits', 'executions', 'issues'].map((c) => readCol(store, c))
       )
       const mine = (x) => x.siteId === site.id
       return Response.json({
@@ -75,6 +75,18 @@ export default async (req) => {
         visits: visits
           .filter((v) => mine(v) && v.status !== 'canceled')
           .map((v) => ({ id: v.id, date: v.date, type: v.type, status: v.status, serviceName: v.serviceName || '', memo: v.memo || '' })),
+        // 현장 이슈 — "월간 보고서에 포함"한 것만, 팀장 이름·연락처 같은 내부 정보는 빼고
+        issues: issues
+          .filter((x) => mine(x) && x.showInReport !== false)
+          .map((x) => ({
+            id: x.id,
+            siteId: x.siteId,
+            date: x.date,
+            source: x.source,
+            items: (x.items || []).map((it) => ({ issue: it.issue, action: it.action, status: it.status })),
+            media: (x.media || []).map((m) => ({ url: m.url, kind: m.kind || 'photo' })),
+            showInReport: true
+          })),
         executions: executions.filter(mine).map((e) => ({
           id: e.id,
           date: e.date,

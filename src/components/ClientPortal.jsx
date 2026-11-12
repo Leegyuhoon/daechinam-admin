@@ -221,6 +221,7 @@ export default function ClientPortal() {
   }
 
   const { site, tickets, reports, visits, executions } = state.data
+  const issues = state.data.issues || []
   const report = reportMonth && reports.find((r) => r.month === reportMonth)
 
   return (
@@ -342,7 +343,7 @@ export default function ClientPortal() {
                     siteName={site.name}
                     month={report.month}
                     report={report}
-                    data={collectMonth({ month: report.month, visits, tickets, executions })}
+                    data={collectMonth({ month: report.month, visits, tickets, executions, issues })}
                     serviceReportLink={reportLink}
                   />
                 </div>

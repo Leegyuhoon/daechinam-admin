@@ -6,7 +6,7 @@ import { notify, clip } from '../lib/push.js'
 // 관리자 비밀번호는 "업체 보고"와 같은 CLIENT_REPORT_ADMIN_PASSWORD를 함께 씁니다.
 const STORE_NAME = 'regular-ops'
 const ADMIN_PASSWORD = process.env.CLIENT_REPORT_ADMIN_PASSWORD
-const COLLECTIONS = ['sites', 'visits', 'executions', 'tickets', 'reports']
+const COLLECTIONS = ['sites', 'visits', 'executions', 'tickets', 'reports', 'issues']
 
 // 처음 열 때 한 번만 자동 등록되는 현장 목록 (이후엔 화면에서 수정·추가·삭제)
 const SEED_SITES = [
@@ -69,10 +69,10 @@ export default async (req) => {
         await store.setJSON('sites', sites)
         await store.setJSON('seeded', { at: new Date().toISOString() })
       }
-      const [visits, executions, tickets, reports] = await Promise.all(
-        ['visits', 'executions', 'tickets', 'reports'].map((c) => readCol(store, c))
+      const [visits, executions, tickets, reports, issues] = await Promise.all(
+        ['visits', 'executions', 'tickets', 'reports', 'issues'].map((c) => readCol(store, c))
       )
-      return Response.json({ sites, visits, executions, tickets, reports })
+      return Response.json({ sites, visits, executions, tickets, reports, issues })
     }
 
     if (req.method === 'POST') {

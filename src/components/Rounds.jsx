@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import PushToggle from './PushToggle'
-import { Lock, CalendarRange, Building2, Camera, RefreshCw, MessagesSquare, FileText } from 'lucide-react'
+import { Lock, CalendarRange, Building2, Camera, RefreshCw, MessagesSquare, FileText, ClipboardList } from 'lucide-react'
 import { api } from '../lib/api'
 import RoundsCalendar from './rounds/RoundsCalendar'
 import RoundsSites from './rounds/RoundsSites'
 import RoundsReports from './rounds/RoundsReports'
 import RoundsTickets from './rounds/RoundsTickets'
 import RoundsMonthly from './rounds/RoundsMonthly'
+import RoundsIssues from './rounds/RoundsIssues'
 import { needsReply, newAccessCode } from '../lib/rounds'
 import { inputCls, btnPrimary } from './rounds/ui'
 
@@ -53,6 +54,7 @@ function PasswordGate({ onOk }) {
 const TABS = [
   { key: 'calendar', label: '월간 일정', icon: CalendarRange },
   { key: 'tickets', label: '업체 소통', icon: MessagesSquare },
+  { key: 'issues', label: '현장 이슈', icon: ClipboardList },
   { key: 'monthly', label: '월간 보고서', icon: FileText },
   { key: 'reports', label: '전후 보고서', icon: Camera },
   { key: 'sites', label: '현장·서비스', icon: Building2 }
@@ -60,7 +62,7 @@ const TABS = [
 
 export default function Rounds() {
   const [authed, setAuthed] = useState(true)
-  const [state, setState] = useState({ loading: true, error: null, sites: [], visits: [], executions: [], tickets: [], reports: [] })
+  const [state, setState] = useState({ loading: true, error: null, sites: [], visits: [], executions: [], tickets: [], reports: [], issues: [] })
   // 탭을 주소(?tab=)에 기록 → 휴대폰 뒤로 가기로 이전 탭으로 돌아감
   const [params, setParams] = useSearchParams()
   const tab = params.get('tab') || 'calendar'
@@ -74,7 +76,7 @@ export default function Rounds() {
     api
       .listRegularOps()
       .then(async (data) => {
-        setState({ loading: false, error: null, tickets: [], reports: [], ...data })
+        setState({ loading: false, error: null, tickets: [], reports: [], issues: [], ...data })
         // 업체 전용 페이지 접속 코드가 없는 현장은 미리 만들어 둠 (링크 복사를 바로 할 수 있게)
         const missing = (data.sites || []).filter((s) => !s.accessCode)
         if (missing.length) {
@@ -162,7 +164,7 @@ export default function Rounds() {
     )
   }
 
-  const data = { sites: state.sites, visits: state.visits, executions: state.executions, tickets: state.tickets, reports: state.reports }
+  const data = { sites: state.sites, visits: state.visits, executions: state.executions, tickets: state.tickets, reports: state.reports, issues: state.issues }
   const replyCount = state.tickets.filter(needsReply).length
 
   return (
@@ -170,7 +172,7 @@ export default function Rounds() {
       <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold text-page-text">정기 현장 관리</h1>
-          <p className="mt-1 text-xs text-page-sub">점검 일정 · 업체 소통 · 월간 보고서 · 작업 전후 보고서</p>
+          <p className="mt-1 text-xs text-page-sub">점검 일정 · 업체 소통 · 현장 이슈 · 월간 보고서 · 작업 전후 보고서</p>
         </div>
         <div className="flex items-start gap-2">
           <PushToggle role="admin" headers={api.adminHeaders()} />
@@ -207,6 +209,8 @@ export default function Rounds() {
         <RoundsCalendar data={data} ops={ops} onWriteReport={openReportFor} />
       ) : tab === 'sites' ? (
         <RoundsSites data={data} ops={ops} />
+      ) : tab === 'issues' ? (
+        <RoundsIssues data={data} ops={ops} />
       ) : tab === 'tickets' ? (
         <RoundsTickets data={data} ops={ops} />
       ) : tab === 'monthly' ? (
