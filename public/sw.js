@@ -12,7 +12,7 @@ self.addEventListener('push', (event) => {
   event.waitUntil(
     self.registration.showNotification(data.title || '(주)이엘씨_대치남', {
       body: data.body || '',
-      icon: '/icons/icon-192.png',
+      icon: '/icons/icon-192.png?v=2',
       badge: '/icons/icon-192.png',
       data: { url: data.url || '/' },
       tag: data.tag || undefined
