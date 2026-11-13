@@ -16,7 +16,7 @@ function Section({ title, children }) {
 
 const Empty = ({ text }) => <p className="text-[12px] text-base-500">{text}</p>
 
-export default function MonthlyReportDoc({ siteName, month, report, data, serviceReportLink }) {
+export default function MonthlyReportDoc({ siteName, month, report, data, serviceReportLink, inspectCycleMonths = 1 }) {
   const [y, m] = month.split('-')
   const { inspections, tickets, executions, nextVisits } = data
   const issues = data.issues || []
@@ -71,7 +71,7 @@ export default function MonthlyReportDoc({ siteName, month, report, data, servic
 
       <Section title="점검 내역">
         {inspections.length === 0 ? (
-          <Empty text="이번 달 점검 기록이 없습니다." />
+          <Empty text={(Number(inspectCycleMonths) || 1) > 1 ? '이번 달은 정기 점검 대상 월이 아닙니다.' : '이번 달 점검 기록이 없습니다.'} />
         ) : (
           <table className="w-full border-collapse text-[12px]">
             <tbody>

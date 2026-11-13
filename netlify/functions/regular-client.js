@@ -64,6 +64,7 @@ export default async (req) => {
         ok: true,
         site: {
           name: site.name,
+          inspectCycleMonths: Number(site.inspectCycleMonths) || 1,
           scope: (site.scope || []).map((z) => ({ zone: z.zone, note: z.note || '', items: (z.items || []).map((it) => ({ task: it.task, freq: it.freq })) })),
           services: (site.services || []).map((sv) => ({ name: sv.name, cycleMonths: sv.cycleMonths, next: nextDue(sv) }))
         },

@@ -414,6 +414,7 @@ export default function ClientPortal() {
                     report={report}
                     data={collectMonth({ month: report.month, visits, tickets, executions, issues })}
                     serviceReportLink={reportLink}
+                    inspectCycleMonths={site.inspectCycleMonths}
                   />
                 </div>
                 <RateReport

@@ -217,7 +217,7 @@ export default function Rounds() {
       ) : tab === 'tickets' ? (
         <RoundsTickets data={data} ops={ops} />
       ) : tab === 'monthly' ? (
-        <RoundsMonthly data={data} ops={ops} />
+        <RoundsMonthly data={data} ops={ops} onGoCalendar={() => setTab('calendar')} />
       ) : (
         <RoundsReports data={data} ops={ops} prefill={reportPrefill} clearPrefill={() => setReportPrefill(null)} />
       )}

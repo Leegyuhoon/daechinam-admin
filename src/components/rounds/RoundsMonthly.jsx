@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronLeft, ChevronRight, Printer, Check, BellRing, Copy, Sparkles, Eye, EyeOff } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Printer, Check, BellRing, Copy, Sparkles, Eye, EyeOff, TriangleAlert, CalendarRange } from 'lucide-react'
 import { thisMonth, shiftMonth, collectMonth, SCORE_LABEL, stars, portalLink, reportLink, fmtDateTime } from '../../lib/rounds'
 import { Modal, Card, Label, inputCls, btnPrimary, btnGhost } from './ui'
 import MonthlyReportDoc from './MonthlyReportDoc'
@@ -21,11 +21,21 @@ function draftSummary(siteName, month, d) {
   return lines.join('\n')
 }
 
-function ReportEditor({ site, month, initial, data, ops, onClose }) {
+function ReportEditor({ site, month, initial, data, ops, onClose, onGoCalendar }) {
   const [r, setR] = useState(initial)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
   const [copied, setCopied] = useState(false)
+  const [warnNoInspection, setWarnNoInspection] = useState(false)
+  const noInspection = data.inspections.length === 0
+  const longCycle = (Number(site.inspectCycleMonths) || 1) > 1
+
+  // 점검 0회면 바로 공개하지 않고 경고부터
+  const publish = () => {
+    if (noInspection && !warnNoInspection) return setWarnNoInspection(true)
+    setWarnNoInspection(false)
+    save({ published: true })
+  }
 
   const save = async (patch = {}) => {
     const next = { ...r, ...patch }
@@ -94,7 +104,7 @@ function ReportEditor({ site, month, initial, data, ops, onClose }) {
               <EyeOff size={14} /> 공개 취소
             </button>
           ) : (
-            <button onClick={() => save({ published: true })} disabled={saving} className={btnPrimary}>
+            <button onClick={publish} disabled={saving} className={btnPrimary}>
               <Eye size={14} /> 저장하고 업체에 공개
             </button>
           )}
@@ -102,6 +112,41 @@ function ReportEditor({ site, month, initial, data, ops, onClose }) {
             <Printer size={14} /> PDF 저장
           </button>
         </div>
+        {noInspection && !r.published && !warnNoInspection && (
+          <p className="flex items-center gap-1 text-xs text-amber-500">
+            <TriangleAlert size={13} /> 이번 달 점검 기록이 0회예요. 공개 전에 월간 일정에서 점검을 완료 처리해 주세요.
+          </p>
+        )}
+        {warnNoInspection && (
+          <div className="rounded-lg border border-amber-500/50 bg-amber-500/10 p-3">
+            <p className="flex items-center gap-1.5 text-sm font-semibold text-amber-600">
+              <TriangleAlert size={15} /> 점검 기록 없이 공개할까요?
+            </p>
+            <p className="mt-1 text-xs leading-relaxed text-base-300">
+              {longCycle
+                ? `${site.name}은(는) ${site.inspectCycleMonths}개월마다 점검하는 현장이라, 업체 보고서에는 "이번 달은 정기 점검 대상 월이 아닙니다"로 나가요.`
+                : '이대로 공개하면 업체 보고서의 점검 내역에 "이번 달 점검 기록이 없습니다"가 그대로 나가서, 점검을 하지 않은 것처럼 보일 수 있어요.'}
+            </p>
+            <p className="mt-1 text-xs text-base-500">점검을 했는데 기록만 안 했다면, 월간 일정에서 해당 점검을 "완료"로 바꾸고 점검 결과를 적어 주세요.</p>
+            <div className="mt-2.5 flex flex-wrap gap-2">
+              <button
+                onClick={() => {
+                  onClose()
+                  onGoCalendar?.()
+                }}
+                className={btnPrimary + ' !py-1.5 !text-xs'}
+              >
+                <CalendarRange size={13} /> 월간 일정에서 점검 기록하기
+              </button>
+              <button onClick={publish} disabled={saving} className={btnGhost + ' !py-1.5 !text-xs'}>
+                그래도 공개
+              </button>
+              <button onClick={() => setWarnNoInspection(false)} className="px-2 text-xs text-base-500">
+                취소
+              </button>
+            </div>
+          </div>
+        )}
         {r.published && (
           <div className="rounded-lg border border-mist-500/40 bg-mist-500/5 p-3">
             <p className="flex items-center gap-1.5 text-xs font-medium">
@@ -116,13 +161,13 @@ function ReportEditor({ site, month, initial, data, ops, onClose }) {
         <p className="pt-2 text-xs font-semibold text-base-300">미리보기</p>
       </div>
       <div id="print-monthly-doc" className="rounded-xl border border-base-800 bg-base-950 p-4">
-        <MonthlyReportDoc siteName={site.name} month={month} report={r} data={data} serviceReportLink={reportLink} />
+        <MonthlyReportDoc siteName={site.name} month={month} report={r} data={data} serviceReportLink={reportLink} inspectCycleMonths={site.inspectCycleMonths} />
       </div>
     </Modal>
   )
 }
 
-export default function RoundsMonthly({ data, ops }) {
+export default function RoundsMonthly({ data, ops, onGoCalendar }) {
   const { sites, visits, tickets, executions, reports, issues } = data
   const [month, setMonth] = useState(shiftMonth(thisMonth(), new Date().getDate() <= 10 ? -1 : 0))
   const [editing, setEditing] = useState(null)
@@ -185,7 +230,7 @@ export default function RoundsMonthly({ data, ops }) {
                   </span>
                 </div>
                 <p className="text-[12px] text-base-500">
-                  점검 {d.inspections.length}회 · 문의 {d.tickets.length}건 (완료 {d.tickets.filter((t) => t.status === 'done').length}) · 현장 이슈 {d.issues.reduce((n, x) => n + (x.items || []).length, 0)}건 · 추가 작업 {d.executions.length}건
+                  <span className={d.inspections.length === 0 && (Number(site.inspectCycleMonths) || 1) === 1 ? 'font-medium text-amber-500' : ''}>점검 {d.inspections.length}회</span> · 문의 {d.tickets.length}건 (완료 {d.tickets.filter((t) => t.status === 'done').length}) · 현장 이슈 {d.issues.reduce((n, x) => n + (x.items || []).length, 0)}건 · 추가 작업 {d.executions.length}건
                   {report?.clientRating ? ` · 업체 평가 ${'★'.repeat(report.clientRating.score)}` : report?.published ? ' · 평가 대기' : ''}
                 </p>
               </Card>
@@ -202,6 +247,7 @@ export default function RoundsMonthly({ data, ops }) {
           data={collectMonth({ siteId: editing.site.id, month, visits, tickets, executions, issues })}
           ops={ops}
           onClose={() => setEditing(null)}
+          onGoCalendar={onGoCalendar}
         />
       )}
     </div>
