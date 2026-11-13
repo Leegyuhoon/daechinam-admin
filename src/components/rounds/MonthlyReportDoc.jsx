@@ -1,14 +1,9 @@
-import { fmtDate, TICKET_STATUS, ISSUE_STATUS } from '../../lib/rounds'
+import { fmtDate, TICKET_STATUS, ISSUE_STATUS, SCORE_LABEL, stars } from '../../lib/rounds'
 import { Thumb } from './Media'
 
 // 월간 이슈·점검 보고서 본문 — 관리자 미리보기와 업체 페이지에서 같이 씀
-// data = collectMonth(...) 결과, report = { rating, summary, nextPlan }
-const RATING_CLS = {
-  우수: 'text-teal-500',
-  양호: 'text-mist-500',
-  보통: 'text-base-300',
-  미흡: 'text-red-500'
-}
+// data = collectMonth(...) 결과, report = { summary, nextPlan, clientRating }
+const SCORE_CLS = { 5: 'text-teal-500', 4: 'text-teal-500', 3: 'text-base-300', 2: 'text-amber-500', 1: 'text-red-500' }
 
 function Section({ title, children }) {
   return (
@@ -46,7 +41,7 @@ export default function MonthlyReportDoc({ siteName, month, report, data, servic
 
       <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-5">
         {[
-          ['종합 평가', report.rating || '-', RATING_CLS[report.rating] || ''],
+          ['업체 평가', report.clientRating ? SCORE_LABEL[report.clientRating.score] : '평가 대기', report.clientRating ? SCORE_CLS[report.clientRating.score] : 'text-base-500'],
           ['점검 방문', `${inspections.length}회`, ''],
           ['문의·요청', `${tickets.length}건 (완료 ${doneTickets})`, ''],
           ['현장 이슈', `${issueRows.length}건 (조치 ${issueRows.filter((r) => r.status === 'done').length})`, ''],
@@ -58,6 +53,15 @@ export default function MonthlyReportDoc({ siteName, month, report, data, servic
           </div>
         ))}
       </div>
+
+      {report.clientRating?.comment && (
+        <Section title="업체 의견">
+          <p className="whitespace-pre-line rounded-lg bg-base-900 px-3 py-2 text-xs leading-relaxed text-base-200">
+            <span className="mr-1 text-mist-500">{stars(report.clientRating.score)}</span>
+            {report.clientRating.comment}
+          </p>
+        </Section>
+      )}
 
       {report.summary && (
         <Section title="이번 달 총평">

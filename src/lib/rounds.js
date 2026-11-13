@@ -152,7 +152,9 @@ export const sourceLabel = (s) => TICKET_SOURCES[s] || (s === 'kakao' ? '카카�
 
 // 문의 첨부 (예전 사진 필드 photos + 새 첨부 media)
 export const ticketMedia = (t) => [...(t.photos || []).map((p) => ({ url: p.url, kind: 'photo' })), ...(t.media || [])]
-export const RATINGS = ['우수', '양호', '보통', '미흡']
+// 업체 만족도 평가 (업체 페이지에서 월간 보고서를 보고 매김)
+export const SCORE_LABEL = { 5: '매우 만족', 4: '만족', 3: '보통', 2: '불만족', 1: '매우 불만족' }
+export const stars = (n) => '★'.repeat(n) + '☆'.repeat(5 - n)
 
 export function newAccessCode() {
   return crypto.randomUUID().replace(/-/g, '').slice(0, 16)

@@ -128,6 +128,11 @@ export default async (req) => {
         const item = { ...raw, id: raw.id || crypto.randomUUID(), updatedAt: now }
         if (!item.createdAt) item.createdAt = now
         const idx = list.findIndex((x) => x.id === item.id)
+        if (collection === 'reports') {
+          // 업체 평가는 업체 페이지에서만 바뀜 — 관리자 화면의 오래된 사본으로 덮어쓰지 않게
+          item.clientRating = idx >= 0 ? list[idx].clientRating || null : null
+          delete item.rating
+        }
         if (idx >= 0) list[idx] = item
         else list.push(item)
         return item

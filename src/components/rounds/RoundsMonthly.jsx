@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { ChevronLeft, ChevronRight, Printer, Check, BellRing, Copy, Sparkles, Eye, EyeOff } from 'lucide-react'
-import { thisMonth, shiftMonth, collectMonth, RATINGS, portalLink, reportLink } from '../../lib/rounds'
+import { thisMonth, shiftMonth, collectMonth, SCORE_LABEL, stars, portalLink, reportLink, fmtDateTime } from '../../lib/rounds'
 import { Modal, Card, Label, inputCls, btnPrimary, btnGhost } from './ui'
 import MonthlyReportDoc from './MonthlyReportDoc'
 import PrintButton, { printElement } from '../PrintButton'
@@ -58,19 +58,22 @@ function ReportEditor({ site, month, initial, data, ops, onClose }) {
   return (
     <Modal title={`${site.name} · ${Number(month.slice(5))}월 보고서`} onClose={onClose} wide>
       <div className="no-print space-y-3">
-        <div>
-          <p className="mb-1 text-xs text-base-400">종합 평가</p>
-          <div className="flex gap-1">
-            {RATINGS.map((x) => (
-              <button
-                key={x}
-                onClick={() => setR({ ...r, rating: x })}
-                className={`focus-ring flex-1 rounded-lg border py-1.5 text-sm ${r.rating === x ? 'border-mist-500 bg-mist-500/10 font-medium' : 'border-base-700 text-base-400'}`}
-              >
-                {x}
-              </button>
-            ))}
-          </div>
+        <div className="rounded-lg bg-base-900 px-3 py-2">
+          <p className="text-xs text-base-400">업체 평가</p>
+          {r.clientRating ? (
+            <>
+              <p className="mt-0.5 text-sm">
+                <span className="text-mist-500">{stars(r.clientRating.score)}</span> <span className="font-medium">{SCORE_LABEL[r.clientRating.score]}</span>
+                <span className="ml-1 text-xs text-base-500">
+                  {r.clientRating.name && `${r.clientRating.name} · `}
+                  {fmtDateTime(r.clientRating.at)}
+                </span>
+              </p>
+              {r.clientRating.comment && <p className="mt-1 whitespace-pre-line text-xs text-base-300">"{r.clientRating.comment}"</p>}
+            </>
+          ) : (
+            <p className="mt-0.5 text-xs text-base-500">{r.published ? '업체가 아직 평가하지 않았어요.' : '보고서를 공개하면 업체 페이지에서 업체가 직접 평가해요.'}</p>
+          )}
         </div>
         <Label text="이번 달 총평">
           <textarea rows={4} className={inputCls} value={r.summary} onChange={(e) => setR({ ...r, summary: e.target.value })} />
@@ -136,7 +139,7 @@ export default function RoundsMonthly({ data, ops }) {
   const open = ({ site, report }) =>
     setEditing({
       site,
-      initial: report || { siteId: site.id, month, rating: '', summary: '', nextPlan: '', published: false }
+      initial: report || { siteId: site.id, month, summary: '', nextPlan: '', published: false }
     })
 
   return (
@@ -183,7 +186,7 @@ export default function RoundsMonthly({ data, ops }) {
                 </div>
                 <p className="text-[12px] text-base-500">
                   점검 {d.inspections.length}회 · 문의 {d.tickets.length}건 (완료 {d.tickets.filter((t) => t.status === 'done').length}) · 현장 이슈 {d.issues.reduce((n, x) => n + (x.items || []).length, 0)}건 · 추가 작업 {d.executions.length}건
-                  {report?.rating && ` · 평가 ${report.rating}`}
+                  {report?.clientRating ? ` · 업체 평가 ${'★'.repeat(report.clientRating.score)}` : report?.published ? ' · 평가 대기' : ''}
                 </p>
               </Card>
             </button>

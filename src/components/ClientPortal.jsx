@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { PenLine, MessagesSquare, FileText, ListChecks, Send, Printer, ChevronLeft, CheckCircle2, Paperclip } from 'lucide-react'
 import { api } from '../lib/api'
-import { TICKET_CATEGORIES, TICKET_STATUS, fmtDateTime, collectMonth, reportLink } from '../lib/rounds'
+import { TICKET_CATEGORIES, TICKET_STATUS, fmtDateTime, collectMonth, reportLink, SCORE_LABEL } from '../lib/rounds'
 import MonthlyReportDoc from './rounds/MonthlyReportDoc'
 import ScopeView from './rounds/ScopeView'
 import { MediaPicker, MediaView } from './rounds/Media'
@@ -71,6 +71,74 @@ function NewTicket({ code, onDone }) {
       >
         <Send size={15} /> {sending ? '보내는 중…' : uploading ? '첨부 올리는 중…' : '보내기'}
       </button>
+    </div>
+  )
+}
+
+// 월간 보고서 만족도 평가 — 업체 담당자가 직접 매김 (다시 매기면 바뀜)
+function RateReport({ code, report, onRated }) {
+  const cur = report.clientRating
+  const [editing, setEditing] = useState(!cur)
+  const [score, setScore] = useState(cur?.score || 0)
+  const [comment, setComment] = useState(cur?.comment || '')
+  const [name, setName] = useState(cur?.name || '')
+  const [sending, setSending] = useState(false)
+  const [error, setError] = useState(null)
+
+  const send = async () => {
+    if (!score) return setError('별점을 골라 주세요.')
+    setSending(true)
+    setError(null)
+    try {
+      const { clientRating } = await api.clientPortalPost(code, { action: 'rate', reportId: report.id, score, comment, name })
+      onRated(clientRating)
+      setEditing(false)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setSending(false)
+    }
+  }
+
+  if (!editing && cur) {
+    return (
+      <div className="no-print mt-4 rounded-xl border border-base-800 bg-base-900 p-4 text-center">
+        <p className="text-sm">
+          남겨 주신 평가 <span className="text-mist-500">{'★'.repeat(cur.score)}{'☆'.repeat(5 - cur.score)}</span> <span className="font-medium">{SCORE_LABEL[cur.score]}</span>
+        </p>
+        {cur.comment && <p className="mt-1 whitespace-pre-line text-xs text-base-400">"{cur.comment}"</p>}
+        <button onClick={() => setEditing(true)} className="mt-2 text-xs text-base-500 underline">
+          평가 수정하기
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="no-print mt-4 rounded-xl border border-mist-500/40 bg-mist-500/5 p-4">
+      <p className="text-center text-sm font-semibold">이번 달 청소 관리는 어떠셨나요?</p>
+      <p className="mt-0.5 text-center text-xs text-base-500">평가와 의견은 서비스 개선에 사용됩니다.</p>
+      <div className="my-3 flex justify-center gap-1.5">
+        {[1, 2, 3, 4, 5].map((n) => (
+          <button key={n} onClick={() => setScore(n)} aria-label={`${n}점`} className={`text-3xl leading-none transition-transform active:scale-90 ${n <= score ? 'text-mist-500' : 'text-base-700'}`}>
+            ★
+          </button>
+        ))}
+      </div>
+      <p className="mb-3 h-5 text-center text-sm font-medium text-mist-600">{score ? SCORE_LABEL[score] : ''}</p>
+      <textarea rows={3} className={inputCls} value={comment} onChange={(e) => setComment(e.target.value)} placeholder="좋았던 점이나 아쉬운 점을 자유롭게 남겨 주세요. (선택)" />
+      <input className={inputCls + ' mt-2'} value={name} onChange={(e) => setName(e.target.value)} placeholder="성함 또는 부서 (선택)" />
+      {error && <p className="mt-2 text-xs text-amber-500">{error}</p>}
+      <div className="mt-3 flex gap-2">
+        {cur && (
+          <button onClick={() => setEditing(false)} className="flex-1 rounded-lg border border-base-700 py-2.5 text-sm text-base-400">
+            취소
+          </button>
+        )}
+        <button onClick={send} disabled={sending} className="focus-ring flex-1 rounded-lg bg-mist-500 py-2.5 text-sm font-medium text-base-950 hover:bg-mist-400 disabled:opacity-50">
+          {sending ? '보내는 중…' : '평가 보내기'}
+        </button>
+      </div>
     </div>
   )
 }
@@ -348,6 +416,14 @@ export default function ClientPortal() {
                     serviceReportLink={reportLink}
                   />
                 </div>
+                <RateReport
+                  key={report.id}
+                  code={code}
+                  report={report}
+                  onRated={(clientRating) =>
+                    setState((st) => ({ ...st, data: { ...st.data, reports: st.data.reports.map((x) => (x.id === report.id ? { ...x, clientRating } : x)) } }))
+                  }
+                />
               </div>
             ) : reports.length === 0 ? (
               <p className="py-8 text-center text-xs text-base-500">아직 공개된 보고서가 없어요.</p>
@@ -365,7 +441,11 @@ export default function ClientPortal() {
                       <span className="text-sm font-medium">
                         {y}년 {Number(m)}월 청소 관리 보고서
                       </span>
-                      <span className="text-xs text-base-500">{r.rating && `평가 ${r.rating}`}</span>
+                      {r.clientRating ? (
+                        <span className="shrink-0 text-xs text-mist-500">{'★'.repeat(r.clientRating.score)}</span>
+                      ) : (
+                        <span className="shrink-0 rounded bg-mist-500/15 px-1.5 py-0.5 text-xs font-medium text-mist-600">평가하기</span>
+                      )}
                     </button>
                   )
                 })}

@@ -70,7 +70,7 @@ export default async (req) => {
         tickets: tickets.filter(mine).map(publicTicket).sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || '')),
         reports: reports
           .filter((r) => mine(r) && r.published)
-          .map((r) => ({ id: r.id, month: r.month, rating: r.rating, summary: r.summary, nextPlan: r.nextPlan, publishedAt: r.publishedAt }))
+          .map((r) => ({ id: r.id, month: r.month, clientRating: r.clientRating || null, summary: r.summary, nextPlan: r.nextPlan, publishedAt: r.publishedAt }))
           .sort((a, b) => b.month.localeCompare(a.month)),
         visits: visits
           .filter((v) => mine(v) && v.status !== 'canceled')
@@ -130,6 +130,29 @@ export default async (req) => {
           tag: `ticket-${ticket.id}`
         })
         return Response.json({ ok: true, ticket: publicTicket(ticket) })
+      }
+
+      // 업체가 월간 보고서에 만족도 평가 (1~5점 + 한마디), 다시 평가하면 덮어씀
+      if (body.action === 'rate') {
+        const score = Math.round(Number(body.score))
+        if (!(score >= 1 && score <= 5)) return Response.json({ ok: false, error: '평가 점수를 골라 주세요' }, { status: 400 })
+        const reports = await readCol(store, 'reports')
+        const r = reports.find((x) => x.id === body.reportId && x.siteId === site.id && x.published)
+        if (!r) return Response.json({ ok: false, error: '보고서를 찾을 수 없습니다' }, { status: 404 })
+        r.clientRating = {
+          score,
+          comment: String(body.comment || '').trim().slice(0, 1000),
+          name: String(body.name || '').trim().slice(0, 40),
+          at: now
+        }
+        await store.setJSON('reports', reports)
+        await notify({ role: 'admin' }, {
+          title: `업체 평가 · ${site.name}`,
+          body: `${Number(String(r.month).slice(5))}월 보고서 ${'★'.repeat(score)}${'☆'.repeat(5 - score)}${r.clientRating.comment ? ` — ${clip(r.clientRating.comment, 40)}` : ''}`,
+          url: '/rounds?tab=monthly',
+          tag: `rate-${r.id}`
+        })
+        return Response.json({ ok: true, clientRating: r.clientRating })
       }
 
       if (body.action === 'reply') {
