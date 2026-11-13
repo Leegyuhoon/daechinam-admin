@@ -71,7 +71,20 @@ export default async (req) => {
         tickets: tickets.filter(mine).map(publicTicket).sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || '')),
         reports: reports
           .filter((r) => mine(r) && r.published)
-          .map((r) => ({ id: r.id, month: r.month, clientRating: r.clientRating || null, summary: r.summary, nextPlan: r.nextPlan, publishedAt: r.publishedAt }))
+          .map((r) => ({
+            id: r.id,
+            month: r.month,
+            clientRating: r.clientRating || null,
+            summary: r.summary,
+            nextPlan: r.nextPlan,
+            publishedAt: r.publishedAt,
+            manager: r.manager || '',
+            workerNames: r.workerNames || '',
+            writtenDate: r.writtenDate || '',
+            workContent: r.workContent || '',
+            specialNotes: r.specialNotes || '',
+            proposals: (r.proposals || []).map((p) => ({ text: p.text || '', price: p.price || '' }))
+          }))
           .sort((a, b) => b.month.localeCompare(a.month)),
         visits: visits
           .filter((v) => mine(v) && v.status !== 'canceled')
@@ -93,8 +106,8 @@ export default async (req) => {
           date: e.date,
           serviceName: e.serviceName,
           ticketId: e.ticketId || null,
-          before: (e.before || []).slice(0, 1).map((p) => ({ url: p.url, kind: p.kind || 'photo' })),
-          after: (e.after || []).slice(0, 1).map((p) => ({ url: p.url, kind: p.kind || 'photo' }))
+          before: (e.before || []).slice(0, 6).map((p) => ({ url: p.url, kind: p.kind || 'photo' })),
+          after: (e.after || []).slice(0, 6).map((p) => ({ url: p.url, kind: p.kind || 'photo' }))
         }))
       })
     }

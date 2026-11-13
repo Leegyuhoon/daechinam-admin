@@ -2,23 +2,24 @@ import { useState } from 'react'
 import { ChevronLeft, ChevronRight, Printer, Check, BellRing, Copy, Sparkles, Eye, EyeOff, TriangleAlert, CalendarRange } from 'lucide-react'
 import { thisMonth, shiftMonth, collectMonth, SCORE_LABEL, stars, portalLink, reportLink, fmtDateTime } from '../../lib/rounds'
 import { Modal, Card, Label, inputCls, btnPrimary, btnGhost } from './ui'
-import MonthlyReportDoc from './MonthlyReportDoc'
+import MonthlyReportDoc, { scopeToWorkLines } from './MonthlyReportDoc'
 import PrintButton, { printElement } from '../PrintButton'
 
 // 기록을 바탕으로 총평 초안 만들기 (자유롭게 고쳐 쓰면 됨)
+// 기록을 바탕으로 총평 초안 (회사 보고서 문체 "~함") — 자유롭게 고쳐 쓰면 됨
 function draftSummary(siteName, month, d) {
-  const m = Number(month.slice(5))
   const done = d.tickets.filter((t) => t.status === 'done').length
-  const lines = [`${m}월 ${siteName} 정기 청소를 계약 내용에 따라 정상적으로 진행했습니다.`]
-  if (d.inspections.length) lines.push(`본사 점검을 ${d.inspections.length}회 진행해 청소 상태를 확인했습니다.`)
-  if (d.tickets.length) lines.push(`접수된 문의·요청 ${d.tickets.length}건 중 ${done}건을 처리 완료했습니다.${d.tickets.length > done ? ' 나머지 건도 빠르게 조치하겠습니다.' : ''}`)
   const issueItems = d.issues.flatMap((x) => x.items || [])
-  if (issueItems.length) {
-    const doneN = issueItems.filter((it) => it.status === 'done').length
-    lines.push(`현장에서 보고된 이슈 ${issueItems.length}건 중 ${doneN}건을 조치 완료했습니다.`)
-  }
-  if (d.executions.length) lines.push(`추가 작업으로 ${d.executions.map((e) => e.serviceName).join(', ')}을(를) 진행했습니다.`)
-  return lines.join('\n')
+  const parts = []
+  if (!d.tickets.length && !issueItems.length) parts.push('특이사항 없이 정기청소를 진행하고 있으며')
+  else parts.push('정기청소를 계약 범위에 따라 정상 진행하고 있으며')
+  if (d.tickets.length) parts.push(`접수된 요청사항 ${d.tickets.length}건 중 ${done}건을 조치 완료하였고`)
+  if (issueItems.length) parts.push(`현장 이슈 ${issueItems.length}건에 대해 즉시 대응하였으며`)
+  if (d.executions.length) parts.push(`${d.executions.map((e) => e.serviceName.replace(/^\[[^\]]*\]\s*/, '')).join(', ')} 작업을 추가로 진행하였음.`)
+  let text = parts.join(' ')
+  if (!/음\.$/.test(text)) text += ' 관리자 및 작업자의 요청사항을 빠른 시일 내에 해결할 수 있도록 함.'
+  else text += '\n앞으로도 관리자 및 작업자의 요청사항을 빠른 시일 내에 해결할 수 있도록 함.'
+  return text
 }
 
 function ReportEditor({ site, month, initial, data, ops, onClose, onGoCalendar }) {
@@ -39,6 +40,11 @@ function ReportEditor({ site, month, initial, data, ops, onClose, onGoCalendar }
 
   const save = async (patch = {}) => {
     const next = { ...r, ...patch }
+    try {
+      if (next.manager) localStorage.setItem('daechinam_report_manager', next.manager)
+    } catch {
+      /* 무시 */
+    }
     if (patch.published && !r.published) next.publishedAt = new Date().toISOString()
     setSaving(true)
     setError(null)
@@ -85,12 +91,84 @@ function ReportEditor({ site, month, initial, data, ops, onClose, onGoCalendar }
             <p className="mt-0.5 text-xs text-base-500">{r.published ? '업체가 아직 평가하지 않았어요.' : '보고서를 공개하면 업체 페이지에서 업체가 직접 평가해요.'}</p>
           )}
         </div>
-        <Label text="이번 달 총평">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          <Label text="담당자 (우리 회사)">
+            <input className={inputCls} value={r.manager || ''} onChange={(e) => setR({ ...r, manager: e.target.value })} placeholder="예: 정성수" />
+          </Label>
+          <Label text="작업자 (현장)">
+            <input className={inputCls} value={r.workerNames || ''} onChange={(e) => setR({ ...r, workerNames: e.target.value })} placeholder="예: 홍길동" />
+          </Label>
+          <Label text="작성일" className="col-span-2 sm:col-span-1">
+            <input type="date" className={inputCls} value={r.writtenDate || ''} onChange={(e) => setR({ ...r, writtenDate: e.target.value })} />
+          </Label>
+        </div>
+
+        <Label text="1. 작업내용 (비워 두면 청소 범위에서 자동으로 들어가요)">
+          <textarea
+            rows={4}
+            className={inputCls}
+            value={r.workContent || ''}
+            onChange={(e) => setR({ ...r, workContent: e.target.value })}
+            placeholder={scopeToWorkLines(site.scope).map((l) => `- ${l}`).join('\n') || '- 1층 로비 및 휴게실 위생관리\n- 1, 2층 화장실 위생관리'}
+          />
+        </Label>
+        {(site.scope || []).length > 0 && (
+          <button
+            onClick={() => setR({ ...r, workContent: scopeToWorkLines(site.scope).map((l) => `- ${l}`).join('\n') })}
+            className="-mt-1 flex items-center gap-1 text-[12px] text-mist-500 hover:underline"
+          >
+            <Sparkles size={12} /> 청소 범위로 채운 뒤 고쳐 쓰기
+          </button>
+        )}
+
+        <div>
+          <p className="mb-1 text-xs text-base-400">2. 특이사항</p>
+          <p className="mb-1.5 rounded-lg bg-base-900 px-2.5 py-1.5 text-[12px] text-base-400">
+            자동으로 들어가요: 본사 점검 {data.inspections.length}회 · 현장 이슈 {data.issues.reduce((n, x) => n + (x.items || []).length, 0)}건 · 추가 작업 {data.executions.length}건
+          </p>
+          <textarea
+            rows={2}
+            className={inputCls}
+            value={r.specialNotes || ''}
+            onChange={(e) => setR({ ...r, specialNotes: e.target.value })}
+            placeholder="그 밖에 적을 내용 (한 줄에 하나씩)"
+          />
+        </div>
+
+        <Label text="3. 총평">
           <textarea rows={4} className={inputCls} value={r.summary} onChange={(e) => setR({ ...r, summary: e.target.value })} />
         </Label>
         <button onClick={() => setR({ ...r, summary: draftSummary(site.name, month, data) })} className="flex items-center gap-1 text-[12px] text-mist-500 hover:underline">
           <Sparkles size={12} /> 이번 달 기록으로 초안 채우기
         </button>
+        <div>
+          <p className="mb-1 text-xs text-base-400">제안사항 · 금액안내 (정기청소 업체 할인 적용)</p>
+          <div className="space-y-1.5">
+            {(r.proposals || []).map((pr, i) => (
+              <div key={i} className="flex gap-1.5">
+                <input
+                  className={inputCls}
+                  value={pr.text}
+                  onChange={(e) => setR({ ...r, proposals: r.proposals.map((x, j) => (j === i ? { ...x, text: e.target.value } : x)) })}
+                  placeholder="예: 연말 카펫 전체 세척"
+                />
+                <input
+                  className={inputCls + ' !w-36 shrink-0'}
+                  value={pr.price}
+                  onChange={(e) => setR({ ...r, proposals: r.proposals.map((x, j) => (j === i ? { ...x, price: e.target.value } : x)) })}
+                  placeholder="예: 45만원 (VAT 별도)"
+                />
+                <button onClick={() => setR({ ...r, proposals: r.proposals.filter((_, j) => j !== i) })} className="shrink-0 px-1 text-base-500 hover:text-red-500" aria-label="삭제">
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
+          <button onClick={() => setR({ ...r, proposals: [...(r.proposals || []), { text: '', price: '' }] })} className="mt-1.5 text-[12px] text-mist-500 hover:underline">
+            + 제안 추가 (없으면 "별도의 제안사항 없음"으로 나가요)
+          </button>
+        </div>
+
         <Label text="다음 달 계획 · 건의 사항 (예정된 일정은 자동으로 들어가요)">
           <textarea rows={2} className={inputCls} value={r.nextPlan} onChange={(e) => setR({ ...r, nextPlan: e.target.value })} placeholder="예: 연말 대청소 일정 협의 요청드립니다." />
         </Label>
@@ -124,8 +202,8 @@ function ReportEditor({ site, month, initial, data, ops, onClose, onGoCalendar }
             </p>
             <p className="mt-1 text-xs leading-relaxed text-base-300">
               {longCycle
-                ? `${site.name}은(는) ${site.inspectCycleMonths}개월마다 점검하는 현장이라, 업체 보고서에는 "이번 달은 정기 점검 대상 월이 아닙니다"로 나가요.`
-                : '이대로 공개하면 업체 보고서의 점검 내역에 "이번 달 점검 기록이 없습니다"가 그대로 나가서, 점검을 하지 않은 것처럼 보일 수 있어요.'}
+                ? `${site.name}은(는) ${site.inspectCycleMonths}개월마다 점검하는 현장이라, 다른 특이사항이 없으면 보고서에 "이번 달은 정기 점검 대상 월이 아님"으로 나가요.`
+                : '이대로 공개하면 보고서의 특이사항에 본사 점검 내용이 하나도 들어가지 않아서, 이번 달 점검을 하지 않은 것처럼 보일 수 있어요.'}
             </p>
             <p className="mt-1 text-xs text-base-500">점검을 했는데 기록만 안 했다면, 월간 일정에서 해당 점검을 "완료"로 바꾸고 점검 결과를 적어 주세요.</p>
             <div className="mt-2.5 flex flex-wrap gap-2">
@@ -161,10 +239,18 @@ function ReportEditor({ site, month, initial, data, ops, onClose, onGoCalendar }
         <p className="pt-2 text-xs font-semibold text-base-300">미리보기</p>
       </div>
       <div id="print-monthly-doc" className="rounded-xl border border-base-800 bg-base-950 p-4">
-        <MonthlyReportDoc siteName={site.name} month={month} report={r} data={data} serviceReportLink={reportLink} inspectCycleMonths={site.inspectCycleMonths} />
+        <MonthlyReportDoc siteName={site.name} month={month} report={r} data={data} serviceReportLink={reportLink} inspectCycleMonths={site.inspectCycleMonths} scope={site.scope} />
       </div>
     </Modal>
   )
+}
+
+const lastManager = () => {
+  try {
+    return localStorage.getItem('daechinam_report_manager') || ''
+  } catch {
+    return ''
+  }
 }
 
 export default function RoundsMonthly({ data, ops, onGoCalendar }) {
@@ -184,7 +270,19 @@ export default function RoundsMonthly({ data, ops, onGoCalendar }) {
   const open = ({ site, report }) =>
     setEditing({
       site,
-      initial: report || { siteId: site.id, month, summary: '', nextPlan: '', published: false }
+      initial: report || {
+        siteId: site.id,
+        month,
+        summary: '',
+        nextPlan: '',
+        published: false,
+        manager: lastManager(),
+        workerNames: site.teamLeaderName || '',
+        writtenDate: new Date().toLocaleDateString('sv-SE'),
+        workContent: '',
+        specialNotes: '',
+        proposals: []
+      }
     })
 
   return (

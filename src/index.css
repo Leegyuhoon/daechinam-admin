@@ -132,3 +132,10 @@ body {
   width: 0;
   animation: loading-bar-fill 1.6s cubic-bezier(0.2, 0.8, 0.3, 1) forwards, loading-bar-glow 1.2s 1.6s ease-in-out infinite;
 }
+
+/* 월간 보고서 문서 — 휴대폰 화면에서만 로고를 제목 위로, 표 글씨·여백 조금 줄임 (인쇄·PDF는 그대로) */
+@media screen and (max-width: 640px) {
+  .mr-doc .mr-logo { position: static !important; display: block; width: 72px !important; margin: 0 0 4px auto; }
+  .mr-doc .mr-title { font-size: 17px !important; }
+  .mr-doc td, .mr-doc th { padding: 5px 6px !important; font-size: 12px !important; }
+}
