@@ -266,3 +266,20 @@ export const ISSUE_SOURCES = { phone: '전화', visit: '현장 방문', sms: '�
 export const issueItemCount = (list) => list.reduce((n, x) => n + (x.items || []).length, 0)
 export const openIssueItems = (list) =>
   list.flatMap((x) => (x.items || []).filter((it) => it.status !== 'done').map((it) => ({ ...it, record: x })))
+
+// ── 장비·소모품 비용 청구 (청구 현장만) ─────────────────
+export const VAT_MODES = { separate: '부가세 별도 (10%)', included: '부가세 포함', none: '부가세 없음' }
+export const won = (n) => `${Math.round(Number(n) || 0).toLocaleString('ko-KR')}원`
+// charges: [{ qty, price }] → 공급가 · 부가세 · 합계
+export function chargeTotals(charges = [], vat = 'separate') {
+  const sum = charges.reduce((n, c) => n + (Number(c.qty) || 0) * (Number(c.price) || 0), 0)
+  if (vat === 'separate') {
+    const tax = Math.round(sum * 0.1)
+    return { supply: sum, tax, total: sum + tax }
+  }
+  if (vat === 'included') {
+    const supply = Math.round(sum / 1.1)
+    return { supply, tax: sum - supply, total: sum }
+  }
+  return { supply: sum, tax: 0, total: sum }
+}

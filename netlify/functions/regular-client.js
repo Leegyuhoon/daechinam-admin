@@ -65,6 +65,7 @@ export default async (req) => {
         site: {
           name: site.name,
           inspectCycleMonths: Number(site.inspectCycleMonths) || 1,
+          vat: site.billing?.enabled ? site.billing.vat || 'separate' : null,
           scope: (site.scope || []).map((z) => ({ zone: z.zone, note: z.note || '', items: (z.items || []).map((it) => ({ task: it.task, freq: it.freq })) })),
           services: (site.services || []).map((sv) => ({ name: sv.name, cycleMonths: sv.cycleMonths, next: nextDue(sv) }))
         },
@@ -83,7 +84,10 @@ export default async (req) => {
             writtenDate: r.writtenDate || '',
             workContent: r.workContent || '',
             specialNotes: r.specialNotes || '',
-            proposals: (r.proposals || []).map((p) => ({ text: p.text || '', price: p.price || '' }))
+            proposals: (r.proposals || []).map((p) => ({ text: p.text || '', price: p.price || '' })),
+            // 청구 현장일 때만 청구 내역
+            charges: site.billing?.enabled ? (r.charges || []).map((c) => ({ name: c.name || '', unit: c.unit || '', qty: Number(c.qty) || 0, price: Number(c.price) || 0 })) : [],
+            chargeNote: site.billing?.enabled ? r.chargeNote || '' : ''
           }))
           .sort((a, b) => b.month.localeCompare(a.month)),
         visits: visits

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { ChevronLeft, ChevronRight, Printer, Check, BellRing, Copy, Sparkles, Eye, EyeOff, TriangleAlert, CalendarRange } from 'lucide-react'
-import { thisMonth, shiftMonth, collectMonth, SCORE_LABEL, stars, portalLink, reportLink, fmtDateTime } from '../../lib/rounds'
+import { thisMonth, shiftMonth, collectMonth, SCORE_LABEL, stars, portalLink, reportLink, fmtDateTime, VAT_MODES, won, chargeTotals } from '../../lib/rounds'
 import { Modal, Card, Label, inputCls, btnPrimary, btnGhost } from './ui'
 import MonthlyReportDoc, { scopeToWorkLines } from './MonthlyReportDoc'
 import PrintButton, { printElement } from '../PrintButton'
@@ -22,7 +22,63 @@ function draftSummary(siteName, month, d) {
   return text
 }
 
-function ReportEditor({ site, month, initial, data, ops, onClose, onGoCalendar }) {
+// 장비·소모품 청구 내역 입력 — 단가표에서 고르고 수량만 넣으면 금액 자동
+function ChargeEditor({ billing, charges, prevCharges, onChange, note, onNote }) {
+  const vat = billing.vat || 'separate'
+  const t = chargeTotals(charges, vat)
+  const set = (i, patch) => onChange(charges.map((c, j) => (j === i ? { ...c, ...patch } : c)))
+  const add = (it) => onChange([...charges, { id: crypto.randomUUID(), name: it?.name || '', unit: it?.unit || '개', qty: 1, price: it?.price ?? '' }])
+  return (
+    <div className="rounded-lg border border-mist-500/30 bg-mist-500/5 p-3">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-xs font-semibold text-base-200">장비·소모품 청구 내역</p>
+        <span className="text-[12px] text-base-500">{VAT_MODES[vat]}</span>
+      </div>
+      <div className="space-y-1.5">
+        {charges.map((c, i) => (
+          <div key={c.id || i} className="grid grid-cols-[1fr_3.5rem_3.5rem_5.5rem_auto] items-center gap-1.5">
+            <input className={inputCls + ' !py-1.5'} value={c.name} onChange={(e) => set(i, { name: e.target.value })} placeholder="품목" />
+            <input type="number" min={0} className={inputCls + ' !px-2 !py-1.5'} value={c.qty} onChange={(e) => set(i, { qty: e.target.value })} aria-label="수량" />
+            <input className={inputCls + ' !px-2 !py-1.5'} value={c.unit} onChange={(e) => set(i, { unit: e.target.value })} aria-label="단위" />
+            <input type="number" min={0} className={inputCls + ' !px-2 !py-1.5'} value={c.price} onChange={(e) => set(i, { price: e.target.value })} aria-label="단가" placeholder="단가" />
+            <button onClick={() => onChange(charges.filter((_, j) => j !== i))} className="px-1 text-base-500 hover:text-red-500" aria-label="삭제">
+              ✕
+            </button>
+          </div>
+        ))}
+      </div>
+      {charges.length > 0 && <p className="mt-1 text-[11px] text-base-500">품목 · 수량 · 단위 · 단가 순서</p>}
+      <div className="mt-2 flex flex-wrap gap-1.5">
+        {(billing.items || []).map((it) => (
+          <button key={it.id} onClick={() => add(it)} className="rounded-md border border-base-700 bg-base-950 px-2 py-1 text-[12px] text-base-300 hover:border-mist-500">
+            + {it.name} <span className="text-base-500">{won(it.price)}</span>
+          </button>
+        ))}
+        <button onClick={() => add()} className="rounded-md px-2 py-1 text-[12px] text-mist-500">
+          + 직접 입력
+        </button>
+        {prevCharges.length > 0 && charges.length === 0 && (
+          <button onClick={() => onChange(prevCharges.map((c) => ({ ...c, id: crypto.randomUUID() })))} className="rounded-md px-2 py-1 text-[12px] text-mist-500 underline">
+            지난달 내역 그대로 불러오기
+          </button>
+        )}
+      </div>
+      {charges.length > 0 && (
+        <div className="mt-3 space-y-0.5 border-t border-base-800 pt-2 text-right text-xs text-base-300">
+          {vat !== 'none' && (
+            <p>
+              공급가 {won(t.supply)} · 부가세 {won(t.tax)}
+            </p>
+          )}
+          <p className="text-sm font-semibold text-base-100">청구 합계 {won(t.total)}</p>
+        </div>
+      )}
+      <input className={inputCls + ' mt-2 !py-1.5'} value={note} onChange={(e) => onNote(e.target.value)} placeholder="청구 메모 (선택, 예: 12월 세금계산서 발행 예정)" />
+    </div>
+  )
+}
+
+function ReportEditor({ site, month, initial, data, ops, onClose, onGoCalendar, prevCharges = [] }) {
   const [r, setR] = useState(initial)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
@@ -169,6 +225,17 @@ function ReportEditor({ site, month, initial, data, ops, onClose, onGoCalendar }
           </button>
         </div>
 
+        {site.billing?.enabled && (
+          <ChargeEditor
+            billing={site.billing}
+            charges={r.charges || []}
+            prevCharges={prevCharges}
+            onChange={(charges) => setR((x) => ({ ...x, charges }))}
+            note={r.chargeNote || ''}
+            onNote={(chargeNote) => setR((x) => ({ ...x, chargeNote }))}
+          />
+        )}
+
         <Label text="다음 달 계획 · 건의 사항 (예정된 일정은 자동으로 들어가요)">
           <textarea rows={2} className={inputCls} value={r.nextPlan} onChange={(e) => setR({ ...r, nextPlan: e.target.value })} placeholder="예: 연말 대청소 일정 협의 요청드립니다." />
         </Label>
@@ -239,7 +306,7 @@ function ReportEditor({ site, month, initial, data, ops, onClose, onGoCalendar }
         <p className="pt-2 text-xs font-semibold text-base-300">미리보기</p>
       </div>
       <div id="print-monthly-doc" className="rounded-xl border border-base-800 bg-base-950 p-4">
-        <MonthlyReportDoc siteName={site.name} month={month} report={r} data={data} serviceReportLink={reportLink} inspectCycleMonths={site.inspectCycleMonths} scope={site.scope} />
+        <MonthlyReportDoc siteName={site.name} month={month} report={r} data={data} serviceReportLink={reportLink} inspectCycleMonths={site.inspectCycleMonths} scope={site.scope} vat={site.billing?.enabled ? site.billing.vat || 'separate' : null} />
       </div>
     </Modal>
   )
@@ -279,6 +346,8 @@ export default function RoundsMonthly({ data, ops, onGoCalendar }) {
         manager: lastManager(),
         workerNames: site.teamLeaderName || '',
         writtenDate: new Date().toLocaleDateString('sv-SE'),
+        charges: [],
+        chargeNote: '',
         workContent: '',
         specialNotes: '',
         proposals: []
@@ -330,6 +399,9 @@ export default function RoundsMonthly({ data, ops, onGoCalendar }) {
                 <p className="text-[12px] text-base-500">
                   <span className={d.inspections.length === 0 && (Number(site.inspectCycleMonths) || 1) === 1 ? 'font-medium text-amber-500' : ''}>점검 {d.inspections.length}회</span> · 문의 {d.tickets.length}건 (완료 {d.tickets.filter((t) => t.status === 'done').length}) · 현장 이슈 {d.issues.reduce((n, x) => n + (x.items || []).length, 0)}건 · 추가 작업 {d.executions.length}건
                   {report?.clientRating ? ` · 업체 평가 ${'★'.repeat(report.clientRating.score)}` : report?.published ? ' · 평가 대기' : ''}
+                  {site.billing?.enabled && (
+                    <span className="font-medium text-mist-500"> · 청구 {(report?.charges || []).length ? won(chargeTotals(report.charges, site.billing.vat).total) : '미입력'}</span>
+                  )}
                 </p>
               </Card>
             </button>
@@ -346,6 +418,7 @@ export default function RoundsMonthly({ data, ops, onGoCalendar }) {
           ops={ops}
           onClose={() => setEditing(null)}
           onGoCalendar={onGoCalendar}
+          prevCharges={reports.find((x) => x.siteId === editing.site.id && x.month === shiftMonth(month, -1))?.charges || []}
         />
       )}
     </div>

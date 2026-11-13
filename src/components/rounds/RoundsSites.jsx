@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Plus, Pencil, Trash2, Phone, Clock, MapPin, ChevronDown, ListChecks, Printer } from 'lucide-react'
 import { cycleLabel, CYCLE_OPTIONS, serviceNextDue, lastInspection, nextInspectionDue, todayStr, fmtDate } from '../../lib/rounds'
 import { Modal, Label, Card, inputCls, btnPrimary, btnGhost, btnDanger } from './ui'
-import { scopeCount } from '../../lib/rounds'
+import { scopeCount, VAT_MODES } from '../../lib/rounds'
 import ScopeEditor from './ScopeEditor'
 import ScopeView from './ScopeView'
 import PrintButton, { printElement } from '../PrintButton'
@@ -30,6 +30,7 @@ function SiteModal({ initial, onClose, ops, otherSites }) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
 
+  const setBillItem = (i, patch) => setSite((s) => ({ ...s, billing: { ...s.billing, items: s.billing.items.map((it, j) => (j === i ? { ...it, ...patch } : it)) } }))
   const setSvc = (i, patch) => setSite((s) => ({ ...s, services: s.services.map((sv, j) => (j === i ? { ...sv, ...patch } : sv)) }))
   const addSvc = (name = '') => setSite((s) => ({ ...s, services: [...s.services, { ...emptyService(), name }] }))
   const removeSvc = (i) => setSite((s) => ({ ...s, services: s.services.filter((_, j) => j !== i) }))
@@ -43,6 +44,9 @@ function SiteModal({ initial, onClose, ops, otherSites }) {
         ...site,
         name: site.name.trim(),
         inspectCycleMonths: Number(site.inspectCycleMonths) || 1,
+        billing: site.billing
+          ? { ...site.billing, items: (site.billing.items || []).filter((it) => it.name?.trim()).map((it) => ({ ...it, name: it.name.trim(), price: Number(it.price) || 0 })) }
+          : undefined,
         scope: site.scope
           .map((z) => ({ ...z, zone: z.zone.trim(), items: z.items.filter((it) => it.task.trim()) }))
           .filter((z) => z.zone || z.items.length)
@@ -103,6 +107,56 @@ function SiteModal({ initial, onClose, ops, otherSites }) {
         </div>
 
         <ScopeEditor scope={site.scope} onChange={(scope) => setSite((s) => ({ ...s, scope }))} otherSites={otherSites.filter((o) => o.id !== site.id)} />
+
+        <div className="rounded-lg border border-base-800 bg-base-900 p-3">
+          <label className="flex items-start gap-2 text-xs font-medium text-base-300">
+            <input
+              type="checkbox"
+              className="mt-0.5"
+              checked={!!site.billing?.enabled}
+              onChange={(e) => setSite((s) => ({ ...s, billing: { vat: 'separate', items: [], ...(s.billing || {}), enabled: e.target.checked } }))}
+            />
+            <span>
+              장비·소모품 비용 청구 현장
+              <span className="block text-[12px] font-normal text-base-500">켜 두면 이 현장 월간 보고서에 청구 내역 입력 칸이 생기고, 업체 보고서에 청구 내역과 합계가 들어가요.</span>
+            </span>
+          </label>
+          {site.billing?.enabled && (
+            <div className="mt-3 space-y-2">
+              <label className="block text-xs text-base-400">
+                부가세
+                <select
+                  className={inputCls + ' mt-1'}
+                  value={site.billing.vat || 'separate'}
+                  onChange={(e) => setSite((s) => ({ ...s, billing: { ...s.billing, vat: e.target.value } }))}
+                >
+                  {Object.entries(VAT_MODES).map(([k, v]) => (
+                    <option key={k} value={k}>
+                      {v}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <p className="text-xs text-base-400">단가표 (자주 청구하는 장비·소모품)</p>
+              {(site.billing.items || []).map((it, i) => (
+                <div key={it.id} className="grid grid-cols-[1fr_4.5rem_6.5rem_auto] gap-1.5">
+                  <input className={inputCls + ' !py-1.5'} value={it.name} onChange={(e) => setBillItem(i, { name: e.target.value })} placeholder="품목 (예: 종이타월)" />
+                  <input className={inputCls + ' !px-2 !py-1.5'} value={it.unit} onChange={(e) => setBillItem(i, { unit: e.target.value })} placeholder="단위" />
+                  <input type="number" min={0} className={inputCls + ' !px-2 !py-1.5'} value={it.price} onChange={(e) => setBillItem(i, { price: e.target.value })} placeholder="단가(원)" />
+                  <button onClick={() => setSite((s) => ({ ...s, billing: { ...s.billing, items: s.billing.items.filter((_, j) => j !== i) } }))} className="px-1 text-base-500 hover:text-red-500">
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              ))}
+              <button
+                onClick={() => setSite((s) => ({ ...s, billing: { ...s.billing, items: [...(s.billing.items || []), { id: crypto.randomUUID(), name: '', unit: '개', price: '' }] } }))}
+                className="flex items-center gap-1 text-[12px] text-mist-500"
+              >
+                <Plus size={12} /> 단가 품목 추가
+              </button>
+            </div>
+          )}
+        </div>
 
         <div className="rounded-lg border border-base-800 bg-base-900 p-3">
           <p className="mb-1 text-xs font-medium text-base-300">서비스 항목 (정기 청소 외에 주기적으로 하는 작업)</p>

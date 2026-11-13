@@ -416,6 +416,7 @@ export default function ClientPortal() {
                     serviceReportLink={reportLink}
                     inspectCycleMonths={site.inspectCycleMonths}
                     scope={site.scope || []}
+                    vat={site.vat || null}
                   />
                 </div>
                 <RateReport

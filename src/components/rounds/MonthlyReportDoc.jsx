@@ -1,4 +1,4 @@
-import { ISSUE_STATUS, SCORE_LABEL, stars } from '../../lib/rounds'
+import { ISSUE_STATUS, SCORE_LABEL, stars, VAT_MODES, won, chargeTotals } from '../../lib/rounds'
 
 // 월간 정기청소 보고서 — 회사 양식의 순서(요청사항 → 작업현황 → 제안사항 → 별첨)를 따르되 디자인은 새로
 // 흰 종이 기준으로 고정 (화면 테마와 무관, PDF·인쇄 그대로). 휴대폰 화면 조정은 index.css의 .mr-* 참고
@@ -64,7 +64,7 @@ function SubTitle({ children }) {
   return <p style={{ margin: '0 0 6px', fontSize: 12, fontWeight: 700, color: C.sub }}>{children}</p>
 }
 
-export default function MonthlyReportDoc({ siteName, month, report, data, serviceReportLink, scope = [], inspectCycleMonths = 1 }) {
+export default function MonthlyReportDoc({ siteName, month, report, data, serviceReportLink, scope = [], inspectCycleMonths = 1, vat = null }) {
   const [y, m] = month.split('-')
   const { inspections, tickets, executions, nextVisits } = data
   const issues = data.issues || []
@@ -110,6 +110,16 @@ export default function MonthlyReportDoc({ siteName, month, report, data, servic
   const isVid = (p) => p.kind === 'video' || /regular-media/.test(p.url || '')
   const pics = photos.filter((p) => !isVid(p)).slice(0, 12)
   const vids = photos.filter(isVid)
+
+  // 장비·소모품 청구 (청구 현장 · 내역 있을 때만)
+  const charges = vat ? (report.charges || []).filter((c) => c.name && Number(c.qty)) : []
+  const ct = chargeTotals(charges, vat || 'none')
+  // 섹션 번호는 들어가는 섹션 순서대로
+  let secNo = 3
+  const nextNo = () => String(++secNo).padStart(2, '0')
+  const chargeNo = charges.length ? nextNo() : null
+  const hasNext = nextVisits.length > 0 || !!report.nextPlan
+  const nextNoLabel = hasNext ? nextNo() : null
 
   const writtenDate = report.writtenDate || (report.publishedAt || '').slice(0, 10) || new Date().toLocaleDateString('sv-SE')
   const rating = report.clientRating
@@ -271,9 +281,42 @@ export default function MonthlyReportDoc({ siteName, month, report, data, servic
           )}
         </Section>
 
+        {charges.length > 0 && (
+          <Section no={chargeNo} title="장비·소모품 청구 내역" right={<span style={{ fontSize: 11, color: C.mute }}>{VAT_MODES[vat]}</span>}>
+            <div style={{ border: `1px solid ${C.line}`, borderRadius: 10, overflow: 'hidden' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 64px 92px 104px', background: C.tint, padding: '6px 12px', fontSize: 10.5, color: C.mute }}>
+                <span>품목</span>
+                <span style={{ textAlign: 'right' }}>수량</span>
+                <span style={{ textAlign: 'right' }}>단가</span>
+                <span style={{ textAlign: 'right' }}>금액</span>
+              </div>
+              {charges.map((c, i) => (
+                <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 64px 92px 104px', padding: '6px 12px', borderTop: `1px solid ${C.line}` }}>
+                  <span>{c.name}</span>
+                  <span style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                    {Number(c.qty)}
+                    {c.unit || ''}
+                  </span>
+                  <span style={{ textAlign: 'right', whiteSpace: 'nowrap', color: C.sub }}>{won(c.price)}</span>
+                  <span style={{ textAlign: 'right', whiteSpace: 'nowrap', fontWeight: 600 }}>{won((Number(c.qty) || 0) * (Number(c.price) || 0))}</span>
+                </div>
+              ))}
+              <div style={{ borderTop: `1px solid ${C.line}`, background: '#FCFCFD', padding: '7px 12px', textAlign: 'right' }}>
+                {vat !== 'none' && (
+                  <span style={{ fontSize: 11, color: C.sub, marginRight: 12 }}>
+                    공급가 {won(ct.supply)} · 부가세 {won(ct.tax)}
+                  </span>
+                )}
+                <span style={{ fontSize: 14, fontWeight: 800, color: C.navy }}>합계 {won(ct.total)}</span>
+              </div>
+            </div>
+            {report.chargeNote && <p style={{ margin: '4px 0 0', fontSize: 11.5, color: C.sub }}>※ {report.chargeNote}</p>}
+          </Section>
+        )}
+
         <div className="mr-two" style={{ display: 'grid', gridTemplateColumns: (nextVisits.length > 0 || report.nextPlan) && rating?.comment ? '1fr 1fr' : '1fr', columnGap: 20 }}>
         {(nextVisits.length > 0 || report.nextPlan) && (
-          <Section no="04" title="다음 달 일정">
+          <Section no={nextNoLabel} title="다음 달 일정">
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {nextVisits.map((v) => (
                 <span key={v.id} style={{ border: `1px solid ${C.line}`, borderRadius: 999, padding: '2px 10px', fontSize: 11.5 }}>
@@ -286,7 +329,7 @@ export default function MonthlyReportDoc({ siteName, month, report, data, servic
         )}
 
         {rating?.comment && (
-          <Section no={nextVisits.length || report.nextPlan ? '05' : '04'} title="고객 의견">
+          <Section no={nextNo()} title="고객 의견">
             <p style={{ margin: 0, padding: '10px 14px', border: `1px solid ${C.line}`, borderRadius: 10 }}>
               <span style={{ color: C.gold, marginRight: 6 }}>{stars(rating.score)}</span>“{rating.comment}”
             </p>
