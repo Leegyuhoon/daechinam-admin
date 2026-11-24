@@ -5,6 +5,7 @@ import { Modal, Label, Card, inputCls, btnPrimary, btnGhost, btnDanger } from '.
 import { scopeCount, VAT_MODES } from '../../lib/rounds'
 import ScopeEditor from './ScopeEditor'
 import ScopeView from './ScopeView'
+import { api } from '../../lib/api'
 import PrintButton, { printElement } from '../PrintButton'
 
 const emptySite = (order) => ({
@@ -24,6 +25,60 @@ const emptySite = (order) => ({
 const emptyService = () => ({ id: crypto.randomUUID(), name: '', cycleMonths: 1, lastDoneDate: '', note: '' })
 
 const SERVICE_EXAMPLES = ['카펫 세척', '유리창 청소', '바닥 왁스', '에어컨 필터', '방역·소독', '외벽·간판']
+
+// 이 현장의 예전 저장 내용 — 청소 범위·서비스 항목이 실수로 지워졌을 때 되살리기
+function SiteHistory({ siteId, onRestore }) {
+  const [open, setOpen] = useState(false)
+  const [items, setItems] = useState(null)
+  const [error, setError] = useState(null)
+  const toggle = async () => {
+    const next = !open
+    setOpen(next)
+    if (next && !items) {
+      try {
+        const { items } = await api.regularHistory('sites', siteId)
+        setItems(items || [])
+      } catch (e) {
+        setError('기록을 불러오지 못했어요.')
+      }
+    }
+  }
+  return (
+    <div className="rounded-lg border border-dashed border-base-700 p-3 text-xs">
+      <button type="button" onClick={toggle} className="flex w-full items-center justify-between font-medium text-base-300">
+        <span>이전 저장 기록에서 청소 범위·서비스 되살리기</span>
+        <ChevronDown size={14} className={open ? 'rotate-180' : ''} />
+      </button>
+      {open && (
+        <div className="mt-2 space-y-1.5">
+          {error && <p className="text-red-500">{error}</p>}
+          {!items && !error && <p className="text-base-500">불러오는 중…</p>}
+          {items && items.length === 0 && <p className="text-base-500">보관된 이전 기록이 없어요. (이 기능을 올린 뒤부터 저장할 때마다 보관됩니다)</p>}
+          {items &&
+            items.slice(0, 15).map((h, i) => {
+              const c = scopeCount(h.item.scope)
+              return (
+                <div key={i} className="flex items-center justify-between gap-2 rounded-md bg-base-900 px-2.5 py-1.5">
+                  <span className="text-base-300">
+                    {fmtDate(h.at.slice(0, 10))} {h.at.slice(11, 16)} {h.reason === 'delete' ? '(삭제 전)' : '(수정 전)'} · 구역 {c.zones} · 항목 {c.items} · 서비스 {(h.item.services || []).length}
+                  </span>
+                  <button
+                    type="button"
+                    className="shrink-0 rounded-md border border-base-700 px-2 py-0.5 font-medium hover:bg-base-800"
+                    onClick={() => {
+                      if (confirm('이 시점의 청소 범위와 서비스 항목으로 바꿀까요? 아래 "저장"을 눌러야 실제로 반영됩니다.')) onRestore(h.item)
+                    }}
+                  >
+                    되살리기
+                  </button>
+                </div>
+              )
+            })}
+        </div>
+      )}
+    </div>
+  )
+}
 
 function SiteModal({ initial, onClose, ops, otherSites }) {
   const [site, setSite] = useState({ ...initial, scope: initial.scope || [], services: (initial.services || []).map((s) => ({ ...s })) })
@@ -55,7 +110,10 @@ function SiteModal({ initial, onClose, ops, otherSites }) {
       })
       onClose()
     } catch (err) {
-      setError(err.message)
+      if (String(err.message).includes('(409)')) {
+        setError('다른 화면(PC·휴대폰)에서 이 현장 정보가 먼저 수정되어 저장하지 않았어요. 최신 내용을 다시 불러왔으니 창을 닫고 다시 열어 수정해 주세요.')
+        ops.reload?.()
+      } else setError(err.message)
     } finally {
       setSaving(false)
     }
@@ -107,6 +165,7 @@ function SiteModal({ initial, onClose, ops, otherSites }) {
         </div>
 
         <ScopeEditor scope={site.scope} onChange={(scope) => setSite((s) => ({ ...s, scope }))} otherSites={otherSites.filter((o) => o.id !== site.id)} />
+        {initial.id && <SiteHistory siteId={initial.id} onRestore={(old) => setSite((s) => ({ ...s, scope: old.scope || [], services: (old.services || []).map((x) => ({ ...x })) }))} />}
 
         <div className="rounded-lg border border-base-800 bg-base-900 p-3">
           <label className="flex items-start gap-2 text-xs font-medium text-base-300">

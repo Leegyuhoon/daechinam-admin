@@ -277,6 +277,18 @@ export const api = {
       body: JSON.stringify({ collection, items }),
       headers: { 'X-Client-Admin-Password': clientAdminPassword }
     }),
+  // 현장 일부 값만 서버 최신본에 합치기 (접속 코드, 서비스 마지막 실행일)
+  patchSites: (patches) =>
+    request('/regular-ops', {
+      method: 'POST',
+      body: JSON.stringify({ collection: 'sites', action: 'patch', patches }),
+      headers: { 'X-Client-Admin-Password': clientAdminPassword }
+    }),
+  // 덮어쓰기·삭제 전 보관된 이전 내용
+  regularHistory: (collection, id) =>
+    request(`/regular-ops?history=${encodeURIComponent(collection)}${id ? `&id=${encodeURIComponent(id)}` : ''}`, {
+      headers: { 'X-Client-Admin-Password': clientAdminPassword }
+    }),
   deleteRegular: (collection, id) =>
     request(`/regular-ops?collection=${encodeURIComponent(collection)}&id=${encodeURIComponent(id)}`, {
       method: 'DELETE',

@@ -81,7 +81,7 @@ export default function Rounds() {
         // 업체 전용 페이지 접속 코드가 없는 현장은 미리 만들어 둠 (링크 복사를 바로 할 수 있게)
         const missing = (data.sites || []).filter((s) => !s.accessCode)
         if (missing.length) {
-          const { items } = await api.saveRegularMany('sites', missing.map((s) => ({ ...s, accessCode: newAccessCode() })))
+          const { items } = await api.patchSites(missing.map((s) => ({ id: s.id, accessCode: newAccessCode() })))
           upsertLocal('sites', items)
         }
       })
@@ -119,6 +119,7 @@ export default function Rounds() {
       upsertLocal(collection, saved)
       return saved
     },
+    reload: () => load(),
     remove: async (collection, id) => {
       await api.deleteRegular(collection, id)
       setState((s) => ({ ...s, [collection]: s[collection].filter((x) => x.id !== id) }))
@@ -132,19 +133,16 @@ export default function Rounds() {
       if (site.accessCode) return site.accessCode
       const latest = state.sites.find((s) => s.id === site.id)
       if (latest?.accessCode) return latest.accessCode
-      const { item } = await api.saveRegular('sites', { ...site, accessCode: newAccessCode() })
+      const { item } = await api.patchSites([{ id: site.id, accessCode: newAccessCode() }])
       upsertLocal('sites', [item])
       return item.accessCode
     },
     // 서비스 항목의 마지막 실행일 갱신 (더 최근 날짜일 때만)
     markServiceDone: async (siteId, serviceId, date) => {
-      const site = state.sites.find((s) => s.id === siteId)
-      if (!site || !serviceId) return
-      const services = (site.services || []).map((sv) =>
-        sv.id === serviceId && (!sv.lastDoneDate || date > sv.lastDoneDate) ? { ...sv, lastDoneDate: date } : sv
-      )
-      const { item: saved } = await api.saveRegular('sites', { ...site, services })
-      upsertLocal('sites', [saved])
+      if (!siteId || !serviceId) return
+      // 화면의 현장 사본 전체를 다시 저장하지 않고, 서버 최신본에 실행일만 합침 (청소 범위 등이 지워지지 않게)
+      const { item: saved } = await api.patchSites([{ id: siteId, serviceDone: { serviceId, date } }])
+      if (saved) upsertLocal('sites', [saved])
     }
   }
 

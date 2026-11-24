@@ -33,6 +33,30 @@ async function readCol(store, name) {
   return Array.isArray(data) ? data : []
 }
 
+// 저장 직전 읽기는 실패하면 멈춤 — 일시적인 읽기 오류로 빈 목록 위에 덮어써 전체가 지워지는 일을 막음
+async function readColForWrite(store, name) {
+  const data = await store.get(name, { type: 'json' })
+  if (data == null) return []
+  if (!Array.isArray(data)) throw new Error(`${name} 데이터 형식 오류`)
+  return data
+}
+
+// 덮어쓰기·삭제 전 이전 내용을 따로 보관 (실수로 지워져도 되살릴 수 있게) — 컬렉션마다 최근 300건
+const HISTORY_MAX = 300
+async function keepHistory(store, collection, oldItems, reason) {
+  const olds = oldItems.filter(Boolean)
+  if (!olds.length) return
+  try {
+    const key = `history-${collection}`
+    const hist = await readCol(store, key)
+    const at = new Date().toISOString()
+    for (const o of olds) hist.push({ at, reason, item: o })
+    await store.setJSON(key, hist.slice(-HISTORY_MAX))
+  } catch {
+    // 보관 실패가 저장 자체를 막지는 않게
+  }
+}
+
 function seedSites() {
   const now = new Date().toISOString()
   return SEED_SITES.map((name, i) => ({
@@ -61,6 +85,14 @@ export default async (req) => {
   const url = new URL(req.url)
 
   try {
+    if (req.method === 'GET' && url.searchParams.get('history')) {
+      const collection = url.searchParams.get('history')
+      if (!COLLECTIONS.includes(collection)) return Response.json({ error: '알 수 없는 항목입니다' }, { status: 400 })
+      const id = url.searchParams.get('id')
+      const hist = await readCol(store, `history-${collection}`)
+      return Response.json({ items: (id ? hist.filter((h) => h.item?.id === id) : hist).reverse() })
+    }
+
     if (req.method === 'GET') {
       let sites = await readCol(store, 'sites')
       const seeded = await store.get('seeded', { type: 'json' }).catch(() => null)
@@ -83,7 +115,7 @@ export default async (req) => {
       }
       // 문의 답변·상태 변경은 서버에서 메시지를 덧붙여서, 그사이 업체가 남긴 메시지를 덮어쓰지 않게 함
       if (collection === 'tickets' && body.action === 'reply') {
-        const list = await readCol(store, 'tickets')
+        const list = await readColForWrite(store, 'tickets')
         const t = list.find((x) => x.id === body.id)
         if (!t) return Response.json({ error: '문의를 찾을 수 없습니다' }, { status: 404 })
         const now = new Date().toISOString()
@@ -115,11 +147,50 @@ export default async (req) => {
         return Response.json({ item: t, items: [t] })
       }
 
+      // 현장의 일부 값만 바꾸기 — 화면에 남아 있던 오래된 현장 사본으로 청소 범위 등을 덮어쓰지 않게,
+      // 서버의 최신 내용에 바뀐 값만 합침
+      if (collection === 'sites' && body.action === 'patch') {
+        const list = await readColForWrite(store, 'sites')
+        const now = new Date().toISOString()
+        const out = []
+        for (const p of Array.isArray(body.patches) ? body.patches : []) {
+          const idx = list.findIndex((x) => x.id === p.id)
+          if (idx < 0) continue
+          const cur = { ...list[idx] }
+          if (typeof p.accessCode === 'string' && !cur.accessCode) cur.accessCode = p.accessCode
+          if (p.serviceDone?.serviceId && /^\d{4}-\d{2}-\d{2}$/.test(p.serviceDone.date || '')) {
+            cur.services = (cur.services || []).map((sv) =>
+              sv.id === p.serviceDone.serviceId && (!sv.lastDoneDate || p.serviceDone.date > sv.lastDoneDate)
+                ? { ...sv, lastDoneDate: p.serviceDone.date }
+                : sv
+            )
+          }
+          cur.updatedAt = now
+          list[idx] = cur
+          out.push(cur)
+        }
+        if (out.length) await store.setJSON('sites', list)
+        return Response.json({ items: out, item: out[0] || null })
+      }
+
       const incoming = Array.isArray(body.items) ? body.items : body.item ? [body.item] : []
       if (incoming.length === 0) return Response.json({ error: '저장할 내용이 없습니다' }, { status: 400 })
 
-      const list = await readCol(store, collection)
+      const list = await readColForWrite(store, collection)
       const now = new Date().toISOString()
+      // 현장 정보는 다른 화면(PC·휴대폰)에서 그사이 먼저 고친 경우 오래된 사본으로 덮어쓰지 않음
+      if (collection === 'sites') {
+        for (const raw of incoming) {
+          const cur = raw.id && list.find((x) => x.id === raw.id)
+          if (cur && cur.updatedAt && (!raw.updatedAt || raw.updatedAt < cur.updatedAt)) {
+            return Response.json(
+              { error: '다른 화면에서 이 현장 정보가 먼저 수정되었습니다. 새로고침한 뒤 다시 수정해 주세요.', conflict: true, item: cur },
+              { status: 409 }
+            )
+          }
+        }
+      }
+      await keepHistory(store, collection, incoming.map((r) => r.id && list.find((x) => x.id === r.id)), 'save')
       // 월간 보고서가 새로 공개되면 업체에 알림
       const publishFlags = incoming.map(
         (r) => collection === 'reports' && r.published && !list.find((x) => x.id === r.id)?.published
@@ -161,7 +232,8 @@ export default async (req) => {
       if (!COLLECTIONS.includes(collection) || !id) {
         return Response.json({ error: 'collection과 id가 필요합니다' }, { status: 400 })
       }
-      const list = await readCol(store, collection)
+      const list = await readColForWrite(store, collection)
+      await keepHistory(store, collection, [list.find((x) => x.id === id)], 'delete')
       await store.setJSON(
         collection,
         list.filter((x) => x.id !== id)
