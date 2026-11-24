@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Plus, Pencil, Trash2, Phone, Clock, MapPin, ChevronDown, ListChecks, Printer } from 'lucide-react'
 import { cycleLabel, CYCLE_OPTIONS, serviceNextDue, lastInspection, nextInspectionDue, todayStr, fmtDate } from '../../lib/rounds'
 import { Modal, Label, Card, inputCls, btnPrimary, btnGhost, btnDanger } from './ui'
-import { scopeCount, VAT_MODES } from '../../lib/rounds'
+import { scopeCount, VAT_MODES, newAccessCode } from '../../lib/rounds'
 import ScopeEditor from './ScopeEditor'
 import ScopeView from './ScopeView'
 import { api } from '../../lib/api'
@@ -25,6 +25,57 @@ const emptySite = (order) => ({
 const emptyService = () => ({ id: crypto.randomUUID(), name: '', cycleMonths: 1, lastDoneDate: '', note: '' })
 
 const SERVICE_EXAMPLES = ['카펫 세척', '유리창 청소', '바닥 왁스', '에어컨 필터', '방역·소독', '외벽·간판']
+
+// 층·구역별 문의 전용 링크(QR) — 그 링크로는 문의 남기기·문의 내역만 보임
+function SubLinksEditor({ subLinks, onChange }) {
+  const [draft, setDraft] = useState('')
+  const add = (label) => {
+    const l = label.trim()
+    if (!l || subLinks.some((x) => x.label === l && x.active !== false)) return
+    onChange([...subLinks, { id: crypto.randomUUID(), label: l, code: newAccessCode(), active: true }])
+    setDraft('')
+  }
+  const live = subLinks.filter((x) => x.active !== false)
+  return (
+    <div className="rounded-lg border border-base-800 bg-base-900 p-3">
+      <p className="text-xs font-medium text-base-300">층·구역별 문의 전용 QR (선택)</p>
+      <p className="mt-0.5 text-[11px] text-base-500">
+        층마다 붙여 둘 QR이 필요할 때 추가하세요. 이 QR로는 "문의 남기기 · 문의 내역"만 보이고 월간 보고서·청소 범위는 보이지 않아요. 문의에는 층 이름이 붙어서 들어와요. QR은 "업체 소통" 탭 아래 링크 목록에서 열 수 있어요.
+      </p>
+      {live.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {live.map((x) => (
+            <span key={x.id} className="flex items-center gap-1 rounded-md border border-base-700 bg-base-950 px-2 py-1 text-xs">
+              {x.label}
+              <button
+                type="button"
+                className="text-base-500 hover:text-red-500"
+                onClick={() => {
+                  if (confirm(`'${x.label}' 문의 전용 QR을 없앨까요? 이미 붙여 둔 QR은 더 이상 열리지 않아요. (그동안 받은 문의는 남아요)`))
+                    onChange(subLinks.map((y) => (y.id === x.id ? { ...y, active: false } : y)))
+                }}
+              >
+                ✕
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+      <div className="mt-2 flex gap-1.5">
+        <input
+          className={`${inputCls} flex-1`}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), add(draft))}
+          placeholder="예: 11층, 1층 로비, 여자화장실"
+        />
+        <button type="button" className={btnGhost} onClick={() => add(draft)}>
+          + 추가
+        </button>
+      </div>
+    </div>
+  )
+}
 
 // 이 현장의 예전 저장 내용 — 청소 범위·서비스 항목이 실수로 지워졌을 때 되살리기
 function SiteHistory({ siteId, onRestore }) {
@@ -165,6 +216,10 @@ function SiteModal({ initial, onClose, ops, otherSites }) {
         </div>
 
         <ScopeEditor scope={site.scope} onChange={(scope) => setSite((s) => ({ ...s, scope }))} otherSites={otherSites.filter((o) => o.id !== site.id)} />
+        <SubLinksEditor
+          subLinks={site.subLinks || []}
+          onChange={(subLinks) => setSite((s) => ({ ...s, subLinks }))}
+        />
         {initial.id && <SiteHistory siteId={initial.id} onRestore={(old) => setSite((s) => ({ ...s, scope: old.scope || [], services: (old.services || []).map((x) => ({ ...x })) }))} />}
 
         <div className="rounded-lg border border-base-800 bg-base-900 p-3">

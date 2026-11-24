@@ -136,10 +136,10 @@ export default async (req) => {
         if (text || media.length || executionId) {
           const site = (await readCol(store, 'sites')).find((s) => s.id === t.siteId)
           if (site?.accessCode) {
-            await notify({ role: 'client', siteId: site.id }, {
+            await notify({ role: 'client', siteId: site.id, subId: t.subId || null }, {
               title: '(주)이엘씨_대치남 답변 도착',
               body: clip(text) || '조치 사진·영상을 보냈습니다',
-              url: `/client?c=${site.accessCode}&tab=tickets`,
+              url: `/client?c=${(t.subId && (site.subLinks || []).find((x) => x.id === t.subId)?.code) || site.accessCode}&tab=tickets`,
               tag: `ticket-${t.id}`
             })
           }

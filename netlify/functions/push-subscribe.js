@@ -1,5 +1,6 @@
 import { getStore } from '@netlify/blobs'
 import { pushEnabled, publicKey, saveSub, removeSub } from '../lib/push.js'
+import { resolveCode } from '../lib/auth.js'
 
 // GET    /api/push-subscribe                → { enabled, publicKey }
 // POST   /api/push-subscribe  { subscription, role: 'admin' }            (관리자 비밀번호 헤더 필요)
@@ -26,9 +27,9 @@ export default async (req) => {
 
       if (role === 'client') {
         const sites = (await getStore('regular-ops').get('sites', { type: 'json' }).catch(() => null)) || []
-        const site = code && sites.find((s) => s.accessCode === code)
-        if (!site) return Response.json({ error: '링크가 올바르지 않습니다' }, { status: 404 })
-        await saveSub({ endpoint: subscription.endpoint, keys: subscription.keys, role: 'client', siteId: site.id })
+        const found = resolveCode(sites, code)
+        if (!found) return Response.json({ error: '링크가 올바르지 않습니다' }, { status: 404 })
+        await saveSub({ endpoint: subscription.endpoint, keys: subscription.keys, role: 'client', siteId: found.site.id, subId: found.sub?.id || null })
         return Response.json({ ok: true })
       }
 

@@ -35,7 +35,7 @@ export default function TicketsPrint({ id, tickets, siteName }) {
             <tr key={t.id} style={{ breakInside: 'avoid' }}>
               <td className="border border-base-700 px-2 py-1 align-top">{fmtDateTime(t.createdAt)}</td>
               {siteName && <td className="border border-base-700 px-2 py-1 align-top">{siteName(t.siteId)}</td>}
-              <td className="border border-base-700 px-2 py-1 align-top">{t.category}</td>
+              <td className="border border-base-700 px-2 py-1 align-top">{t.subLabel ? `${t.subLabel} · ` : ''}{t.category}</td>
               <td className="whitespace-pre-line border border-base-700 px-2 py-1 align-top">
                 {t.content}
                 {t.authorName && <span className="block text-base-500">— {t.authorName}</span>}

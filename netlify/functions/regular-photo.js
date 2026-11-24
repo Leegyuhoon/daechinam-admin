@@ -1,4 +1,5 @@
 import { getStore } from '@netlify/blobs'
+import { resolveCode } from '../lib/auth.js'
 
 // 정기현장 전후 사진
 // POST /api/regular-photo  (관리자 비밀번호 또는 업체 접속 코드 필요, 본문: 이미지 바이너리 — 브라우저에서 미리 압축해서 보냄)
@@ -18,7 +19,7 @@ export default async (req) => {
         // 업체 담당자 페이지에서 문의 사진을 올릴 때 — 현장 접속 코드로 확인
         const code = req.headers.get('x-client-code')
         const sites = code ? await getStore('regular-ops').get('sites', { type: 'json' }).catch(() => null) : null
-        if (!code || !(sites || []).some((s) => s.accessCode === code)) {
+        if (!code || !resolveCode(sites || [], code)) {
           return Response.json({ error: '업로드 권한이 없습니다' }, { status: 401 })
         }
       }

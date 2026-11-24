@@ -91,7 +91,7 @@ export default function MonthlyReportDoc({ siteName, month, report, data, servic
 
   const requests = tickets.map((t, i) => ({
     n: i + 1,
-    req: t.content || '(사진·영상 첨부 요청)',
+    req: `${t.subLabel ? `[${t.subLabel}] ` : ''}${t.content || '(사진·영상 첨부 요청)'}`,
     result: lastAdmin(t) || (t.status === 'done' ? '조치 완료' : '확인 후 조치 예정'),
     status: t.status || 'open',
     ids: t.executionIds || []

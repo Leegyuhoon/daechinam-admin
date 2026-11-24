@@ -31,7 +31,8 @@ export async function removeSub(endpoint) {
   )
 }
 
-// target: { role: 'admin' } 또는 { role: 'client', siteId }
+// target: { role: 'admin' } 또는 { role: 'client', siteId, subId? }
+//   업체 관리자용 구독은 그 현장 알림을 모두 받고, 층·구역 전용 구독(subId)은 그 층에서 남긴 문의 답변만 받음
 // payload: { title, body, url }
 // 실패해도 본래 작업(문의 저장 등)에는 영향이 없도록 오류를 삼킴
 export async function notify(target, payload) {
@@ -39,7 +40,11 @@ export async function notify(target, payload) {
   try {
     webpush.setVapidDetails(SUBJECT, PUBLIC_KEY, PRIVATE_KEY)
     const subs = await readSubs()
-    const targets = subs.filter((s) => s.role === target.role && (target.role !== 'client' || s.siteId === target.siteId))
+    const targets = subs.filter(
+      (s) =>
+        s.role === target.role &&
+        (target.role !== 'client' || (s.siteId === target.siteId && (!s.subId || (target.subId && s.subId === target.subId))))
+    )
     if (!targets.length) return
     const gone = []
     await Promise.all(

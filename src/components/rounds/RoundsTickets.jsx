@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
-import { Plus, Send, Copy, Check, Link2, BellRing, Paperclip, FileImage, ExternalLink } from 'lucide-react'
+import { Plus, Send, Copy, Check, Link2, BellRing, Paperclip, FileImage, ExternalLink, QrCode } from 'lucide-react'
 import { TICKET_CATEGORIES, TICKET_STATUS, TICKET_SOURCES, sourceLabel, ticketMedia, needsReply, fmtDateTime, portalLink, reportLink, todayStr } from '../../lib/rounds'
 import { MediaPicker, MediaView } from './Media'
+import QrModal from './QrModal'
 import { Modal, Label, Card, inputCls, btnPrimary, btnGhost } from './ui'
 import PrintButton from '../PrintButton'
 import TicketsPrint from './TicketsPrint'
@@ -86,7 +87,7 @@ function TicketModal({ ticket, site, ops, onClose }) {
   const msgs = ticket.messages || []
 
   return (
-    <Modal title={`${site?.name || ''} · ${ticket.category}`} onClose={onClose} wide>
+    <Modal title={`${site?.name || ''}${ticket.subLabel ? ` ${ticket.subLabel}` : ''} · ${ticket.category}`} onClose={onClose} wide>
       <div className="space-y-3">
         <div className="rounded-lg bg-base-900 p-3">
           <p className="mb-1 text-[12px] text-base-500">
@@ -289,6 +290,12 @@ export default function RoundsTickets({ data, ops }) {
     const code = await ops.ensureAccessCode(s)
     copy(s.id, portalLink(code))
   }
+  const [qr, setQr] = useState(null) // { siteName, label, kind, url }
+  const openQr = async (s, sub) => {
+    if (sub) return setQr({ siteName: s.name, label: sub.label, kind: 'sub', url: portalLink(sub.code) })
+    const code = await ops.ensureAccessCode(s)
+    setQr({ siteName: s.name, kind: 'main', url: portalLink(code) })
+  }
 
   return (
     <div className="space-y-4">
@@ -345,6 +352,7 @@ export default function RoundsTickets({ data, ops }) {
               <Card className="!p-3 hover:border-mist-500/50">
                 <div className="mb-1 flex flex-wrap items-center gap-1.5 text-[12px]">
                   <span className="font-medium text-base-200">{site(t.siteId)?.name || '(삭제된 현장)'}</span>
+                  {t.subLabel && <span className="rounded bg-violet-500/15 px-1.5 py-0.5 font-medium text-violet-500">{t.subLabel}</span>}
                   <span className="rounded bg-base-900 px-1.5 py-0.5 text-base-400">{t.category}</span>
                   <span className={`rounded px-1.5 py-0.5 ${STATUS_CLS[t.status] || STATUS_CLS.open}`}>{TICKET_STATUS[t.status] || '접수'}</span>
                   {needsReply(t) && <span className="rounded bg-amber-500 px-1.5 py-0.5 font-medium text-white">답변 필요</span>}
@@ -376,17 +384,41 @@ export default function RoundsTickets({ data, ops }) {
         </p>
         <div className="grid gap-1.5 sm:grid-cols-2">
           {activeSites.map((s) => (
-            <div key={s.id} className="flex items-center justify-between rounded-lg bg-base-900 px-3 py-1.5 text-xs">
-              <span>{s.name}</span>
-              <button onClick={() => copyPortal(s)} className="flex items-center gap-1 text-mist-500 hover:underline">
-                {copied === s.id ? <Check size={12} /> : <Copy size={12} />} {copied === s.id ? '복사됨' : '링크 복사'}
-              </button>
+            <div key={s.id} className="rounded-lg bg-base-900 px-3 py-1.5 text-xs">
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-medium">{s.name}</span>
+                <span className="flex shrink-0 items-center gap-3">
+                  <button onClick={() => openQr(s)} className="flex items-center gap-1 text-mist-500 hover:underline">
+                    <QrCode size={12} /> QR
+                  </button>
+                  <button onClick={() => copyPortal(s)} className="flex items-center gap-1 text-mist-500 hover:underline">
+                    {copied === s.id ? <Check size={12} /> : <Copy size={12} />} {copied === s.id ? '복사됨' : '링크 복사'}
+                  </button>
+                </span>
+              </div>
+              {(s.subLinks || []).filter((x) => x.active !== false && x.code).map((sub) => (
+                <div key={sub.id} className="mt-1 flex items-center justify-between gap-2 border-t border-base-800 pt-1 text-base-400">
+                  <span>└ {sub.label} <span className="text-[11px] text-base-500">문의 전용</span></span>
+                  <span className="flex shrink-0 items-center gap-3">
+                    <button onClick={() => openQr(s, sub)} className="flex items-center gap-1 text-mist-500 hover:underline">
+                      <QrCode size={12} /> QR
+                    </button>
+                    <button onClick={() => copy(sub.id, portalLink(sub.code))} className="flex items-center gap-1 text-mist-500 hover:underline">
+                      {copied === sub.id ? <Check size={12} /> : <Copy size={12} />} {copied === sub.id ? '복사됨' : '링크 복사'}
+                    </button>
+                  </span>
+                </div>
+              ))}
             </div>
           ))}
         </div>
+        <p className="mt-2 text-[11px] text-base-500">
+          층·구역마다 문의만 받는 QR이 필요하면 "현장·서비스" 탭 → 현장 수정 → "층·구역별 문의 전용 QR"에서 추가하세요. (예: 메트라이프 본사 11층·12층·13층)
+        </p>
       </Card>
 
       {opened && <TicketModal ticket={opened} site={site(opened.siteId)} ops={ops} onClose={() => setOpenId(null)} />}
+      {qr && <QrModal {...qr} onClose={() => setQr(null)} />}
       {creating && <NewTicketModal sites={activeSites} ops={ops} onClose={() => setCreating(false)} />}
     </div>
   )

@@ -291,6 +291,12 @@ export default function ClientPortal() {
 
   const { site, tickets, reports, visits, executions } = state.data
   const issues = state.data.issues || []
+  // 층·구역별 문의 전용 링크: 문의 남기기·문의 내역만
+  const isSub = state.data.mode === 'sub'
+  if (isSub && (tab === 'reports' || tab === 'scope')) {
+    setTimeout(() => go('new'))
+    return null
+  }
   const report = reportMonth && reports.find((r) => r.month === reportMonth)
 
   return (
@@ -298,7 +304,10 @@ export default function ClientPortal() {
       <div className="mx-auto max-w-2xl">
         <div className="no-print mb-4">
           <p className="text-[12px] text-page-sub">(주)이엘씨_대치남 고객 전용</p>
-          <p className="text-lg font-semibold text-page-text">{site.name}</p>
+          <p className="text-lg font-semibold text-page-text">
+            {site.name}
+            {isSub && <span className="text-page-sub"> {site.subLabel}</span>}
+          </p>
         </div>
 
         <PushToggle role="client" code={code} variant="client" />
@@ -307,8 +316,12 @@ export default function ClientPortal() {
           {[
             ['new', '문의 남기기', PenLine],
             ['tickets', `문의 내역${tickets.length ? ` ${tickets.length}` : ''}`, MessagesSquare],
-            ['reports', '월간 보고서', FileText],
-            ['scope', '청소 범위', ListChecks]
+            ...(isSub
+              ? []
+              : [
+                  ['reports', '월간 보고서', FileText],
+                  ['scope', '청소 범위', ListChecks]
+                ])
           ].map(([key, label, Icon]) => (
             <button
               key={key}
@@ -340,7 +353,9 @@ export default function ClientPortal() {
               </div>
             ) : (
               <>
-                <p className="mb-3 text-xs text-base-500">질문, 불편 사항, 개선 요청을 남겨 주시면 확인 후 이 페이지로 답변드립니다.</p>
+                <p className="mb-3 text-xs text-base-500">
+                  {isSub ? `${site.subLabel}에서 청소 관련 요청이나 불편 사항을 남겨 주시면 확인 후 이 페이지로 답변드립니다.` : '질문, 불편 사항, 개선 요청을 남겨 주시면 확인 후 이 페이지로 답변드립니다.'}
+                </p>
                 <NewTicket
                   code={code}
                   onDone={() => {

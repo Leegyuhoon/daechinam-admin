@@ -1,5 +1,6 @@
 import { getStore } from '@netlify/blobs'
 import { notify, clip } from '../lib/push.js'
+import { resolveCode } from '../lib/auth.js'
 
 // 업체 담당자 전용 페이지(/client?c=접속코드) API — 로그인 없이, 현장마다 다른 추측 불가 코드로만 접근
 // GET  /api/regular-client?c=코드        → 현장명, 문의 내역, 공개된 월간 보고서와 보고서에 필요한 기록
@@ -40,6 +41,7 @@ const publicTicket = (t) => ({
   status: t.status || 'open',
   messages: (t.messages || []).map((m) => ({ from: m.from, text: m.text, at: m.at, media: m.media || [], executionId: m.executionId || null })),
   executionIds: t.executionIds || [],
+  subLabel: t.subLabel || '',
   createdAt: t.createdAt
 })
 
@@ -52,8 +54,28 @@ export default async (req) => {
 
   try {
     const sites = await readCol(store, 'sites')
-    const site = sites.find((s) => s.accessCode === code && s.active !== false)
-    if (!site) return Response.json({ ok: false, error: '링크가 만료되었거나 올바르지 않습니다' }, { status: 404 })
+    const found = resolveCode(sites, code)
+    if (!found) return Response.json({ ok: false, error: '링크가 만료되었거나 올바르지 않습니다' }, { status: 404 })
+    const { site, sub } = found
+    const placeName = sub ? `${site.name} ${sub.label}` : site.name
+
+    // 층·구역별 문의 전용 링크 — 문의 남기기·문의 내역(그 층에서 남긴 것)만, 보고서·청소 범위 등은 주지 않음
+    if (sub && req.method === 'GET') {
+      const tickets = await readCol(store, 'tickets')
+      return Response.json({
+        ok: true,
+        mode: 'sub',
+        site: { name: site.name, subLabel: sub.label },
+        tickets: tickets
+          .filter((t) => t.siteId === site.id && t.subId === sub.id)
+          .map(publicTicket)
+          .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || '')),
+        reports: [],
+        visits: [],
+        executions: [],
+        issues: []
+      })
+    }
 
     if (req.method === 'GET') {
       const [tickets, reports, visits, executions, issues] = await Promise.all(
@@ -132,6 +154,7 @@ export default async (req) => {
           content: content.slice(0, 2000),
           authorName: String(body.authorName || '').trim().slice(0, 40),
           media,
+          ...(sub ? { subId: sub.id, subLabel: sub.label } : {}),
           source: 'web',
           status: 'open',
           messages: [],
@@ -142,7 +165,7 @@ export default async (req) => {
         tickets.push(ticket)
         await store.setJSON('tickets', tickets)
         await notify({ role: 'admin' }, {
-          title: `새 문의 · ${site.name}`,
+          title: `새 문의 · ${placeName}`,
           body: `[${ticket.category}] ${clip(ticket.content) || '사진·영상 첨부'}`,
           url: '/rounds?tab=tickets',
           tag: `ticket-${ticket.id}`
@@ -152,6 +175,7 @@ export default async (req) => {
 
       // 업체가 월간 보고서에 만족도 평가 (1~5점 + 한마디), 다시 평가하면 덮어씀
       if (body.action === 'rate') {
+        if (sub) return Response.json({ ok: false, error: '이 링크로는 평가할 수 없습니다' }, { status: 403 })
         const score = Math.round(Number(body.score))
         if (!(score >= 1 && score <= 5)) return Response.json({ ok: false, error: '평가 점수를 골라 주세요' }, { status: 400 })
         const reports = await readCol(store, 'reports')
@@ -176,7 +200,7 @@ export default async (req) => {
       if (body.action === 'reply') {
         const text = String(body.text || '').trim()
         const media = cleanMedia(body.media)
-        const t = tickets.find((x) => x.id === body.ticketId && x.siteId === site.id)
+        const t = tickets.find((x) => x.id === body.ticketId && x.siteId === site.id && (!sub || x.subId === sub.id))
         if (!t || (!text && !media.length)) return Response.json({ ok: false, error: '문의를 찾을 수 없거나 내용이 비어 있습니다' }, { status: 400 })
         t.messages = [...(t.messages || []), { id: crypto.randomUUID(), from: 'client', text: text.slice(0, 2000), media, at: now }]
         t.lastClientAt = now
@@ -184,7 +208,7 @@ export default async (req) => {
         if (t.status === 'done') t.status = 'open' // 완료 후 다시 문의하면 다시 열림
         await store.setJSON('tickets', tickets)
         await notify({ role: 'admin' }, {
-          title: `추가 문의 · ${site.name}`,
+          title: `추가 문의 · ${t.subLabel ? `${site.name} ${t.subLabel}` : site.name}`,
           body: clip(text) || '사진·영상을 보냈습니다',
           url: '/rounds?tab=tickets',
           tag: `ticket-${t.id}`
