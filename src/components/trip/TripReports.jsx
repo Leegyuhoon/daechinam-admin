@@ -144,7 +144,7 @@ function Editor({ initial, jobs, onSaved, onCancel }) {
           </button>
         </div>
         <div className="overflow-x-auto rounded-xl bg-white p-3 shadow-sm">
-          <div id="print-trip-doc" style={{ minWidth: 640 }}>
+          <div id="print-trip-doc" className="print-min0 print-no-title" style={{ minWidth: 640 }}>
             <TripReportDoc r={r} />
           </div>
         </div>
@@ -379,7 +379,7 @@ export default function TripReports({ jobs = [] }) {
           </button>
         </div>
         <div className="overflow-x-auto rounded-xl bg-white p-3 shadow-sm">
-          <div id="print-trip-doc" style={{ minWidth: 640 }}>
+          <div id="print-trip-doc" className="print-min0 print-no-title" style={{ minWidth: 640 }}>
             <TripReportDoc r={viewing} />
           </div>
         </div>

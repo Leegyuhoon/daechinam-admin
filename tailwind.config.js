@@ -2,6 +2,15 @@
 export default {
   content: ['./index.html', './src/**/*.{js,jsx}'],
   theme: {
+    // 인쇄(PDF) 때는 A4 폭(약 700px)이 md(768px)보다 좁아서 휴대폰용 화면이 찍히던 문제 →
+    // 인쇄할 때는 항상 PC(md 이상) 배치로 나오게 함
+    screens: {
+      sm: '640px',
+      md: { raw: '(min-width: 768px), print' },
+      lg: '1024px',
+      xl: '1280px',
+      '2xl': '1536px'
+    },
     extend: {
       colors: {
         // 카드/콘텐츠 안쪽 — 어플처럼 흰색 카드가 어두운 배경 위에 떠 있는 형태라 그대로 유지

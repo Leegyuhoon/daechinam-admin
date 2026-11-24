@@ -407,7 +407,7 @@ export default function ClientPortal() {
                     <Printer size={13} /> PDF 저장
                   </button>
                 </div>
-                <div id="print-portal-report">
+                <div id="print-portal-report" className="print-no-title">
                   <MonthlyReportDoc
                     siteName={site.name}
                     month={report.month}

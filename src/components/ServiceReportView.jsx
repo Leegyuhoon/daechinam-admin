@@ -45,7 +45,7 @@ export default function ServiceReportView() {
         </button>
       </div>
 
-      <div id="print-service-report" className="mx-auto max-w-[210mm] rounded-xl border border-base-800 bg-base-950 p-5 text-base-100 shadow-sm">
+      <div id="print-service-report" className="print-no-title mx-auto max-w-[210mm] rounded-xl border border-base-800 bg-base-950 p-5 text-base-100 shadow-sm">
         <div className="mb-4 border-b border-base-800 pb-3">
           <p className="text-[12px] text-base-500">작업 전후 보고서</p>
           <p className="text-lg font-bold">

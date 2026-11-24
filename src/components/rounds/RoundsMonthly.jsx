@@ -305,7 +305,7 @@ function ReportEditor({ site, month, initial, data, ops, onClose, onGoCalendar, 
         )}
         <p className="pt-2 text-xs font-semibold text-base-300">미리보기</p>
       </div>
-      <div id="print-monthly-doc" className="rounded-xl border border-base-800 bg-base-950 p-4">
+      <div id="print-monthly-doc" className="print-no-title rounded-xl border border-base-800 bg-base-950 p-4">
         <MonthlyReportDoc siteName={site.name} month={month} report={r} data={data} serviceReportLink={reportLink} inspectCycleMonths={site.inspectCycleMonths} scope={site.scope} vat={site.billing?.enabled ? site.billing.vat || 'separate' : null} />
       </div>
     </Modal>

@@ -7,7 +7,14 @@ export function printElement(targetId, title) {
   if (!el) return
   const prevTitle = document.title
   el.classList.add('print-target')
-  if (title) el.setAttribute('data-print-title', title)
+  // PDF 맨 위 제목 줄 — 대상 영역 바로 앞에 붙임(대상이 표·격자 배치여도 제목이 칸 안으로 끼어들지 않게)
+  let titleEl = null
+  if (title && !el.classList.contains('print-no-title') && el.parentElement) {
+    titleEl = document.createElement('div')
+    titleEl.className = 'print-title-el'
+    titleEl.textContent = title.replace(/_/g, ' · ')
+    el.parentElement.insertBefore(titleEl, el)
+  }
   // 대상의 상위 요소들은 남겨 두고(레이아웃 유지) 나머지는 인쇄에서 뺌
   const ancestors = []
   for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
@@ -22,7 +29,7 @@ export function printElement(targetId, title) {
     done = true
     el.classList.remove('print-target')
     ancestors.forEach((p) => p.classList.remove('print-ancestor'))
-    el.removeAttribute('data-print-title')
+    if (titleEl) titleEl.remove()
     document.body.classList.remove('printing-target')
     document.title = prevTitle
   }

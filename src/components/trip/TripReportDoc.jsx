@@ -29,7 +29,7 @@ export default function TripReportDoc({ r }) {
   return (
     <div style={{ background: '#fff', color: '#000', fontFamily: "'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif", lineHeight: 1.6 }}>
       {/* 1쪽 — 보고서 */}
-      <div style={{ maxWidth: 760, margin: '0 auto', padding: 8 }}>
+      <div className="print-doc" style={{ maxWidth: 760, margin: '0 auto', padding: 8 }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 6 }}>
           <tbody>
             <tr>
@@ -145,7 +145,7 @@ export default function TripReportDoc({ r }) {
 
       {/* 2쪽 — 출장 경비 증빙 */}
       {receipts.length > 0 && (
-        <div style={{ maxWidth: 760, margin: '0 auto', padding: 8, breakBefore: 'page', pageBreakBefore: 'always' }}>
+        <div className="print-doc" style={{ maxWidth: 760, margin: '0 auto', padding: 8, breakBefore: 'page', pageBreakBefore: 'always' }}>
           <p style={{ margin: '24px 0 14px', fontSize: 16, fontWeight: 700 }}>출장 경비 증빙 첨부</p>
           {receipts.map((x, i) => (
             <div key={x.id || i} style={{ marginBottom: 18, breakInside: 'avoid' }}>

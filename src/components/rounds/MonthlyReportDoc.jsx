@@ -144,7 +144,7 @@ export default function MonthlyReportDoc({ siteName, month, report, data, servic
 
   return (
     <div className="mr-doc" style={{ background: '#fff', color: C.text, fontFamily: "Pretendard, 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif", lineHeight: 1.55, fontSize: 12.5 }}>
-      <div style={{ maxWidth: 760, margin: '0 auto', padding: '4px 6px 8px' }}>
+      <div className="print-doc" style={{ maxWidth: 760, margin: '0 auto', padding: '4px 6px 8px' }}>
         <Header />
 
         {/* 기본 정보 */}
@@ -340,7 +340,7 @@ export default function MonthlyReportDoc({ siteName, month, report, data, servic
       </div>
 
       {(pics.length > 0 || vids.length > 0) && (
-        <div style={{ maxWidth: 760, margin: '0 auto', padding: '4px 6px 8px', breakBefore: 'page', pageBreakBefore: 'always' }}>
+        <div className="print-doc" style={{ maxWidth: 760, margin: '0 auto', padding: '4px 6px 8px', breakBefore: 'page', pageBreakBefore: 'always' }}>
           <Header small />
           <div className="mr-photos" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 16 }}>
             {pics.map((p, i) => (

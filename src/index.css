@@ -51,8 +51,14 @@ body {
 
 /* 화면 일부만 PDF로 저장 (PrintButton) — 대상 영역과 그 상위 요소만 남기고 나머지는 숨김 */
 @media print {
-  @page { margin: 12mm; }
-  body.printing-target :not(.print-ancestor, .print-target, .print-target *) {
+  @page { size: A4 portrait; margin: 12mm 11mm; }
+  html, body {
+    background: #fff !important;
+    min-height: 0 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  body.printing-target :not(.print-ancestor, .print-target, .print-target *, .print-title-el) {
     display: none !important;
   }
   body.printing-target .print-ancestor {
@@ -63,8 +69,12 @@ body {
     box-shadow: none !important;
     min-height: 0 !important;
     max-height: none !important;
+    height: auto !important;
+    width: auto !important;
+    max-width: none !important;
     overflow: visible !important;
     position: static !important;
+    transform: none !important;
     display: block !important;
     visibility: visible !important;
   }
@@ -72,11 +82,73 @@ body {
   body.printing-target .print-target * {
     visibility: visible !important;
   }
+  /* 대상 영역을 A4 폭에 꽉 차게 */
   body.printing-target .print-target {
     width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    margin: 0 !important;
     max-height: none !important;
     overflow: visible !important;
     background: #fff;
+    box-shadow: none !important;
+    /* 한글이 글자 중간에서 끊기지 않게 단어 단위로 줄바꿈, 긴 주소·숫자만 필요할 때 끊음 */
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+  }
+  body.printing-target .print-target .print-doc,
+  body.printing-target .print-target .print-min0 {
+    max-width: none !important;
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+  /* 화면용 스크롤 박스·높이 제한·가로 최소폭을 풀어서 내용이 잘리지 않게 */
+  body.printing-target .print-target .overflow-auto,
+  body.printing-target .print-target .overflow-x-auto,
+  body.printing-target .print-target .overflow-y-auto,
+  body.printing-target .print-target .overflow-hidden,
+  body.printing-target .print-target [class*='max-h-'] {
+    overflow: visible !important;
+    max-height: none !important;
+  }
+  body.printing-target .print-target [class*='min-w-'],
+  body.printing-target .print-target table {
+    min-width: 0 !important;
+  }
+  body.printing-target .print-target table {
+    width: 100% !important;
+  }
+  /* 화면에서 "…"로 잘리던 글자는 인쇄에서는 끝까지 보이게 */
+  body.printing-target .print-target .truncate,
+  body.printing-target .print-target [class*='line-clamp-'] {
+    overflow: visible !important;
+    white-space: normal !important;
+    text-overflow: clip !important;
+    -webkit-line-clamp: unset !important;
+  }
+  body.printing-target .print-target .whitespace-nowrap {
+    white-space: normal !important;
+  }
+  /* 쪽 나눔: 표의 행·카드·사진이 두 쪽에 걸쳐 잘리지 않게, 표 머리는 쪽마다 반복 */
+  body.printing-target .print-target thead { display: table-header-group; }
+  body.printing-target .print-target tr,
+  body.printing-target .print-target img,
+  body.printing-target .print-target video,
+  body.printing-target .print-target figure,
+  body.printing-target .print-target li,
+  body.printing-target .print-target .avoid-break {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  body.printing-target .print-target h1,
+  body.printing-target .print-target h2,
+  body.printing-target .print-target h3,
+  body.printing-target .print-target h4 {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+  body.printing-target .print-target img {
+    max-width: 100% !important;
   }
   body.printing-target .print-target .no-print {
     display: none !important;
@@ -85,19 +157,30 @@ body {
   body.printing-target .print-target .text-page-sub {
     color: #12161b !important;
   }
-  body.printing-target .print-target::before {
-    content: attr(data-print-title);
-    display: block;
-    margin: 0 0 12px;
-    font-size: 16px;
+  body.printing-target .print-title-el {
+    display: block !important;
+    visibility: visible !important;
+    margin: 0 0 10px;
+    padding-bottom: 6px;
+    border-bottom: 1.5px solid #12161b;
+    font-size: 15px;
     font-weight: 700;
     color: #12161b;
+    background: #fff;
+  }
+  body.printing-target .print-target.print-no-title {
+    border: 0 !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
   }
   .print-only {
     display: block !important;
   }
 }
 .print-only {
+  display: none;
+}
+.print-title-el {
   display: none;
 }
 
