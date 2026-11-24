@@ -94,7 +94,9 @@ export default function MonthlyReportDoc({ siteName, month, report, data, servic
     req: `${t.subLabel ? `[${t.subLabel}] ` : ''}${t.content || '(사진·영상 첨부 요청)'}`,
     result: lastAdmin(t) || (t.status === 'done' ? '조치 완료' : '확인 후 조치 예정'),
     status: t.status || 'open',
-    ids: t.executionIds || []
+    ids: t.executionIds || [],
+    // 지난달 이전에 접수된 문의는 접수일 표시
+    carried: (t.createdAt || '').slice(0, 7) && (t.createdAt || '').slice(0, 7) !== month ? `${Number(t.createdAt.slice(5, 7))}/${Number(t.createdAt.slice(8, 10))} 접수` : ''
   }))
   const doneReq = requests.filter((r) => r.status === 'done').length
   const issueCount = issues.reduce((n, x) => n + (x.items || []).length, 0)
@@ -175,13 +177,16 @@ export default function MonthlyReportDoc({ siteName, month, report, data, servic
 
         <Section no="01" title="요청사항" right={requests.length ? <span style={{ fontSize: 11, color: C.mute }}>완료 {doneReq} / {requests.length}</span> : null}>
           {requests.length === 0 ? (
-            <p style={{ margin: 0, padding: '10px 12px', background: C.tint, borderRadius: 8, color: C.sub }}>이번 달 접수된 요청사항이 없습니다.</p>
+            <p style={{ margin: 0, padding: '10px 12px', background: C.tint, borderRadius: 8, color: C.sub }}>이번 달 접수·처리된 요청사항이 없습니다.</p>
           ) : (
             <div style={{ border: `1px solid ${C.line}`, borderRadius: 10, overflow: 'hidden' }}>
               {requests.map((r, i) => (
                 <div key={r.n} className="mr-req" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', borderTop: i ? `1px solid ${C.line}` : 'none', breakInside: 'avoid' }}>
                   <div style={{ padding: '7px 12px', borderRight: `1px solid ${C.line}` }}>
-                    <p style={{ margin: 0, fontSize: 10.5, color: C.mute }}>요청 {r.n}</p>
+                    <p style={{ margin: 0, fontSize: 10.5, color: C.mute }}>
+                      요청 {r.n}
+                      {r.carried && <span style={{ marginLeft: 6, color: C.gold, fontWeight: 600 }}>{r.carried}</span>}
+                    </p>
                     <p style={{ margin: 0, whiteSpace: 'pre-line' }}>{r.req}</p>
                   </div>
                   <div style={{ padding: '7px 12px', background: '#FCFCFD' }}>

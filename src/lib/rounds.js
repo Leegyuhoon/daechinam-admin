@@ -186,8 +186,17 @@ export function collectMonth({ siteId, month, visits, tickets, executions, issue
     inspections: visits
       .filter((v) => mine(v) && v.type === 'inspection' && v.status === 'done' && v.date?.startsWith(month))
       .sort((a, b) => a.date.localeCompare(b.date)),
+    // 이번 달에 접수된 문의 + 지난달 이전에 접수됐지만 이번 달에 답변하거나 완료한 문의
     tickets: tickets
-      .filter((t) => mine(t) && (t.createdAt || '').slice(0, 7) === month)
+      .filter((t) => {
+        if (!mine(t)) return false
+        const created = (t.createdAt || '').slice(0, 7)
+        if (created === month) return true
+        if (!created || created > month) return false
+        const answered = (t.messages || []).some((m) => m.from === 'admin' && (m.at || '').slice(0, 7) === month)
+        const doneThisMonth = t.status === 'done' && (t.updatedAt || '').slice(0, 7) === month
+        return answered || doneThisMonth
+      })
       .sort((a, b) => (a.createdAt || '').localeCompare(b.createdAt || '')),
     executions: executions.filter((e) => mine(e) && e.date?.startsWith(month)).sort((a, b) => a.date.localeCompare(b.date)),
     issues: (issues || [])

@@ -42,7 +42,8 @@ const publicTicket = (t) => ({
   messages: (t.messages || []).map((m) => ({ from: m.from, text: m.text, at: m.at, media: m.media || [], executionId: m.executionId || null })),
   executionIds: t.executionIds || [],
   subLabel: t.subLabel || '',
-  createdAt: t.createdAt
+  createdAt: t.createdAt,
+  updatedAt: t.updatedAt || t.createdAt
 })
 
 export default async (req) => {
