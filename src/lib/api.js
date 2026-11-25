@@ -284,6 +284,13 @@ export const api = {
       body: JSON.stringify({ collection: 'sites', action: 'patch', patches }),
       headers: { 'X-Client-Admin-Password': clientAdminPassword }
     }),
+  // 네이버 캘린더 구독 주소 토큰 (action: 'get' | 'rotate')
+  calendarFeed: (action = 'get') =>
+    request('/calendar-feed', {
+      method: 'POST',
+      body: JSON.stringify({ action }),
+      headers: { 'X-Client-Admin-Password': clientAdminPassword }
+    }),
   // 덮어쓰기·삭제 전 보관된 이전 내용
   regularHistory: (collection, id) =>
     request(`/regular-ops?history=${encodeURIComponent(collection)}${id ? `&id=${encodeURIComponent(id)}` : ''}`, {

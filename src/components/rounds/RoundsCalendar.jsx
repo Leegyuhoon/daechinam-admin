@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ChevronLeft, ChevronRight, Wand2, Plus, Check, Camera, Trash2, Printer } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Wand2, Plus, Check, Camera, Trash2, Printer, CalendarDays, Copy, RefreshCw } from 'lucide-react'
+import { api } from '../../lib/api'
 import {
   thisMonth,
   shiftMonth,
@@ -166,6 +167,7 @@ export default function RoundsCalendar({ data, ops, onWriteReport }) {
   const { sites, visits } = data
   const [month, setMonth] = useState(thisMonth())
   const [modal, setModal] = useState(null)
+  const [feedOpen, setFeedOpen] = useState(false)
   const [planning, setPlanning] = useState(false)
   const [mobileView, setMobileView] = useState('calendar')
   const [selDate, setSelDate] = useState(todayStr())
@@ -264,6 +266,11 @@ export default function RoundsCalendar({ data, ops, onWriteReport }) {
               <Plus size={14} /> <span className="whitespace-nowrap">일정 추가</span>
             </button>
           </div>
+        </div>
+        <div className="mt-2 flex justify-end">
+          <button onClick={() => setFeedOpen(true)} className="flex items-center gap-1 text-xs font-medium text-mist-500 hover:underline">
+            <CalendarDays size={13} /> 네이버 캘린더 연결
+          </button>
         </div>
         <div className="mt-4 grid grid-cols-3 gap-2 text-center">
           {[
@@ -510,7 +517,85 @@ export default function RoundsCalendar({ data, ops, onWriteReport }) {
         </Card>
       </div>
 
+      {feedOpen && <CalendarFeedModal onClose={() => setFeedOpen(false)} />}
       {modal && <VisitModal initial={modal} sites={activeSites} ops={ops} onClose={() => setModal(null)} onWriteReport={onWriteReport} />}
     </div>
+  )
+}
+
+// 네이버 캘린더 구독 주소 안내 — 사이트 일정이 네이버 캘린더에 자동으로 보이게 (한 방향)
+function CalendarFeedModal({ onClose }) {
+  const [token, setToken] = useState(null)
+  const [error, setError] = useState(null)
+  const [copied, setCopied] = useState('')
+  const [busy, setBusy] = useState(false)
+  useEffect(() => {
+    api
+      .calendarFeed('get')
+      .then((r) => setToken(r.token))
+      .catch(() => setError('주소를 불러오지 못했어요. 잠시 후 다시 열어 주세요.'))
+  }, [])
+  const feedUrl = (kind) => `${window.location.origin}/api/calendar-feed?kind=${kind}&t=${token}`
+  const copy = async (kind) => {
+    const u = feedUrl(kind)
+    try {
+      await navigator.clipboard.writeText(u)
+    } catch {
+      window.prompt('아래 주소를 복사하세요', u)
+    }
+    setCopied(kind)
+    setTimeout(() => setCopied(''), 1500)
+  }
+  const rotate = async () => {
+    if (!confirm('새 주소로 바꿀까요? 지금 네이버 캘린더에 등록된 기존 주소는 더 이상 일정이 갱신되지 않아요. 새 주소로 다시 구독해야 합니다.')) return
+    setBusy(true)
+    try {
+      const r = await api.calendarFeed('rotate')
+      setToken(r.token)
+    } catch {
+      setError('바꾸지 못했어요. 다시 시도해 주세요.')
+    } finally {
+      setBusy(false)
+    }
+  }
+  const Row = ({ kind, title, desc }) => (
+    <div className="rounded-lg border border-base-800 bg-base-900 p-3">
+      <div className="flex items-center justify-between gap-2">
+        <div>
+          <p className="text-sm font-semibold">{title}</p>
+          <p className="text-[11px] text-base-500">{desc}</p>
+        </div>
+        <button onClick={() => copy(kind)} disabled={!token} className={btnPrimary + ' shrink-0 !px-3'}>
+          {copied === kind ? <Check size={14} /> : <Copy size={14} />} {copied === kind ? '복사됨' : '주소 복사'}
+        </button>
+      </div>
+      {token && <p className="mt-2 break-all rounded bg-base-950 px-2 py-1 text-[11px] text-base-500">{feedUrl(kind)}</p>}
+    </div>
+  )
+  return (
+    <Modal title="네이버 캘린더 연결" onClose={onClose}>
+      <div className="space-y-3 text-sm">
+        <p className="text-xs text-base-400">
+          아래 주소를 네이버 캘린더에 한 번 등록해 두면, 여기서 일정을 추가·변경·삭제할 때 네이버 캘린더(휴대폰 앱 포함)에도 따라 보여요. 네이버가 주기적으로 읽어 가는 방식이라 반영까지 몇 시간 걸릴 수 있고, 일정 수정은 이 사이트에서 해 주세요.
+        </p>
+        {error && <p className="text-xs text-red-500">{error}</p>}
+        {!token && !error && <p className="text-xs text-base-500">주소 불러오는 중…</p>}
+        <Row kind="regular" title="정기 현장 일정" desc="점검 방문·서비스 실행 — [점검] 은혜광성교회 처럼 표시" />
+        <Row kind="spot" title="일회성 현장 일정" desc="일회성 현장 기록 — 여러 날 작업은 기간으로 표시" />
+        <div className="rounded-lg bg-mist-500/10 p-3 text-xs leading-relaxed text-base-300">
+          <p className="mb-1 font-semibold">네이버 캘린더 등록 방법 (PC에서)</p>
+          <p>① 위에서 "주소 복사"를 누릅니다.</p>
+          <p>② PC에서 calendar.naver.com에 들어가 왼쪽 "내 캘린더" 옆 <b>+</b> → <b>URL로 구독하기</b>를 누릅니다.</p>
+          <p>③ 캘린더 이름(예: 대치남 정기 현장)과 색을 정하고, URL 칸에 붙여 넣은 뒤 저장합니다.</p>
+          <p>④ 일회성 현장도 같은 방법으로 하나 더 구독하면 색으로 구분돼요.</p>
+        </div>
+        <div className="flex items-center justify-between border-t border-base-800 pt-3">
+          <p className="text-[11px] text-base-500">주소가 남에게 알려졌다면 새 주소로 바꾸세요.</p>
+          <button onClick={rotate} disabled={busy || !token} className={btnGhost + ' !px-2 text-xs'}>
+            <RefreshCw size={13} /> 새 주소로 바꾸기
+          </button>
+        </div>
+      </div>
+    </Modal>
   )
 }
