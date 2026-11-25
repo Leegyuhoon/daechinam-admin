@@ -284,6 +284,14 @@ export const api = {
       body: JSON.stringify({ collection: 'sites', action: 'patch', patches }),
       headers: { 'X-Client-Admin-Password': clientAdminPassword }
     }),
+  // 네이버 캘린더(CalDAV) 연결 — 상태 조회 / 동작
+  naverCalendarStatus: () => request('/naver-calendar', { headers: { 'X-Client-Admin-Password': clientAdminPassword } }),
+  naverCalendar: (body) =>
+    request('/naver-calendar', {
+      method: 'POST',
+      body: JSON.stringify(body),
+      headers: { 'X-Client-Admin-Password': clientAdminPassword }
+    }),
   // 네이버 캘린더 구독 주소 토큰 (action: 'get' | 'rotate')
   calendarFeed: (action = 'get') =>
     request('/calendar-feed', {

@@ -523,79 +523,214 @@ export default function RoundsCalendar({ data, ops, onWriteReport }) {
   )
 }
 
-// 네이버 캘린더 구독 주소 안내 — 사이트 일정이 네이버 캘린더에 자동으로 보이게 (한 방향)
+// 네이버 캘린더 연결 — 사이트에서 일정을 저장하면 네이버 캘린더에 바로 등록·수정·삭제 (CalDAV)
 function CalendarFeedModal({ onClose }) {
-  const [token, setToken] = useState(null)
-  const [error, setError] = useState(null)
-  const [copied, setCopied] = useState('')
-  const [busy, setBusy] = useState(false)
-  useEffect(() => {
+  const [st, setSt] = useState(null)
+  const [cals, setCals] = useState(null)
+  const [sel, setSel] = useState({ regular: '', spot: '' })
+  const [msg, setMsg] = useState(null)
+  const [busy, setBusy] = useState('')
+  const [showFeed, setShowFeed] = useState(false)
+
+  const loadStatus = () =>
     api
-      .calendarFeed('get')
-      .then((r) => setToken(r.token))
-      .catch(() => setError('주소를 불러오지 못했어요. 잠시 후 다시 열어 주세요.'))
+      .naverCalendarStatus()
+      .then((r) => {
+        setSt(r)
+        setSel({ regular: r.regularHref || '', spot: r.spotHref || '' })
+      })
+      .catch(() => setMsg({ err: true, text: '연결 상태를 불러오지 못했어요.' }))
+  useEffect(() => {
+    loadStatus()
+  }, [])
+
+  const errText = (e) => {
+    try {
+      return JSON.parse(String(e.message).replace(/^[^{]*/, '')).error || e.message
+    } catch {
+      return e.message
+    }
+  }
+  const discover = async () => {
+    setBusy('discover')
+    setMsg(null)
+    try {
+      const r = await api.naverCalendar({ action: 'discover' })
+      setCals(r.calendars || [])
+      if (!r.calendars?.length) setMsg({ err: true, text: '연결은 됐지만 일정을 넣을 수 있는 캘린더가 없어요.' })
+      else setMsg({ text: `연결 성공 — 캘린더 ${r.calendars.length}개를 찾았어요. 아래에서 고르고 저장하세요.` })
+    } catch (e) {
+      setMsg({ err: true, text: errText(e) })
+    } finally {
+      setBusy('')
+    }
+  }
+  const nameOf = (href) => cals?.find((c) => c.href === href)?.name || (href === st?.regularHref ? st?.regularName : href === st?.spotHref ? st?.spotName : '') || ''
+  const save = async () => {
+    setBusy('save')
+    try {
+      await api.naverCalendar({ action: 'save', regularHref: sel.regular, regularName: nameOf(sel.regular), spotHref: sel.spot, spotName: nameOf(sel.spot) })
+      await loadStatus()
+      setMsg({ text: '저장했어요. 이제부터 일정을 추가·변경·삭제하면 네이버 캘린더에 바로 반영돼요. 기존 일정은 아래 "지금 있는 일정 보내기"를 눌러 주세요.' })
+    } catch (e) {
+      setMsg({ err: true, text: errText(e) })
+    } finally {
+      setBusy('')
+    }
+  }
+  const syncAll = async () => {
+    setBusy('sync')
+    setMsg(null)
+    let sent = 0
+    let failed = 0
+    let firstErr = ''
+    try {
+      for (const kind of ['regular', 'spot']) {
+        if (!(kind === 'regular' ? st?.regularHref : st?.spotHref)) continue
+        let offset = 0
+        for (let guard = 0; guard < 40; guard++) {
+          const r = await api.naverCalendar({ action: 'syncAll', kind, offset })
+          sent += r.next - offset - (r.failed || 0)
+          failed += r.failed || 0
+          if (!firstErr && r.errors?.[0]) firstErr = r.errors[0]
+          setMsg({ text: `보내는 중… ${sent}건` })
+          if (r.done) break
+          offset = r.next
+        }
+      }
+      setMsg(failed ? { err: true, text: `${sent}건 보냄, ${failed}건 실패 — ${firstErr}` } : { text: `완료 — 일정 ${sent}건을 네이버 캘린더에 보냈어요.` })
+    } catch (e) {
+      setMsg({ err: true, text: errText(e) })
+    } finally {
+      setBusy('')
+    }
+  }
+
+  const Select = ({ k, label }) => (
+    <label className="block">
+      <span className="text-xs font-medium text-base-300">{label}</span>
+      <select className={inputCls + ' mt-1'} value={sel[k]} onChange={(e) => setSel({ ...sel, [k]: e.target.value })}>
+        <option value="">보내지 않음</option>
+        {(cals || []).filter((c) => c.canWrite).map((c) => (
+          <option key={c.href} value={c.href}>
+            {c.name}
+          </option>
+        ))}
+        {!cals && sel[k] && <option value={sel[k]}>{nameOf(sel[k]) || '저장된 캘린더'}</option>}
+      </select>
+    </label>
+  )
+
+  return (
+    <Modal title="네이버 캘린더 연결" onClose={onClose}>
+      <div className="space-y-3 text-sm">
+        <p className="text-xs text-base-400">
+          연결해 두면 여기서 일정을 추가·변경·삭제할 때 네이버 캘린더(휴대폰 앱 포함)에도 바로 등록·수정·삭제돼요. 일정 수정은 이 사이트에서 해 주세요. 네이버 캘린더에서 고친 내용은 사이트로 넘어오지 않아요.
+        </p>
+
+        {!st && !msg && <p className="text-xs text-base-500">상태 확인 중…</p>}
+
+        {st && !st.configured && (
+          <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-xs leading-relaxed text-base-300">
+            <p className="mb-1 font-semibold">처음 한 번 준비가 필요해요</p>
+            <p>① 네이버 → 내 정보 → 보안 설정에서 <b>2단계 인증</b>을 켭니다.</p>
+            <p>② 같은 곳의 <b>애플리케이션 비밀번호 관리</b>에서 비밀번호를 새로 만듭니다.</p>
+            <p>③ Netlify → 이 사이트 → Environment variables에 두 개를 추가합니다.</p>
+            <p className="ml-3">· <b>NAVER_CALDAV_ID</b> = 네이버 아이디 (@naver.com 빼고)</p>
+            <p className="ml-3">· <b>NAVER_CALDAV_PASSWORD</b> = ②에서 만든 애플리케이션 비밀번호 (Secret 체크, Functions)</p>
+            <p>④ Netlify에서 다시 배포(Deploys → Trigger deploy)한 뒤 이 창을 다시 여세요.</p>
+          </div>
+        )}
+
+        {st?.configured && (
+          <div className="space-y-3 rounded-lg border border-base-800 bg-base-900 p-3">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs text-base-400">
+                네이버 아이디 <b className="text-base-200">{st.id}</b>
+                {st.regularName || st.spotName ? (
+                  <span className="ml-1 text-emerald-500">· 연결됨</span>
+                ) : (
+                  <span className="ml-1 text-amber-500">· 캘린더를 골라 주세요</span>
+                )}
+              </p>
+              <button onClick={discover} disabled={!!busy} className={btnGhost + ' !px-2 text-xs'}>
+                <RefreshCw size={13} /> {busy === 'discover' ? '확인 중…' : '연결 확인·캘린더 불러오기'}
+              </button>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <Select k="regular" label="정기 현장 일정 → 보낼 캘린더" />
+              <Select k="spot" label="일회성 현장 일정 → 보낼 캘린더" />
+            </div>
+            <div className="flex flex-wrap justify-end gap-2">
+              <button onClick={save} disabled={!!busy || (!cals && !st.regularHref && !st.spotHref)} className={btnPrimary + ' !px-3'}>
+                {busy === 'save' ? '저장 중…' : '저장'}
+              </button>
+              <button onClick={syncAll} disabled={!!busy || !(st.regularHref || st.spotHref)} className={btnGhost + ' !px-3'}>
+                {busy === 'sync' ? '보내는 중…' : '지금 있는 일정 보내기'}
+              </button>
+            </div>
+            <p className="text-[11px] text-base-500">"지금 있는 일정 보내기"는 지난 1개월~앞으로의 일정을 한 번에 보내요. 여러 번 눌러도 중복되지 않아요.</p>
+            {st.lastError && (
+              <p className="text-[11px] text-red-500">
+                최근 자동 반영 실패 ({st.lastError.at.slice(5, 16).replace('T', ' ')}): {st.lastError.msg}
+              </p>
+            )}
+          </div>
+        )}
+
+        {msg && <p className={`text-xs ${msg.err ? 'text-red-500' : 'text-emerald-600'}`}>{msg.text}</p>}
+
+        <div className="border-t border-base-800 pt-2">
+          <button onClick={() => setShowFeed(!showFeed)} className="text-[11px] text-base-500 hover:underline">
+            {showFeed ? '▲' : '▼'} 구글·아이폰 캘린더용 구독 주소
+          </button>
+          {showFeed && <FeedLinks />}
+        </div>
+      </div>
+    </Modal>
+  )
+}
+
+// 구글·아이폰 캘린더는 주소 구독으로 자동 갱신
+function FeedLinks() {
+  const [token, setToken] = useState(null)
+  const [copied, setCopied] = useState('')
+  useEffect(() => {
+    api.calendarFeed('get').then((r) => setToken(r.token)).catch(() => {})
   }, [])
   const feedUrl = (kind) => `${window.location.origin}/cal/${token}/${kind}.ics`
   const copy = async (kind) => {
-    const u = feedUrl(kind)
     try {
-      await navigator.clipboard.writeText(u)
+      await navigator.clipboard.writeText(feedUrl(kind))
     } catch {
-      window.prompt('아래 주소를 복사하세요', u)
+      window.prompt('아래 주소를 복사하세요', feedUrl(kind))
     }
     setCopied(kind)
     setTimeout(() => setCopied(''), 1500)
   }
   const rotate = async () => {
-    if (!confirm('새 주소로 바꿀까요? 지금 네이버 캘린더에 등록된 기존 주소는 더 이상 일정이 갱신되지 않아요. 새 주소로 다시 구독해야 합니다.')) return
-    setBusy(true)
-    try {
-      const r = await api.calendarFeed('rotate')
-      setToken(r.token)
-    } catch {
-      setError('바꾸지 못했어요. 다시 시도해 주세요.')
-    } finally {
-      setBusy(false)
-    }
+    if (!confirm('새 주소로 바꿀까요? 기존 주소로 구독한 캘린더는 더 이상 갱신되지 않아요.')) return
+    const r = await api.calendarFeed('rotate')
+    setToken(r.token)
   }
-  const Row = ({ kind, title, desc }) => (
-    <div className="rounded-lg border border-base-800 bg-base-900 p-3">
-      <div className="flex items-center justify-between gap-2">
-        <div>
-          <p className="text-sm font-semibold">{title}</p>
-          <p className="text-[11px] text-base-500">{desc}</p>
-        </div>
-        <button onClick={() => copy(kind)} disabled={!token} className={btnPrimary + ' shrink-0 !px-3'}>
-          {copied === kind ? <Check size={14} /> : <Copy size={14} />} {copied === kind ? '복사됨' : '주소 복사'}
-        </button>
-      </div>
-      {token && <p className="mt-2 break-all rounded bg-base-950 px-2 py-1 text-[11px] text-base-500">{feedUrl(kind)}</p>}
-    </div>
-  )
+  if (!token) return <p className="mt-2 text-[11px] text-base-500">불러오는 중…</p>
   return (
-    <Modal title="네이버 캘린더 연결" onClose={onClose}>
-      <div className="space-y-3 text-sm">
-        <p className="text-xs text-base-400">
-          아래 주소를 네이버 캘린더에 한 번 등록해 두면, 여기서 일정을 추가·변경·삭제할 때 네이버 캘린더(휴대폰 앱 포함)에도 따라 보여요. 네이버가 주기적으로 읽어 가는 방식이라 반영까지 몇 시간 걸릴 수 있고, 일정 수정은 이 사이트에서 해 주세요.
-        </p>
-        {error && <p className="text-xs text-red-500">{error}</p>}
-        {!token && !error && <p className="text-xs text-base-500">주소 불러오는 중…</p>}
-        <Row kind="regular" title="정기 현장 일정" desc="점검 방문·서비스 실행 — [점검] 은혜광성교회 처럼 표시" />
-        <Row kind="spot" title="일회성 현장 일정" desc="일회성 현장 기록 — 여러 날 작업은 기간으로 표시" />
-        <div className="rounded-lg bg-mist-500/10 p-3 text-xs leading-relaxed text-base-300">
-          <p className="mb-1 font-semibold">네이버 캘린더 등록 방법 (PC에서)</p>
-          <p>① 위에서 "주소 복사"를 누릅니다.</p>
-          <p>② PC에서 calendar.naver.com → <b>+ → 캘린더 만들기</b>로 "대치남 정기 현장" 캘린더를 만듭니다.</p>
-          <p>③ 톱니바퀴(환경설정) → <b>가져오기</b> → <b>외부 URL</b>에 붙여 넣고, 방금 만든 캘린더를 골라 가져옵니다. (메뉴에 "URL로 구독"이 보이면 그걸 써도 됩니다)</p>
-          <p>④ 일회성 현장도 같은 방법으로 하나 더 구독하면 색으로 구분돼요.</p>
-        </div>
-        <div className="flex items-center justify-between border-t border-base-800 pt-3">
-          <p className="text-[11px] text-base-500">주소가 남에게 알려졌다면 새 주소로 바꾸세요.</p>
-          <button onClick={rotate} disabled={busy || !token} className={btnGhost + ' !px-2 text-xs'}>
-            <RefreshCw size={13} /> 새 주소로 바꾸기
+    <div className="mt-2 space-y-1.5 text-[11px] text-base-400">
+      <p>구글 캘린더 "다른 캘린더 + → URL로 추가", 아이폰 "구독 캘린더 추가"에 넣으면 자동 갱신돼요.</p>
+      {[
+        ['regular', '정기 현장'],
+        ['spot', '일회성 현장']
+      ].map(([k, n]) => (
+        <div key={k} className="flex items-center justify-between gap-2 rounded bg-base-900 px-2 py-1">
+          <span>{n}</span>
+          <button onClick={() => copy(k)} className="flex items-center gap-1 text-mist-500 hover:underline">
+            {copied === k ? <Check size={12} /> : <Copy size={12} />} {copied === k ? '복사됨' : '주소 복사'}
           </button>
         </div>
-      </div>
-    </Modal>
+      ))}
+      <button onClick={rotate} className="text-base-500 hover:underline">
+        주소가 알려졌다면 → 새 주소로 바꾸기
+      </button>
+    </div>
   )
 }

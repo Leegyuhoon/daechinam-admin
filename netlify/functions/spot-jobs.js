@@ -1,4 +1,5 @@
 import { getStore } from '@netlify/blobs'
+import { syncSpot, caldavConfigured } from '../lib/caldav.js'
 
 const STORE_NAME = 'spot-jobs'
 const SPOT_PASSWORD = process.env.SPOT_JOBS_PASSWORD
@@ -64,6 +65,7 @@ export default async (req) => {
         updatedAt: new Date().toISOString()
       }
       await store.setJSON(id, item)
+      if (caldavConfigured()) await syncSpot(item).catch(() => {})
       return Response.json({ item })
     }
 
@@ -71,6 +73,7 @@ export default async (req) => {
       const id = url.searchParams.get('id')
       if (!id) return Response.json({ error: 'id가 필요합니다' }, { status: 400 })
       await store.delete(id)
+      if (caldavConfigured()) await syncSpot(null, { removedId: id }).catch(() => {})
       return Response.json({ ok: true })
     }
 

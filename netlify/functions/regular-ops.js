@@ -1,5 +1,6 @@
 import { getStore } from '@netlify/blobs'
 import { notify, clip } from '../lib/push.js'
+import { syncVisits, caldavConfigured } from '../lib/caldav.js'
 
 // 정기현장 순회 관리 — 현장(서비스 항목 포함), 일정(점검·서비스 방문), 서비스 실행(전후 기록),
 // 업체 문의(tickets), 월간 보고서(reports)
@@ -223,6 +224,10 @@ export default async (req) => {
           })
         }
       }
+      // 네이버 캘린더에 바로 반영 (설정돼 있을 때만, 실패해도 저장은 그대로)
+      if (collection === 'visits' && caldavConfigured()) {
+        await syncVisits(saved, await readCol(store, 'sites')).catch(() => {})
+      }
       return Response.json({ items: saved, item: saved[0] })
     }
 
@@ -238,6 +243,9 @@ export default async (req) => {
         collection,
         list.filter((x) => x.id !== id)
       )
+      if (collection === 'visits' && caldavConfigured()) {
+        await syncVisits([], [], { removed: [id] }).catch(() => {})
+      }
       return Response.json({ ok: true })
     }
 

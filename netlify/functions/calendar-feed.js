@@ -3,6 +3,7 @@
 //   POST /api/calendar-feed  {action:'get'|'rotate'}  (관리자 비밀번호) → 토큰 확인·새로 만들기
 import { getStore } from '@netlify/blobs'
 import { isAdmin } from '../lib/auth.js'
+import { calendarText, eventLines, visitEvent, spotEvent } from '../lib/ics.js'
 
 const TOKEN_KEY = 'calendar-feed'
 
@@ -15,62 +16,6 @@ function newToken() {
 async function readJson(store, key, fallback) {
   const v = await store.get(key, { type: 'json' }).catch(() => null)
   return v ?? fallback
-}
-
-// iCal 글자 처리: 특수문자 이스케이프 + 한 줄 75바이트 접기
-const esc = (s) => String(s || '').replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n')
-function fold(line) {
-  const enc = new TextEncoder()
-  if (enc.encode(line).length <= 75) return line
-  const out = []
-  let cur = ''
-  for (const ch of line) {
-    if (enc.encode(cur + ch).length > (out.length ? 74 : 75)) {
-      out.push(cur)
-      cur = ch
-    } else cur += ch
-  }
-  out.push(cur)
-  return out.join('\r\n ')
-}
-const ymd = (d) => d.replace(/-/g, '')
-const addDay = (d, n = 1) => {
-  const t = new Date(`${d}T00:00:00Z`)
-  t.setUTCDate(t.getUTCDate() + n)
-  return t.toISOString().slice(0, 10)
-}
-const stamp = (iso) => (iso || new Date().toISOString()).replace(/[-:]/g, '').replace(/\.\d+/, '').replace(/Z?$/, 'Z')
-
-function event({ uid, start, end, summary, description, location, updatedAt }) {
-  return [
-    'BEGIN:VEVENT',
-    `UID:${uid}`,
-    `DTSTAMP:${stamp(updatedAt)}`,
-    `DTSTART;VALUE=DATE:${ymd(start)}`,
-    `DTEND;VALUE=DATE:${ymd(end)}`,
-    `SUMMARY:${esc(summary)}`,
-    description ? `DESCRIPTION:${esc(description)}` : null,
-    location ? `LOCATION:${esc(location)}` : null,
-    'TRANSP:TRANSPARENT',
-    'END:VEVENT'
-  ].filter(Boolean)
-}
-
-function calendar(name, events) {
-  const lines = [
-    'BEGIN:VCALENDAR',
-    'VERSION:2.0',
-    'PRODID:-//ELC Daechinam//Admin//KO',
-    'CALSCALE:GREGORIAN',
-    'METHOD:PUBLISH',
-    `X-WR-CALNAME:${esc(name)}`,
-    'X-WR-TIMEZONE:Asia/Seoul',
-    'REFRESH-INTERVAL;VALUE=DURATION:PT1H',
-    'X-PUBLISHED-TTL:PT1H',
-    ...events.flat(),
-    'END:VCALENDAR'
-  ]
-  return lines.map(fold).join('\r\n') + '\r\n'
 }
 
 export default async (req) => {
@@ -112,30 +57,7 @@ export default async (req) => {
       const siteById = Object.fromEntries(sites.map((s) => [s.id, s]))
       events = visits
         .filter((v) => v.date && v.date >= from && v.status !== 'canceled' && siteById[v.siteId])
-        .map((v) => {
-          const s = siteById[v.siteId]
-          const what = v.type === 'service' ? `[서비스] ${s.name} ${v.serviceName || ''}`.trim() : `[점검] ${s.name}`
-          const done = v.status === 'done' ? ' (완료)' : ''
-          const desc = [
-            v.type === 'service' ? `서비스: ${v.serviceName || ''}` : '정기 점검 방문',
-            v.status === 'done' ? '상태: 완료' : '상태: 예정',
-            s.workHours ? `근무 시간: ${s.workHours}` : '',
-            s.teamLeaderName ? `현장 팀장: ${s.teamLeaderName}${s.teamLeaderPhone ? ` ${s.teamLeaderPhone}` : ''}` : '',
-            s.contactName ? `업체 담당: ${s.contactName}${s.contactPhone ? ` ${s.contactPhone}` : ''}` : '',
-            v.memo ? `메모·점검 결과: ${v.memo}` : '',
-          ]
-            .filter(Boolean)
-            .join('\n')
-          return event({
-            uid: `visit-${v.id}@daechinam`,
-            start: v.date,
-            end: addDay(v.date),
-            summary: what + done,
-            description: desc,
-            location: s.address || '',
-            updatedAt: v.updatedAt || v.createdAt
-          })
-        })
+        .map((v) => eventLines(visitEvent(v, siteById[v.siteId])))
     } else {
       name = '대치남 일회성 현장'
       const spot = getStore('spot-jobs')
@@ -143,21 +65,11 @@ export default async (req) => {
       for (const { key } of blobs) {
         const j = await spot.get(key, { type: 'json' }).catch(() => null)
         if (!j?.date || (j.endDate || j.date) < from) continue
-        const people = [j.employeeCount ? `직원 ${j.employeeCount}명` : '', j.dayWorkerCount ? `일용직 ${j.dayWorkerCount}명` : ''].filter(Boolean).join(' · ')
-        events.push(
-          event({
-            uid: `spot-${j.id}@daechinam`,
-            start: j.date,
-            end: addDay(j.endDate || j.date),
-            summary: `[일회성] ${j.siteName}${j.days > 1 ? ` (${j.days}일)` : ''}`,
-            description: [people, j.workDescription ? `작업: ${j.workDescription}` : ''].filter(Boolean).join('\n'),
-            updatedAt: j.updatedAt || j.createdAt
-          })
-        )
+        events.push(eventLines(spotEvent(j)))
       }
     }
 
-    return new Response(req.method === 'HEAD' ? null : calendar(name, events), {
+    return new Response(req.method === 'HEAD' ? null : calendarText(events, { name, feed: true }), {
       headers: {
         'Content-Type': 'text/calendar; charset=utf-8',
         'Content-Disposition': `inline; filename="${kind}.ics"`,
