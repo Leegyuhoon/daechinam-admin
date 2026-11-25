@@ -43,11 +43,29 @@ const tagText = (xml, tag) => {
   const m = xml.match(new RegExp(`<(?:[\\w-]+:)?${tag}[^>]*>([\\s\\S]*?)</(?:[\\w-]+:)?${tag}>`, 'i'))
   return m ? m[1] : null
 }
-const hrefIn = (xml) => {
-  const m = xml && xml.match(/<(?:[\w-]+:)?href[^>]*>\s*([^<\s]+)\s*<\/(?:[\w-]+:)?href>/i)
-  return m ? m[1] : null
-}
 const decodeXml = (s) => String(s || '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, '&')
+// 네이버는 값을 <![CDATA[ ... ]]> 로 감싸서 보냄 — 벗기고, 띄어쓰기·한글이 들어간 주소도 통째로 읽음
+const unwrap = (s) => {
+  const t = String(s || '').trim()
+  const m = t.match(/^<!\[CDATA\[([\s\S]*?)\]\]>$/)
+  return m ? m[1].trim() : decodeXml(t)
+}
+const HREF_RE = /<(?:[\w-]+:)?href[^>]*>([\s\S]*?)<\/(?:[\w-]+:)?href>/gi
+const hrefIn = (xml) => {
+  if (!xml) return null
+  const m = xml.match(new RegExp(HREF_RE.source, 'i'))
+  return m ? unwrap(m[1]) || null : null
+}
+const allHrefs = (xml) => [...String(xml || '').matchAll(HREF_RE)].map((m) => unwrap(m[1])).filter(Boolean)
+// 주소 안의 띄어쓰기·한글을 안전하게 (이미 %로 바뀐 부분은 그대로)
+const absUrl = (href, base) => new URL(encodeURI(decodeURIComponentSafe(href)), base).toString()
+function decodeURIComponentSafe(s) {
+  try {
+    return decodeURI(s)
+  } catch {
+    return s
+  }
+}
 
 // 연결 확인 + 쓸 수 있는 캘린더 목록
 export async function discoverCalendars() {
@@ -62,7 +80,7 @@ export async function discoverCalendars() {
     if (r.status === 401) throw new Error('네이버가 아이디·애플리케이션 비밀번호를 거절했습니다 (401). 비밀번호를 다시 확인해 주세요.')
     const p = hrefIn(tagText(r.text, 'current-user-principal'))
     if (p) {
-      principal = new URL(p, r.url).toString()
+      principal = absUrl(p, r.url)
       break
     }
   }
@@ -71,7 +89,7 @@ export async function discoverCalendars() {
   const h = await dav('PROPFIND', principal, { body: PROP('<c:calendar-home-set/>'), headers: { Depth: '0', 'Content-Type': 'application/xml; charset=utf-8' } })
   const homeHref = hrefIn(tagText(h.text, 'calendar-home-set'))
   if (!homeHref) throw new Error(`캘린더 목록 위치를 찾지 못했습니다 (응답 ${h.status})`)
-  const home = new URL(homeHref, h.url).toString()
+  const home = absUrl(homeHref, h.url)
 
   const l = await dav('PROPFIND', home, {
     body: PROP('<d:displayname/><d:resourcetype/><c:supported-calendar-component-set/><d:current-user-privilege-set/>'),
@@ -87,7 +105,7 @@ export async function discoverCalendars() {
     if (comps && !/VEVENT/i.test(comps)) continue
     const priv = tagText(resp, 'current-user-privilege-set') || ''
     const canWrite = !priv || /<(?:[\w-]+:)?(write|all|write-content|bind)\b/i.test(priv)
-    calendars.push({ href: new URL(href, l.url).toString(), name: decodeXml(tagText(resp, 'displayname') || '').trim() || href, canWrite })
+    calendars.push({ href: absUrl(href, l.url), name: unwrap(tagText(resp, 'displayname') || '') || href, canWrite })
   }
   return calendars
 }
@@ -122,15 +140,15 @@ export async function removeOurEvents(calHref) {
   for (const resp of r.text.split(/<\/(?:[\w-]+:)?response>/i)) {
     const href = hrefIn(resp)
     if (!href) continue
-    const data = decodeXml(tagText(resp, 'calendar-data') || '')
+    const data = unwrap(tagText(resp, 'calendar-data') || '')
     const uid = (data.match(/UID:([^\r\n]+)/) || [])[1] || ''
-    if (/@daechinam\s*$/.test(uid) || /\/(visit-|spot-|daechinam-test)[^/]*\.ics$/.test(href)) targets.push(new URL(href, r.url).toString())
+    if (/@daechinam\s*$/.test(uid) || /\/(visit-|spot-|daechinam-test)[^/]*\.ics$/.test(href)) targets.push(absUrl(href, r.url))
   }
   // REPORT 를 지원하지 않으면 파일 이름으로 찾기
   if (r.status >= 400 || (!targets.length && !/calendar-data/i.test(r.text))) {
     const l = await dav('PROPFIND', calHref, { body: PROP('<d:getetag/>'), headers: { Depth: '1', 'Content-Type': 'application/xml; charset=utf-8' } })
-    for (const m of l.text.matchAll(/<(?:[\w-]+:)?href[^>]*>\s*([^<\s]+)\s*<\/(?:[\w-]+:)?href>/gi)) {
-      if (/\/(visit-|spot-|daechinam-test)[^/]*\.ics$/.test(m[1])) targets.push(new URL(m[1], l.url).toString())
+    for (const h of allHrefs(l.text)) {
+      if (/\/(visit-|spot-|daechinam-test)[^/]*\.ics$/.test(h)) targets.push(absUrl(h, l.url))
     }
   }
   const uniq = [...new Set(targets)]
@@ -149,7 +167,7 @@ export async function diagnose(calHref) {
   const step = (name, r, extra = '') => out.steps.push(`${name}: ${r.status}${extra ? ` · ${extra}` : ''}`)
   // 1) 캘린더 안 항목 목록
   const l = await dav('PROPFIND', calHref, { body: PROP('<d:getetag/><d:displayname/>'), headers: { Depth: '1', 'Content-Type': 'application/xml; charset=utf-8' } })
-  const hrefs = [...l.text.matchAll(/<(?:[\w-]+:)?href[^>]*>\s*([^<\s]+)\s*<\/(?:[\w-]+:)?href>/gi)].map((m) => m[1])
+  const hrefs = allHrefs(l.text)
   const ours = hrefs.filter((h) => /visit-|spot-|daechinam-test/.test(h))
   step('목록 조회', l, `전체 ${Math.max(0, hrefs.length - 1)}개 · 사이트가 넣은 것 ${ours.length}개`)
   out.sample = hrefs.slice(1, 4)
