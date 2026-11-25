@@ -3,6 +3,13 @@
   publish = "dist"
   functions = "netlify/functions"
 
+# 캘린더 구독 주소를 .ics 로 끝나는 모양으로도 제공 (일부 캘린더 앱은 .ics 주소만 받음)
+[[redirects]]
+  from = "/cal/:token/:file"
+  to = "/.netlify/functions/calendar-feed?t=:token&file=:file"
+  status = 200
+  force = true
+
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"

@@ -90,13 +90,16 @@ export default async (req) => {
       return Response.json({ token: cur.token, createdAt: cur.createdAt })
     }
 
-    if (req.method !== 'GET') return new Response('Method Not Allowed', { status: 405 })
+    // HEAD 요청(주소 확인용)도 받아 줌
+    if (req.method !== 'GET' && req.method !== 'HEAD') return new Response('Method Not Allowed', { status: 405 })
 
     const cur = await readJson(store, TOKEN_KEY, null)
     const t = url.searchParams.get('t') || ''
     if (!cur?.token || t !== cur.token) return new Response('Not Found', { status: 404 })
 
-    const kind = url.searchParams.get('kind') === 'spot' ? 'spot' : 'regular'
+    // /cal/<토큰>/spot.ics 모양도 지원
+    const file = url.searchParams.get('file') || ''
+    const kind = url.searchParams.get('kind') === 'spot' || file.startsWith('spot') ? 'spot' : 'regular'
     // 지난 3개월 ~ 앞으로의 일정
     const from = new Date(Date.now() - 92 * 86400000).toISOString().slice(0, 10)
     let events = []
@@ -112,7 +115,7 @@ export default async (req) => {
         .map((v) => {
           const s = siteById[v.siteId]
           const what = v.type === 'service' ? `[서비스] ${s.name} ${v.serviceName || ''}`.trim() : `[점검] ${s.name}`
-          const done = v.status === 'done' ? ' ✓완료' : ''
+          const done = v.status === 'done' ? ' (완료)' : ''
           const desc = [
             v.type === 'service' ? `서비스: ${v.serviceName || ''}` : '정기 점검 방문',
             v.status === 'done' ? '상태: 완료' : '상태: 예정',
@@ -154,7 +157,7 @@ export default async (req) => {
       }
     }
 
-    return new Response(calendar(name, events), {
+    return new Response(req.method === 'HEAD' ? null : calendar(name, events), {
       headers: {
         'Content-Type': 'text/calendar; charset=utf-8',
         'Content-Disposition': `inline; filename="${kind}.ics"`,

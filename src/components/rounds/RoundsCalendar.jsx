@@ -535,7 +535,7 @@ function CalendarFeedModal({ onClose }) {
       .then((r) => setToken(r.token))
       .catch(() => setError('주소를 불러오지 못했어요. 잠시 후 다시 열어 주세요.'))
   }, [])
-  const feedUrl = (kind) => `${window.location.origin}/api/calendar-feed?kind=${kind}&t=${token}`
+  const feedUrl = (kind) => `${window.location.origin}/cal/${token}/${kind}.ics`
   const copy = async (kind) => {
     const u = feedUrl(kind)
     try {
@@ -585,8 +585,8 @@ function CalendarFeedModal({ onClose }) {
         <div className="rounded-lg bg-mist-500/10 p-3 text-xs leading-relaxed text-base-300">
           <p className="mb-1 font-semibold">네이버 캘린더 등록 방법 (PC에서)</p>
           <p>① 위에서 "주소 복사"를 누릅니다.</p>
-          <p>② PC에서 calendar.naver.com에 들어가 왼쪽 "내 캘린더" 옆 <b>+</b> → <b>URL로 구독하기</b>를 누릅니다.</p>
-          <p>③ 캘린더 이름(예: 대치남 정기 현장)과 색을 정하고, URL 칸에 붙여 넣은 뒤 저장합니다.</p>
+          <p>② PC에서 calendar.naver.com → <b>+ → 캘린더 만들기</b>로 "대치남 정기 현장" 캘린더를 만듭니다.</p>
+          <p>③ 톱니바퀴(환경설정) → <b>가져오기</b> → <b>외부 URL</b>에 붙여 넣고, 방금 만든 캘린더를 골라 가져옵니다. (메뉴에 "URL로 구독"이 보이면 그걸 써도 됩니다)</p>
           <p>④ 일회성 현장도 같은 방법으로 하나 더 구독하면 색으로 구분돼요.</p>
         </div>
         <div className="flex items-center justify-between border-t border-base-800 pt-3">
