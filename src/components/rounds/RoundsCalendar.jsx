@@ -531,6 +531,28 @@ function CalendarFeedModal({ onClose }) {
   const [msg, setMsg] = useState(null)
   const [busy, setBusy] = useState('')
   const [showFeed, setShowFeed] = useState(false)
+  const [diag, setDiag] = useState('')
+  const runDiag = async () => {
+    setBusy('diag')
+    setDiag('')
+    try {
+      const r = await api.naverCalendar({ action: 'diagnose', kind: 'regular' })
+      setDiag(
+        [
+          `캘린더: ${r.calHref}`,
+          ...r.steps,
+          `캘린더 안 예시: ${(r.sample || []).join(' , ') || '없음'}`,
+          `사이트가 넣은 것 예시: ${(r.ours || []).join(' , ') || '없음'}`,
+          `테스트 일정 주소: ${r.putUrl}`,
+          `다시 읽은 내용: ${(r.readBack || '').slice(0, 300)}`
+        ].join('\n')
+      )
+    } catch (e) {
+      setDiag('진단 실패: ' + errText(e))
+    } finally {
+      setBusy('')
+    }
+  }
 
   const loadStatus = () =>
     api
@@ -569,9 +591,19 @@ function CalendarFeedModal({ onClose }) {
   const save = async () => {
     setBusy('save')
     try {
+      // 보내던 캘린더를 바꾸면, 예전 캘린더에 넣어 둔 사이트 일정을 지울지 물어봄
+      const olds = [...new Set([st?.regularHref, st?.spotHref].filter((h) => h && h !== sel.regular && h !== sel.spot))]
+      let removedMsg = ''
+      for (const h of olds) {
+        const n = (h === st.regularHref ? st.regularName : st.spotName) || '예전 캘린더'
+        if (!confirm(`예전에 보내던 "${n}"에 들어간 사이트 일정을 지울까요?\n(직접 만든 일정은 지우지 않아요)`)) continue
+        setMsg({ text: `"${n}"에서 사이트 일정 지우는 중…` })
+        const r = await api.naverCalendar({ action: 'removeFrom', href: h })
+        removedMsg += ` "${n}"에서 ${r.found - r.failed}건 지웠어요.${r.failed ? ` (${r.failed}건 실패)` : ''}`
+      }
       await api.naverCalendar({ action: 'save', regularHref: sel.regular, regularName: nameOf(sel.regular), spotHref: sel.spot, spotName: nameOf(sel.spot) })
       await loadStatus()
-      setMsg({ text: '저장했어요. 이제부터 일정을 추가·변경·삭제하면 네이버 캘린더에 바로 반영돼요. 기존 일정은 아래 "지금 있는 일정 보내기"를 눌러 주세요.' })
+      setMsg({ text: `저장했어요.${removedMsg} 이제부터 일정을 추가·변경·삭제하면 새 캘린더에 바로 반영돼요. 기존 일정은 "지금 있는 일정 보내기"를 눌러 주세요.` })
     } catch (e) {
       setMsg({ err: true, text: errText(e) })
     } finally {
@@ -669,6 +701,14 @@ function CalendarFeedModal({ onClose }) {
                 {busy === 'sync' ? '보내는 중…' : '지금 있는 일정 보내기'}
               </button>
             </div>
+            <div className="flex justify-end">
+              <button onClick={runDiag} disabled={!!busy || !st.regularHref} className="text-[11px] text-mist-500 hover:underline">
+                {busy === 'diag' ? '진단 중…' : '안 보일 때: 연결 진단하기'}
+              </button>
+            </div>
+            {diag && (
+              <pre className="max-h-60 overflow-auto whitespace-pre-wrap break-all rounded bg-base-950 p-2 text-[10.5px] text-base-400">{diag}</pre>
+            )}
             <p className="text-[11px] text-base-500">"지금 있는 일정 보내기"는 지난 1개월~앞으로의 일정을 한 번에 보내요. 여러 번 눌러도 중복되지 않아요.</p>
             {st.lastError && (
               <p className="text-[11px] text-red-500">

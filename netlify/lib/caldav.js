@@ -114,6 +114,62 @@ export async function deleteEvent(calHref, uid) {
   if (r.status >= 300 && r.status !== 404) throw new Error(`일정 삭제 실패 (${r.status})`)
 }
 
+// 이 캘린더에서 사이트가 넣은 일정(UID가 @daechinam 으로 끝나는 것)만 골라 지우기 — 직접 만든 일정은 건드리지 않음
+export async function removeOurEvents(calHref) {
+  const body = `<?xml version="1.0" encoding="utf-8"?><c:calendar-query xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav"><d:prop><d:getetag/><c:calendar-data/></d:prop><c:filter><c:comp-filter name="VCALENDAR"><c:comp-filter name="VEVENT"/></c:comp-filter></c:filter></c:calendar-query>`
+  const r = await dav('REPORT', calHref, { body, headers: { Depth: '1', 'Content-Type': 'application/xml; charset=utf-8' }, timeout: 9000 })
+  const targets = []
+  for (const resp of r.text.split(/<\/(?:[\w-]+:)?response>/i)) {
+    const href = hrefIn(resp)
+    if (!href) continue
+    const data = decodeXml(tagText(resp, 'calendar-data') || '')
+    const uid = (data.match(/UID:([^\r\n]+)/) || [])[1] || ''
+    if (/@daechinam\s*$/.test(uid) || /\/(visit-|spot-|daechinam-test)[^/]*\.ics$/.test(href)) targets.push(new URL(href, r.url).toString())
+  }
+  // REPORT 를 지원하지 않으면 파일 이름으로 찾기
+  if (r.status >= 400 || (!targets.length && !/calendar-data/i.test(r.text))) {
+    const l = await dav('PROPFIND', calHref, { body: PROP('<d:getetag/>'), headers: { Depth: '1', 'Content-Type': 'application/xml; charset=utf-8' } })
+    for (const m of l.text.matchAll(/<(?:[\w-]+:)?href[^>]*>\s*([^<\s]+)\s*<\/(?:[\w-]+:)?href>/gi)) {
+      if (/\/(visit-|spot-|daechinam-test)[^/]*\.ics$/.test(m[1])) targets.push(new URL(m[1], l.url).toString())
+    }
+  }
+  const uniq = [...new Set(targets)]
+  const errors = await runAll(
+    uniq.map((u) => async () => {
+      const d = await dav('DELETE', u)
+      if (d.status >= 300 && d.status !== 404) throw new Error(`삭제 실패 (${d.status})`)
+    })
+  )
+  return { found: uniq.length, failed: errors.length, error: errors[0] || null }
+}
+
+// 진단: 보낸 캘린더에 실제로 무엇이 들어 있는지 + 테스트 일정 하나 넣고 다시 읽어 보기
+export async function diagnose(calHref) {
+  const out = { calHref, steps: [] }
+  const step = (name, r, extra = '') => out.steps.push(`${name}: ${r.status}${extra ? ` · ${extra}` : ''}`)
+  // 1) 캘린더 안 항목 목록
+  const l = await dav('PROPFIND', calHref, { body: PROP('<d:getetag/><d:displayname/>'), headers: { Depth: '1', 'Content-Type': 'application/xml; charset=utf-8' } })
+  const hrefs = [...l.text.matchAll(/<(?:[\w-]+:)?href[^>]*>\s*([^<\s]+)\s*<\/(?:[\w-]+:)?href>/gi)].map((m) => m[1])
+  const ours = hrefs.filter((h) => /visit-|spot-|daechinam-test/.test(h))
+  step('목록 조회', l, `전체 ${Math.max(0, hrefs.length - 1)}개 · 사이트가 넣은 것 ${ours.length}개`)
+  out.sample = hrefs.slice(1, 4)
+  out.ours = ours.slice(0, 3)
+  // 2) 테스트 일정 넣기 (오늘, 종일)
+  const today = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10)
+  const ev = { uid: 'daechinam-test@daechinam', start: today, end: today, summary: '[테스트] 대치남 사이트 연결 확인', description: '연결 확인용 — 지워도 됩니다', updatedAt: new Date().toISOString() }
+  ev.end = new Date(Date.parse(`${today}T00:00:00Z`) + 86400000).toISOString().slice(0, 10)
+  const body = calendarText([eventLines(ev)])
+  const url = join(calHref, ev.uid)
+  const p = await dav('PUT', url, { body, headers: { 'Content-Type': 'text/calendar; charset=utf-8' } })
+  step('테스트 일정 넣기', p, p.text.replace(/\s+/g, ' ').slice(0, 160))
+  // 3) 다시 읽기
+  const g = await dav('GET', url)
+  step('다시 읽기', g, /BEGIN:VEVENT/.test(g.text) ? '저장됨' : g.text.replace(/\s+/g, ' ').slice(0, 160))
+  out.putUrl = url
+  out.readBack = g.text.slice(0, 600)
+  return out
+}
+
 // 저장 직후 자동 반영 — 실패해도 사이트 저장은 그대로 (기록만 남김)
 async function logError(msg) {
   try {

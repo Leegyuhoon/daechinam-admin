@@ -5,7 +5,7 @@
 //   POST {action:'syncAll', kind, offset} → 지난 1개월~앞으로의 일정을 나눠서 보내기
 import { getStore } from '@netlify/blobs'
 import { isAdmin } from '../lib/auth.js'
-import { caldavConfigured, discoverCalendars, readCaldavConfig, writeCaldavConfig, putEvent, runAll } from '../lib/caldav.js'
+import { caldavConfigured, discoverCalendars, readCaldavConfig, writeCaldavConfig, putEvent, runAll, diagnose, removeOurEvents } from '../lib/caldav.js'
 import { visitEvent, spotEvent } from '../lib/ics.js'
 
 const CHUNK = 25
@@ -38,6 +38,19 @@ export default async (req) => {
       }
       await writeCaldavConfig(next)
       return Response.json({ ok: true, ...next })
+    }
+
+    // 예전에 보내던 캘린더에서 사이트 일정만 지우기
+    if (body.action === 'removeFrom') {
+      if (!body.href) return Response.json({ error: '캘린더가 필요합니다' }, { status: 400 })
+      return Response.json({ ok: true, ...(await removeOurEvents(body.href)) })
+    }
+
+    if (body.action === 'diagnose') {
+      const cfg = await readCaldavConfig()
+      const href = body.kind === 'spot' ? cfg.spotHref : cfg.regularHref
+      if (!href) return Response.json({ error: '보낼 캘린더를 먼저 골라 저장해 주세요' }, { status: 400 })
+      return Response.json({ ok: true, ...(await diagnose(href)) })
     }
 
     if (body.action === 'syncAll') {
