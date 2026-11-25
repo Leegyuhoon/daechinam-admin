@@ -532,6 +532,20 @@ function CalendarFeedModal({ onClose }) {
   const [busy, setBusy] = useState('')
   const [showFeed, setShowFeed] = useState(false)
   const [diag, setDiag] = useState('')
+  const [cleanHref, setCleanHref] = useState('')
+  const cleanup = async () => {
+    const n = cals?.find((c) => c.href === cleanHref)?.name || '선택한 캘린더'
+    if (!confirm(`"${n}"에서 이 사이트가 넣은 일정만 지울까요?\n직접 만든 일정은 지우지 않아요.`)) return
+    setBusy('clean')
+    try {
+      const r = await api.naverCalendar({ action: 'removeFrom', href: cleanHref })
+      setMsg(r.found ? { text: `"${n}"에서 사이트 일정 ${r.found - r.failed}건을 지웠어요.${r.failed ? ` (${r.failed}건 실패)` : ''}` } : { text: `"${n}"에는 사이트가 넣은 일정이 없어요.` })
+    } catch (e) {
+      setMsg({ err: true, text: errText(e) })
+    } finally {
+      setBusy('')
+    }
+  }
   const runDiag = async () => {
     setBusy('diag')
     setDiag('')
@@ -701,6 +715,24 @@ function CalendarFeedModal({ onClose }) {
                 {busy === 'sync' ? '보내는 중…' : '지금 있는 일정 보내기'}
               </button>
             </div>
+            {cals && cals.length > 0 && (
+              <div className="rounded-md border border-dashed border-base-700 p-2">
+                <p className="text-[11px] font-medium text-base-300">예전 캘린더 정리 — 사이트가 넣은 일정만 지우기</p>
+                <div className="mt-1.5 flex gap-1.5">
+                  <select className={inputCls + ' flex-1 !py-1 text-xs'} value={cleanHref} onChange={(e) => setCleanHref(e.target.value)}>
+                    <option value="">캘린더 선택</option>
+                    {cals.map((c) => (
+                      <option key={c.href} value={c.href}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                  <button onClick={cleanup} disabled={!!busy || !cleanHref} className={btnGhost + ' !px-2 text-xs'}>
+                    {busy === 'clean' ? '지우는 중…' : '사이트 일정 지우기'}
+                  </button>
+                </div>
+              </div>
+            )}
             <div className="flex justify-end">
               <button onClick={runDiag} disabled={!!busy || !st.regularHref} className="text-[11px] text-mist-500 hover:underline">
                 {busy === 'diag' ? '진단 중…' : '안 보일 때: 연결 진단하기'}
