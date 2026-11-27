@@ -47,7 +47,9 @@ export default async (req) => {
     })).filter((x) => x.name)
     const invLog = (data.inventoryLog || []).filter((l) => l.itemId && l.at).map((l) => ({ itemId: l.itemId, qty: Number(l.qty) || 0, at: l.at }))
 
-    return new Response(JSON.stringify({ rows, inventory, invLog, generatedAt: new Date().toISOString() }), {
+    const sites = (data.sites || []).map((s) => ({ id: s.id, name: s.name })).filter((s) => s.name)
+
+    return new Response(JSON.stringify({ rows, inventory, invLog, sites, generatedAt: new Date().toISOString() }), {
       status: 200,
       headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }
     })
