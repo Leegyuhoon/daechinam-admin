@@ -28,11 +28,13 @@ export const api = {
   // 용품 통계 — 어플의 용품 요청 내역(품목·수량·가격·날짜·현장) 전체
   getSupplyStats: () => request('/supply'),
 
-  // 재고 현황
-  listInventory: () => request('/inventory'),
+  // 재고 현황 — 읽기는 getSupplyStats(어플 재고 포함), 쓰기는 어플의 현장별 재고에 바로 반영됩니다
   upsertInventoryItem: (item) =>
-    request('/inventory', { method: 'POST', body: JSON.stringify(item) }),
-  deleteInventoryItem: (id) => request(`/inventory?id=${encodeURIComponent(id)}`, { method: 'DELETE' }),
+    request('/inventory', { method: 'POST', body: JSON.stringify({ action: 'upsert', ...item }) }),
+  adjustInventory: (id, delta) =>
+    request('/inventory', { method: 'POST', body: JSON.stringify({ action: 'adjust', id, delta }) }),
+  deleteInventoryItem: (id) =>
+    request('/inventory', { method: 'POST', body: JSON.stringify({ action: 'delete', id }) }),
 
   // 안전교육 — 영상을 여러 조각(청크)으로 나눠 순서대로 업로드 (대용량 지원)
   uploadSafetyVideo: async (file, onProgress) => {
