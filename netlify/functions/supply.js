@@ -1,5 +1,5 @@
-// 용품 통계용 — 어플(daechinam-app)이 공개해 둔 /api/data 에서 용품 요청 내역을 가져와
-// 통계 화면이 쓰기 좋게 한 줄씩 정리해서 내려줍니다. (netlify/functions/attendance.js 와 같은 방식)
+// 용품 현황용 — 어플(daechinam-app)이 공개해 둔 /api/data 에서 용품 요청 내역 + 현장별 재고(와 재고 변동 기록)를
+// 가져와 화면이 쓰기 좋게 정리해서 내려줍니다. (netlify/functions/attendance.js 와 같은 방식, 읽기 전용)
 const SOURCE_URL = 'https://daechinam.netlify.app/api/data'
 
 export default async (req) => {
@@ -34,7 +34,20 @@ export default async (req) => {
       }
     }).filter((r) => r.date && r.item)
 
-    return new Response(JSON.stringify({ rows, generatedAt: new Date().toISOString() }), {
+    // 어플의 '현장별 재고'(팀장·관리자가 어플에서 입력) 와 수량이 바뀔 때마다 남는 변동 기록
+    const inventory = (data.inventory || []).map((x) => ({
+      id: x.id,
+      siteId: x.siteId,
+      site: siteName[x.siteId] || '현장 미지정',
+      name: (x.name || '').trim(),
+      qty: Number(x.qty) || 0,
+      unit: x.unit || '',
+      note: x.note || '',
+      updatedAt: x.updatedAt || null
+    })).filter((x) => x.name)
+    const invLog = (data.inventoryLog || []).filter((l) => l.itemId && l.at).map((l) => ({ itemId: l.itemId, qty: Number(l.qty) || 0, at: l.at }))
+
+    return new Response(JSON.stringify({ rows, inventory, invLog, generatedAt: new Date().toISOString() }), {
       status: 200,
       headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }
     })
