@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, RefreshCw, FileSpreadsheet, TrendingUp, TrendingDown, Minus, Search } from 'lucide-react'
 import { api } from '../lib/api'
+import LoadingBar from './LoadingBar'
 import { downloadXlsx } from '../lib/xlsx'
 import PrintButton from './PrintButton'
 
@@ -310,7 +311,7 @@ export default function SupplyStats({ embedded = false }) {
       </div>
 
       {error && <div className="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 text-sm text-amber-400">{error}</div>}
-      {!all && !error && <div className="py-20 text-center text-sm text-page-sub">불러오는 중…</div>}
+      {!all && !error && <LoadingBar tone="dark" className="!py-20" />}
 
       {all && (
         <>

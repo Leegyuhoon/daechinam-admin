@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { RefreshCw, FileSpreadsheet, Search, Plus, Trash2, ArrowLeft } from 'lucide-react'
 import { api } from '../lib/api'
+import LoadingBar from './LoadingBar'
 import { downloadXlsx } from '../lib/xlsx'
 import PrintButton from './PrintButton'
 
@@ -183,7 +184,7 @@ export default function Inventory() {
   }
 
   if (error) return <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 text-sm text-amber-400">{error}</div>
-  if (!data) return <div className="py-20 text-center text-sm text-page-sub">불러오는 중…</div>
+  if (!data) return <LoadingBar tone="dark" className="!py-20" />
 
   return (
     <div id="print-stock-status">
