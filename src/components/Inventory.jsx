@@ -1,305 +1,324 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Trash2, PackageSearch, TriangleAlert, Building2, ArrowLeft, FileSpreadsheet } from 'lucide-react'
+import { RefreshCw, FileSpreadsheet, Search, Plus, Trash2, ArrowLeft } from 'lucide-react'
 import { api } from '../lib/api'
-import PrintButton from './PrintButton'
 import { downloadXlsx } from '../lib/xlsx'
-import LoadingBar from './LoadingBar'
+import PrintButton from './PrintButton'
 
-const todayLabel = () => new Date().toLocaleDateString('sv-SE')
+/* 어플 '현장별 재고'(수량이 바뀔 때마다 변동 기록이 남음) + 용품 요청/구매 내역을 합쳐서
+   "지금 재고 / 최근 60일 사용량 / 소진 예상일 / 최근 구매 단가"를 한 줄로 보여주는 화면(읽기 전용).
+   사용량 = 변동 기록에서 수량이 줄어든 만큼. 입고 = 늘어난 만큼. */
+const DAY = 864e5
+const WINDOW = 60 // 사용 속도를 계산하는 최근 일수
+const norm = (s) => (s || '').replace(/\s+/g, '').toLowerCase()
+const fmt = (n) => Number(n).toLocaleString('ko-KR')
+const mmdd = (t) => { const d = new Date(t + 9 * 3600e3); return `${d.getUTCMonth() + 1}/${d.getUTCDate()}` }
 
-const emptyForm = {
-  name: '',
-  category: '세정용품',
-  scope: '본사',
-  quantity: '',
-  unit: '개',
-  minQuantity: '',
-  location: ''
+const STATUS = {
+  out: { label: '품절', cls: 'bg-red-500/10 text-red-600', rank: 0 },
+  order: { label: '발주 필요', cls: 'bg-red-500/10 text-red-600', rank: 1 },
+  soon: { label: '주의', cls: 'bg-amber-500/15 text-amber-600', rank: 2 },
+  ok: { label: '충분', cls: 'bg-teal-500/10 text-teal-600', rank: 3 },
+  idle: { label: '사용 없음', cls: 'bg-base-800 text-base-400', rank: 4 },
+  thin: { label: '기록 쌓는 중', cls: 'bg-base-800 text-base-400', rank: 5 }
 }
-const CATEGORIES = ['세정용품', '소모품', '장비', '안전보호구', '기타']
+
+function analyze(inventory, invLog, rows, now) {
+  const logBy = new Map()
+  invLog.forEach((l) => { if (!logBy.has(l.itemId)) logBy.set(l.itemId, []); logBy.get(l.itemId).push(l) })
+  // 구매 내역: 현장+품목명(공백·대소문자 무시)이 같은 것끼리 연결
+  const buyBy = new Map()
+  rows.filter((r) => r.status !== 'declined').forEach((r) => {
+    const k = norm(r.site) + '|' + norm(r.item)
+    if (!buyBy.has(k)) buyBy.set(k, [])
+    buyBy.get(k).push(r)
+  })
+  const since = now - WINDOW * DAY
+  return inventory.map((it) => {
+    const log = (logBy.get(it.id) || []).slice().sort((a, b) => a.at.localeCompare(b.at))
+    let used = 0, added = 0
+    for (let i = 1; i < log.length; i++) {
+      if (new Date(log[i].at).getTime() < since) continue
+      const d = log[i].qty - log[i - 1].qty
+      if (d < 0) used += -d
+      else added += d
+    }
+    const first = log.length ? new Date(log[0].at).getTime() : now
+    const observed = Math.min(WINDOW, Math.max(1, Math.ceil((now - first) / DAY)))
+    const daily = used / Math.max(observed, 7) // 기록이 너무 짧을 때 사용 속도가 부풀려지지 않게 최소 7일로 나눔
+    const monthly = daily * 30
+    const days = daily > 0 ? it.qty / daily : null
+    let status
+    if (it.qty <= 0) status = 'out'
+    else if (used === 0) status = observed < 14 ? 'thin' : 'idle'
+    else if (days <= 14) status = 'order'
+    else if (days <= 30) status = 'soon'
+    else status = 'ok'
+    const buys = (buyBy.get(norm(it.site) + '|' + norm(it.name)) || []).slice().sort((a, b) => b.date.localeCompare(a.date))
+    const priced = buys.find((b) => b.unitPrice != null || (b.amount != null && b.qty > 0))
+    const unitPrice = priced ? (priced.unitPrice != null ? priced.unitPrice : Math.round(priced.amount / priced.qty)) : null
+    const suggest = status === 'out' || status === 'order' || status === 'soon' ? Math.max(1, Math.ceil(monthly - it.qty)) : 0
+    return {
+      ...it, used, added, observed, daily, monthly, days, status, unitPrice,
+      lastBuy: buys[0] ? buys[0].date : '', suggest,
+      suggestCost: unitPrice != null && suggest > 0 ? suggest * unitPrice : null,
+      empty: days != null ? now + days * DAY : null
+    }
+  })
+}
+
+const Kpi = ({ label, value, sub, tone }) => (
+  <div className="rounded-2xl border border-base-800 bg-base-950 p-5">
+    <div className="text-sm text-base-400">{label}</div>
+    <div className={`mt-1 text-3xl font-extrabold tracking-tight ${tone || 'text-base-100'}`}>{value}</div>
+    <div className="mt-1 text-xs text-base-500">{sub}</div>
+  </div>
+)
+const Card = ({ title, right, children }) => (
+  <section className="mb-5 rounded-2xl border border-base-800 bg-base-950 p-5">
+    <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+      <h2 className="text-base font-bold text-base-100">{title}</h2>
+      {right}
+    </div>
+    {children}
+  </section>
+)
+const Badge = ({ s }) => <span className={`whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-semibold ${STATUS[s].cls}`}>{STATUS[s].label}</span>
+
+function CompareBars({ list }) {
+  const max = Math.max(1, ...list.flatMap((x) => [x.qty, x.monthly]))
+  return (
+    <ul className="space-y-3">
+      {list.map((x) => (
+        <li key={x.id}>
+          <div className="mb-1 flex items-center justify-between gap-2 text-xs">
+            <span className="min-w-0 truncate text-base-200">{x.name} <span className="text-base-500">· {x.site}</span></span>
+            <Badge s={x.status} />
+          </div>
+          <div className="flex items-center gap-2 text-[11px]">
+            <span className="w-16 shrink-0 text-base-500">현재 재고</span>
+            <div className="h-3 flex-1 rounded bg-base-900"><div className="h-3 rounded" style={{ width: `${(x.qty / max) * 100}%`, background: '#0E7C86' }} /></div>
+            <span className="w-16 shrink-0 text-right font-semibold text-base-200">{fmt(x.qty)}{x.unit}</span>
+          </div>
+          <div className="mt-1 flex items-center gap-2 text-[11px]">
+            <span className="w-16 shrink-0 text-base-500">30일 사용</span>
+            <div className="h-3 flex-1 rounded bg-base-900"><div className="h-3 rounded" style={{ width: `${(x.monthly / max) * 100}%`, background: '#B9720A' }} /></div>
+            <span className="w-16 shrink-0 text-right font-semibold text-base-200">{fmt(Math.round(x.monthly * 10) / 10)}{x.unit}</span>
+          </div>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+const emptyForm = { id: null, siteId: '', name: '', qty: '', unit: '', note: '' }
 
 export default function Inventory() {
   const navigate = useNavigate()
-  const [items, setItems] = useState([])
-  const [siteNames, setSiteNames] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [form, setForm] = useState(emptyForm)
-  const [category, setCategory] = useState('전체')
-  const [scopeFilter, setScopeFilter] = useState('전체')
-  const [error, setError] = useState(null)
-  const [submitting, setSubmitting] = useState(false)
+  const [data, setData] = useState(null)
+  const [form, setForm] = useState(null) // null = 닫힘, 값 있으면 추가/수정 입력창
+  const [saving, setSaving] = useState(false)
+  const [busyId, setBusyId] = useState('')
+  const [notice, setNotice] = useState('')
+  const [error, setError] = useState('')
+  const [site, setSite] = useState('전체')
+  const [flt, setFlt] = useState('all') // all | need
+  const [q, setQ] = useState('')
 
-  const load = () => {
-    setLoading(true)
-    setError(null)
-    Promise.all([api.listInventory(), api.listRegularSiteNames().catch(() => ({ names: [] }))])
-      .then(([inv, att]) => {
-        setItems(inv.items || [])
-        setSiteNames(att.names || [])
-      })
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false))
+  const load = () => api.getSupplyStats().then((d) => { setError(''); setData(d) }).catch((e) => setError(e.message))
+
+  // 어플 재고에 바로 저장하고 다시 불러옴 (실패하면 이유를 보여줌)
+  const run = async (fn) => {
+    setNotice('')
+    try { await fn(); await load(); return true } catch (e) {
+      setNotice(String(e.message || e).replace(/^API \/inventory 실패 \(\d+\) /, '').replace(/^\{"error":"(.*)"\}$/, '$1'))
+      return false
+    }
   }
-  useEffect(load, [])
-
-  const scopeOptions = ['본사', ...siteNames]
-
+  const bump = async (it, delta) => { setBusyId(it.id); await run(() => api.adjustInventory(it.id, delta)); setBusyId('') }
+  const remove = async (it) => {
+    if (!window.confirm(`"${it.site} · ${it.name}" 재고를 삭제할까요? 앱에서도 사라져요.`)) return
+    setBusyId(it.id); await run(() => api.deleteInventoryItem(it.id)); setBusyId('')
+  }
   const submit = async (e) => {
     e.preventDefault()
-    setError(null)
-    if (!form.name.trim()) {
-      setError('품목명을 입력해주세요.')
-      return
-    }
-    if (form.quantity === '') {
-      setError('수량을 입력해주세요.')
-      return
-    }
-    setSubmitting(true)
-    try {
-      await api.upsertInventoryItem(form)
-      setForm((f) => ({ ...emptyForm, scope: f.scope })) // 방금 고른 위치는 유지
-      load()
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setSubmitting(false)
-    }
+    if (!form.name.trim()) { setNotice('품목명을 입력해 주세요'); return }
+    if (!form.id && !form.siteId) { setNotice('현장을 선택해 주세요'); return }
+    if (form.qty === '' || Number(form.qty) < 0) { setNotice('수량을 0 이상의 숫자로 입력해 주세요'); return }
+    setSaving(true)
+    const ok = await run(() => api.upsertInventoryItem({ id: form.id, siteId: form.siteId, name: form.name, qty: Number(form.qty), unit: form.unit, note: form.note }))
+    setSaving(false)
+    if (ok) setForm(null)
   }
+  const openAdd = () => setForm({ ...emptyForm, siteId: (data?.sites || []).find((s) => s.name === site)?.id || '' })
+  const openEdit = (it) => setForm({ id: it.id, siteId: it.siteId, name: it.name, qty: String(it.qty), unit: it.unit || '', note: it.note || '' })
+  useEffect(load, [])
 
-  const remove = async (id) => {
-    try {
-      await api.deleteInventoryItem(id)
-      load()
-    } catch (err) {
-      setError(err.message)
-    }
-  }
+  const now = useMemo(() => Date.now(), [data])
+  const items = useMemo(() => (data ? analyze(data.inventory || [], data.invLog || [], data.rows || [], now) : []), [data, now])
+  const sites = useMemo(() => ['전체', ...[...new Set(items.map((i) => i.site))].sort((a, b) => a.localeCompare(b, 'ko'))], [items])
+  const shown = useMemo(() => items
+    .filter((i) => (site === '전체' || i.site === site) && (!q.trim() || norm(i.name).includes(norm(q))) && (flt === 'all' || STATUS[i.status].rank <= 2))
+    .sort((a, b) => STATUS[a.status].rank - STATUS[b.status].rank || (a.days ?? 1e9) - (b.days ?? 1e9) || a.site.localeCompare(b.site, 'ko') || a.name.localeCompare(b.name, 'ko')),
+  [items, site, q, flt])
 
-  const visible = items.filter((i) => {
-    if (category !== '전체' && i.category !== category) return false
-    if (scopeFilter !== '전체' && (i.scope || '본사') !== scopeFilter) return false
-    return true
-  })
+  const scope = items.filter((i) => site === '전체' || i.site === site)
+  const cnt = (s) => scope.filter((i) => i.status === s).length
+  const needList = scope.filter((i) => STATUS[i.status].rank <= 2).sort((a, b) => STATUS[a.status].rank - STATUS[b.status].rank || (a.days ?? 0) - (b.days ?? 0))
+  const needCost = needList.reduce((s, i) => s + (i.suggestCost || 0), 0)
+  const needNoPrice = needList.filter((i) => i.suggest > 0 && i.suggestCost == null).length
+  const compare = shown.filter((i) => i.monthly > 0).slice(0, 10)
+  const noBuy = scope.filter((i) => !i.lastBuy).length
 
-  // 지금 보이는 목록(위치·분류 필터 적용)을 엑셀로
+  const daysText = (i) => (i.status === 'out' ? '지금 없음' : i.days == null ? '—' : `약 ${Math.max(1, Math.round(i.days))}일 (${mmdd(i.empty)})`)
+
   const exportExcel = () => {
     const rows = [
-      ['품목', '위치', '분류', '수량', '단위', '최소 수량', '부족 여부', '세부위치'],
-      ...visible.map((i) => [
-        i.name,
-        i.scope || '본사',
-        i.category,
-        Number(i.quantity) || 0,
-        i.unit || '',
-        i.minQuantity !== '' && i.minQuantity != null ? Number(i.minQuantity) : '',
-        i.minQuantity && Number(i.quantity) <= Number(i.minQuantity) ? '부족' : '',
-        i.location || ''
-      ])
+      ['현장', '품목', '현재 재고', '단위', `최근 ${WINDOW}일 사용`, `최근 ${WINDOW}일 입고`, '30일 환산 사용', '소진 예상', '상태', '권장 발주 수량(30일치)', '최근 구매 단가', '예상 발주 금액', '최근 구매일', '메모'],
+      ...shown.map((i) => [i.site, i.name, i.qty, i.unit, i.used, i.added, Math.round(i.monthly * 10) / 10, i.status === 'out' ? '품절' : i.days == null ? '' : `${Math.round(i.days)}일`, STATUS[i.status].label, i.suggest || '', i.unitPrice ?? '', i.suggestCost ?? '', i.lastBuy, i.note])
     ]
-    downloadXlsx(rows, `재고현황_${scopeFilter}_${category}_${todayLabel()}`, '재고 현황')
+    downloadXlsx(rows, `재고소진예상_${site}_${new Date().toLocaleDateString('sv-SE')}`, '재고 현황')
   }
 
+  if (error) return <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 text-sm text-amber-400">{error}</div>
+  if (!data) return <div className="py-20 text-center text-sm text-page-sub">불러오는 중…</div>
+
   return (
-    <div>
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-2">
+    <div id="print-stock-status">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2 print:hidden">
         <h1 className="text-xl font-semibold text-page-text">재고 현황</h1>
         <div className="flex flex-wrap gap-2">
-          <PrintButton targetId="print-inventory" title={`재고 현황_${scopeFilter}_${category}_${todayLabel()}`} />
-          <button
-            onClick={exportExcel}
-            className="focus-ring flex items-center gap-1.5 rounded-lg border border-page-border bg-page-soft px-3 py-1.5 text-xs text-page-sub hover:text-page-text"
-          >
-            <FileSpreadsheet size={14} /> 엑셀 다운로드
-          </button>
-        <button
-          onClick={() => navigate(-1)}
-          className="focus-ring flex items-center gap-1.5 rounded-lg border border-page-border bg-page-soft px-3 py-1.5 text-xs text-page-sub hover:bg-page-border hover:text-page-text"
-        >
-          <ArrowLeft size={14} /> <span className="hidden sm:inline">뒤로가기</span>
-        </button>
+          <button onClick={openAdd} className="focus-ring flex items-center gap-1.5 rounded-lg bg-mist-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-mist-400"><Plus size={14} /> 품목 추가</button>
+          <PrintButton targetId="print-stock-status" title={`재고 소진 예상_${new Date().toLocaleDateString('sv-SE')}`} />
+          <button onClick={load} className="focus-ring flex items-center gap-1.5 rounded-lg border border-page-border bg-page-soft px-3 py-1.5 text-xs text-page-sub hover:text-page-text"><RefreshCw size={14} /> 새로고침</button>
+          <button onClick={exportExcel} className="focus-ring flex items-center gap-1.5 rounded-lg border border-page-border bg-page-soft px-3 py-1.5 text-xs text-page-sub hover:text-page-text"><FileSpreadsheet size={14} /> 엑셀 다운로드</button>
+          <button onClick={() => navigate(-1)} className="focus-ring flex items-center gap-1.5 rounded-lg border border-page-border bg-page-soft px-3 py-1.5 text-xs text-page-sub hover:bg-page-border hover:text-page-text"><ArrowLeft size={14} /> <span className="hidden sm:inline">뒤로가기</span></button>
         </div>
       </div>
+      <p className="mb-4 text-xs text-page-sub print:hidden">앱의 '현장별 재고'와 같은 데이터예요 — 여기서 고치면 앱에도, 앱에서 고치면 여기에도 반영됩니다. 수량이 줄어든 만큼을 사용량으로 계산해요.</p>
+      {notice && <div className="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/5 p-3.5 text-sm text-amber-500 print:hidden">{notice}</div>}
 
-      {error && (
-        <div className="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 text-sm text-amber-400">
-          {error}
-        </div>
+      {form && (
+        <form onSubmit={submit} className="mb-5 grid grid-cols-2 gap-3 rounded-2xl border border-base-800 bg-base-950 p-4 sm:grid-cols-6 print:hidden">
+          <div className="col-span-2 text-sm font-semibold text-base-100 sm:col-span-6">{form.id ? '재고 수정' : '재고 품목 추가'}</div>
+          <select disabled={!!form.id} value={form.siteId} onChange={(e) => setForm({ ...form, siteId: e.target.value })} className="focus-ring col-span-2 rounded-lg border border-base-700 bg-base-900 px-3 py-2 text-sm disabled:opacity-60">
+            <option value="">현장 선택</option>
+            {(data?.sites || []).map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+          </select>
+          <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="품목명" className="focus-ring col-span-2 rounded-lg border border-base-700 bg-base-900 px-3 py-2 text-sm placeholder:text-base-500" />
+          <input type="number" min="0" value={form.qty} onChange={(e) => setForm({ ...form, qty: e.target.value })} placeholder="수량" className="focus-ring rounded-lg border border-base-700 bg-base-900 px-3 py-2 text-sm placeholder:text-base-500" />
+          <input value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })} placeholder="단위(개/box)" className="focus-ring rounded-lg border border-base-700 bg-base-900 px-3 py-2 text-sm placeholder:text-base-500" />
+          <input value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} placeholder="메모 (예: 창고 A)" className="focus-ring col-span-2 rounded-lg border border-base-700 bg-base-900 px-3 py-2 text-sm placeholder:text-base-500 sm:col-span-4" />
+          <div className="col-span-2 flex gap-2">
+            <button type="button" onClick={() => setForm(null)} className="focus-ring flex-1 rounded-lg border border-base-700 px-3 py-2 text-sm text-base-400 hover:bg-base-900">취소</button>
+            <button type="submit" disabled={saving} className="focus-ring flex-1 rounded-lg bg-mist-500 px-3 py-2 text-sm font-medium text-white hover:bg-mist-400 disabled:opacity-50">{saving ? '저장 중…' : '저장'}</button>
+          </div>
+        </form>
       )}
 
-      <form onSubmit={submit} className="mb-6 grid grid-cols-2 gap-3 rounded-xl border border-base-800 bg-base-950 p-4 sm:grid-cols-6">
-        <input
-          className="focus-ring col-span-2 rounded-lg border border-base-700 bg-base-900 px-3 py-2 text-sm placeholder:text-base-500 sm:col-span-2"
-          placeholder="품목명"
-          value={form.name}
-          onChange={(e) => setForm({ ...form, name: e.target.value })}
-        />
-        <select
-          className="focus-ring rounded-lg border border-base-700 bg-base-900 px-3 py-2 text-sm"
-          value={form.scope}
-          onChange={(e) => setForm({ ...form, scope: e.target.value })}
-        >
-          {scopeOptions.map((s) => (
-            <option key={s}>{s}</option>
-          ))}
-        </select>
-        <select
-          className="focus-ring rounded-lg border border-base-700 bg-base-900 px-3 py-2 text-sm"
-          value={form.category}
-          onChange={(e) => setForm({ ...form, category: e.target.value })}
-        >
-          {CATEGORIES.map((c) => (
-            <option key={c}>{c}</option>
-          ))}
-        </select>
-        <input
-          type="number"
-          className="focus-ring rounded-lg border border-base-700 bg-base-900 px-3 py-2 text-sm"
-          placeholder="수량"
-          value={form.quantity}
-          onChange={(e) => setForm({ ...form, quantity: e.target.value })}
-        />
-        <input
-          className="focus-ring rounded-lg border border-base-700 bg-base-900 px-3 py-2 text-sm"
-          placeholder="단위 (개/box..)"
-          value={form.unit}
-          onChange={(e) => setForm({ ...form, unit: e.target.value })}
-        />
-        <input
-          type="number"
-          className="focus-ring rounded-lg border border-base-700 bg-base-900 px-3 py-2 text-sm"
-          placeholder="최소 재고"
-          value={form.minQuantity}
-          onChange={(e) => setForm({ ...form, minQuantity: e.target.value })}
-        />
-        <input
-          className="focus-ring col-span-2 rounded-lg border border-base-700 bg-base-900 px-3 py-2 text-sm sm:col-span-4"
-          placeholder="세부 위치 (예: 창고 A, 2층 청소함)"
-          value={form.location}
-          onChange={(e) => setForm({ ...form, location: e.target.value })}
-        />
-        <button
-          type="submit"
-          disabled={submitting}
-          className="focus-ring col-span-2 flex items-center justify-center gap-1.5 rounded-lg bg-mist-500 px-3 py-2 text-sm font-medium text-base-950 hover:bg-mist-400 disabled:opacity-50 sm:col-span-2"
-        >
-          <Plus size={16} /> {submitting ? '등록 중…' : '등록'}
-        </button>
-      </form>
-
-      <div className="mb-3 flex flex-wrap gap-2">
-        {['전체', '본사', ...siteNames].map((s) => (
-          <button
-            key={s}
-            onClick={() => setScopeFilter(s)}
-            className={`focus-ring flex items-center gap-1 rounded-full px-3 py-1 text-xs ${
-              scopeFilter === s
-                ? 'bg-mist-500/15 text-mist-500'
-                : 'border border-page-border text-page-sub hover:bg-page-soft hover:text-page-text'
-            }`}
-          >
-            {s !== '전체' && <Building2 size={11} />}
-            {s}
-          </button>
-        ))}
-      </div>
-
-      <div className="mb-4 flex flex-wrap gap-2">
-        {['전체', ...CATEGORIES].map((c) => (
-          <button
-            key={c}
-            onClick={() => setCategory(c)}
-            className={`focus-ring rounded-full px-3 py-1 text-xs ${
-              category === c
-                ? 'bg-base-800 text-base-100'
-                : 'border border-page-border text-page-sub hover:bg-page-soft hover:text-page-text'
-            }`}
-          >
-            {c}
-          </button>
-        ))}
-      </div>
-
-      <div id="print-inventory" className="overflow-hidden rounded-xl border border-base-800 bg-base-950">
-        {loading ? (
-          <LoadingBar />
-        ) : visible.length === 0 ? (
-          <div className="flex flex-col items-center gap-2 p-10 text-base-500">
-            <PackageSearch size={28} />
-            <p className="text-sm">등록된 재고가 없어요.</p>
+      {items.length === 0 ? (
+        <div className="rounded-2xl border border-base-800 bg-base-950 p-10 text-center text-sm text-base-400">
+          앱에 등록된 현장별 재고가 아직 없어요. 위의 '품목 추가'로 등록하거나, 앱 관리자 화면 → 재고에서 등록하면 여기에 나타납니다.
+        </div>
+      ) : (
+        <>
+          <div className="mb-5 space-y-3 rounded-2xl border border-page-border bg-page-soft p-4 print:hidden">
+            <div className="flex flex-wrap gap-2">
+              {sites.map((s) => (
+                <button key={s} onClick={() => setSite(s)} className={`focus-ring rounded-full px-3.5 py-1.5 text-sm ${site === s ? 'bg-mist-500 font-semibold text-white' : 'border border-page-border text-page-sub hover:text-page-text'}`}>{s}</button>
+              ))}
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="relative">
+                <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-base-500" />
+                <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="품목 검색" className="focus-ring rounded-lg border border-base-700 bg-base-900 py-1.5 pl-8 pr-3 text-sm placeholder:text-base-500" />
+              </div>
+              <div className="inline-flex overflow-hidden rounded-lg border border-base-700 text-xs">
+                {[['all', '전체'], ['need', '발주 필요·주의만']].map(([k, l]) => (
+                  <button key={k} onClick={() => setFlt(k)} className={`px-3 py-1.5 font-medium ${flt === k ? 'bg-mist-500 text-white' : 'bg-base-950 text-base-400 hover:bg-base-900'}`}>{l}</button>
+                ))}
+              </div>
+            </div>
           </div>
-        ) : (
-          <>
-          <div className="divide-y divide-base-800 md:hidden print:hidden">
-            {visible.map((item) => {
-              const low = item.minQuantity && item.quantity <= item.minQuantity
-              return (
-                <div key={item.id} className="flex items-center gap-3 px-4 py-3">
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-base-100">{item.name}</p>
-                    <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-base-500">
-                      <span className="flex items-center gap-1 whitespace-nowrap">
-                        <Building2 size={12} className="text-teal-500" /> {item.scope || '본사'}
-                      </span>
-                      <span className="whitespace-nowrap">{item.category}</span>
-                      {item.location && <span className="whitespace-nowrap">{item.location}</span>}
-                    </p>
-                  </div>
-                  <span className={`flex shrink-0 items-center gap-1 whitespace-nowrap text-sm font-semibold ${low ? 'text-amber-500' : 'text-base-200'}`}>
-                    {low && <TriangleAlert size={13} />}
-                    {item.quantity} {item.unit}
-                  </span>
-                  <button onClick={() => remove(item.id)} className="no-print focus-ring shrink-0 text-base-500 hover:text-red-500" aria-label="삭제">
-                    <Trash2 size={15} />
-                  </button>
-                </div>
-              )
-            })}
+
+          <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <Kpi label="관리 품목" value={`${scope.length}개`} sub={site === '전체' ? `${sites.length - 1}개 현장` : site} />
+            <Kpi label="발주 필요" value={`${cnt('out') + cnt('order')}개`} sub="품절 또는 14일 안에 소진 예상" tone={cnt('out') + cnt('order') ? 'text-red-600' : undefined} />
+            <Kpi label="주의" value={`${cnt('soon')}개`} sub="15~30일 안에 소진 예상" tone={cnt('soon') ? 'text-amber-600' : undefined} />
+            <Kpi label="예상 발주 금액" value={needCost ? `${fmt(needCost)}원` : '—'} sub={needNoPrice ? `30일치 기준 · 단가 없는 ${needNoPrice}개 제외` : '30일치 기준 권장 수량 × 최근 단가'} />
           </div>
-          <table className="hidden w-full text-sm md:table print:table">
-            <thead>
-              <tr className="border-b border-base-800 text-left text-xs text-base-500">
-                <th className="px-4 py-3 font-medium">품목</th>
-                <th className="px-4 py-3 font-medium">위치</th>
-                <th className="px-4 py-3 font-medium">분류</th>
-                <th className="px-4 py-3 font-medium">수량</th>
-                <th className="px-4 py-3 font-medium">세부위치</th>
-                <th className="px-4 py-3" />
-              </tr>
-            </thead>
-            <tbody>
-              {visible.map((item) => {
-                const low = item.minQuantity && item.quantity <= item.minQuantity
-                return (
-                  <tr key={item.id} className="border-b border-base-800/60 last:border-0">
-                    <td className="px-4 py-3 text-base-100">{item.name}</td>
-                    <td className="px-4 py-3">
-                      <span className="flex items-center gap-1 text-xs text-base-400">
-                        <Building2 size={11} className="text-teal-500" /> {item.scope || '본사'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-base-400">{item.category}</td>
-                    <td className="px-4 py-3">
-                      <span className={low ? 'flex items-center gap-1 text-amber-500' : 'text-base-200'}>
-                        {low && <TriangleAlert size={13} />}
-                        {item.quantity} {item.unit}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-base-400">{item.location || '—'}</td>
-                    <td className="px-4 py-3 text-right">
-                      <button onClick={() => remove(item.id)} className="no-print focus-ring text-base-500 hover:text-red-500">
-                        <Trash2 size={15} />
-                      </button>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-          </>
-        )}
-      </div>
+
+          {needList.length > 0 && (
+            <Card title={`발주 필요 목록 (${needList.length}개)`}>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[640px] text-sm">
+                  <thead><tr className="border-b border-base-800 text-left text-xs text-base-500">
+                    <th className="py-2 pr-3 font-medium">품목</th><th className="py-2 pr-3 font-medium">현장</th><th className="py-2 pr-3 text-right font-medium">재고</th>
+                    <th className="py-2 pr-3 font-medium">소진 예상</th><th className="py-2 pr-3 text-right font-medium">권장 발주(30일치)</th><th className="py-2 text-right font-medium">예상 금액</th>
+                  </tr></thead>
+                  <tbody>
+                    {needList.map((i) => (
+                      <tr key={i.id} className="border-b border-base-800/60 last:border-0">
+                        <td className="py-2.5 pr-3 text-base-100">{i.name}</td>
+                        <td className="py-2.5 pr-3 text-base-400">{i.site}</td>
+                        <td className="py-2.5 pr-3 text-right font-semibold text-base-200">{fmt(i.qty)}{i.unit}</td>
+                        <td className={`py-2.5 pr-3 ${i.status === 'soon' ? 'text-amber-600' : 'text-red-600'}`}>{daysText(i)}</td>
+                        <td className="py-2.5 pr-3 text-right text-base-200">{i.suggest ? `${fmt(i.suggest)}${i.unit}` : '—'}</td>
+                        <td className="py-2.5 text-right text-base-300">{i.suggestCost != null ? `${fmt(i.suggestCost)}원` : <span className="text-base-500">단가 없음</span>}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          )}
+
+          {compare.length > 0 && (
+            <Card title="품목별 재고 vs 30일 사용량" right={<span className="text-xs text-base-500">사용량이 있는 품목 · 급한 순</span>}>
+              <CompareBars list={compare} />
+            </Card>
+          )}
+
+          <Card title={`전체 재고 (${shown.length}개)`}>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[900px] text-sm">
+                <thead><tr className="border-b border-base-800 text-left text-xs text-base-500">
+                  <th className="py-2 pr-3 font-medium">현장</th><th className="py-2 pr-3 font-medium">품목</th><th className="py-2 pr-3 text-right font-medium">재고</th>
+                  <th className="py-2 pr-3 text-right font-medium">{WINDOW}일 사용</th><th className="py-2 pr-3 text-right font-medium">{WINDOW}일 입고</th>
+                  <th className="py-2 pr-3 font-medium">소진 예상</th><th className="py-2 pr-3 text-right font-medium">최근 단가</th><th className="py-2 pr-3 font-medium">상태</th><th className="py-2 text-right font-medium print:hidden">수량 조정</th>
+                </tr></thead>
+                <tbody>
+                  {shown.map((i) => (
+                    <tr key={i.id} className="border-b border-base-800/60 last:border-0">
+                      <td className="py-2.5 pr-3 text-base-400">{i.site}</td>
+                      <td className="py-2.5 pr-3 text-base-100">{i.name}{i.note && <span className="ml-1.5 text-xs text-base-500">{i.note}</span>}</td>
+                      <td className="py-2.5 pr-3 text-right font-semibold text-base-200">{fmt(i.qty)}{i.unit}</td>
+                      <td className="py-2.5 pr-3 text-right text-base-300">{i.used ? `${fmt(i.used)}${i.unit}` : '—'}</td>
+                      <td className="py-2.5 pr-3 text-right text-base-300">{i.added ? `${fmt(i.added)}${i.unit}` : '—'}</td>
+                      <td className="py-2.5 pr-3 text-base-300">{daysText(i)}</td>
+                      <td className="py-2.5 pr-3 text-right text-base-300">{i.unitPrice != null ? `${fmt(i.unitPrice)}원` : '—'}</td>
+                      <td className="py-2.5 pr-3"><Badge s={i.status} /></td>
+                      <td className="py-2.5 text-right print:hidden">
+                        <div className="inline-flex items-center gap-1 whitespace-nowrap">
+                          <button disabled={busyId === i.id || i.qty <= 0} onClick={() => bump(i, -1)} className="focus-ring h-7 w-7 rounded-md border border-base-700 text-base-300 hover:bg-base-900 disabled:opacity-40" aria-label="1 줄이기">−</button>
+                          <button disabled={busyId === i.id} onClick={() => bump(i, 1)} className="focus-ring h-7 w-7 rounded-md border border-base-700 text-base-300 hover:bg-base-900 disabled:opacity-40" aria-label="1 늘리기">+</button>
+                          <button onClick={() => openEdit(i)} className="focus-ring ml-1 rounded-md border border-base-700 px-2 py-1 text-xs text-base-400 hover:bg-base-900">수정</button>
+                          <button disabled={busyId === i.id} onClick={() => remove(i)} className="focus-ring p-1 text-base-500 hover:text-red-500 disabled:opacity-40" aria-label="삭제"><Trash2 size={14} /></button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {shown.length === 0 && <tr><td colSpan={9} className="py-8 text-center text-sm text-base-500">조건에 맞는 품목이 없어요.</td></tr>}
+                </tbody>
+              </table>
+            </div>
+            <p className="mt-3 text-xs leading-relaxed text-base-500">
+              · 사용량은 수량을 줄인 기록(앱·이 화면 모두)으로 계산해요. 기록이 14일보다 짧으면 '기록 쌓는 중'으로 표시됩니다.<br />
+              · 최근 단가는 같은 현장·같은 품목명으로 요청·구매한 내역에서 가져와요{noBuy ? ` (연결된 구매 내역이 없는 품목 ${noBuy}개는 '—')` : ''}. 이름을 똑같이 써야 연결돼요.
+            </p>
+          </Card>
+        </>
+      )}
     </div>
   )
 }
