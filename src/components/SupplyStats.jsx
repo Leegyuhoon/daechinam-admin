@@ -193,6 +193,7 @@ const norm = (s) => s.replace(/\s+/g, '').toLowerCase()
 export default function SupplyStats({ embedded = false }) {
   const navigate = useNavigate()
   const [all, setAll] = useState(null)
+  const [invData, setInvData] = useState({ inventory: [], invLog: [] })
   const [error, setError] = useState('')
   const [preset, setPreset] = useState('thisMonth')
   const [custom, setCustom] = useState({ from: '', to: '' })
@@ -204,7 +205,7 @@ export default function SupplyStats({ embedded = false }) {
   const [withDeclined, setWithDeclined] = useState(false)
   const today = kstToday()
 
-  const load = () => { setError(''); api.getSupplyStats().then((d) => setAll(d.rows || [])).catch((e) => setError(e.message)) }
+  const load = () => { setError(''); api.getSupplyStats().then((d) => { setInvData({ inventory: d.inventory || [], invLog: d.invLog || [] }); setAll(d.rows || []) }).catch((e) => setError(e.message)) }
   useEffect(load, [])
 
   const base = useMemo(() => (all || []).filter((r) => (withDeclined || r.status !== 'declined') && (!q.trim() || norm(r.item).includes(norm(q)) || norm(r.vendor).includes(norm(q)))), [all, withDeclined, q])
@@ -235,6 +236,26 @@ export default function SupplyStats({ embedded = false }) {
   }
   const itemRank = useMemo(() => rankOf((r) => r.item), [cur, prev, metric])
   const siteRank = useMemo(() => rankOf((r) => r.site, 12), [cur, prev, metric])
+  // 앱 재고 기록(수량이 줄어든 만큼)으로 계산한 '실제로 쓴 양' — 구매량(위 그래프)과 비교해 볼 수 있음
+  const stockUse = useMemo(() => {
+    const logBy = new Map()
+    invData.invLog.forEach((l) => { if (!logBy.has(l.itemId)) logBy.set(l.itemId, []); logBy.get(l.itemId).push(l) })
+    const day = (at) => new Date(new Date(at).getTime() + 9 * 3600e3).toISOString().slice(0, 10)
+    const out = []
+    invData.inventory.filter((it) => site === '전체' || it.site === site).forEach((it) => {
+      const log = (logBy.get(it.id) || []).slice().sort((a, b) => a.at.localeCompare(b.at))
+      let v = 0, p = 0
+      for (let i = 1; i < log.length; i++) {
+        const drop = log[i - 1].qty - log[i].qty
+        if (drop <= 0) continue
+        const d = day(log[i].at)
+        if (d >= per.from && d <= per.to) v += drop
+        else if (d >= per.pf && d <= per.pt) p += drop
+      }
+      if (v > 0 || p > 0) out.push({ label: site === '전체' ? `${it.name} · ${it.site}` : it.name, value: v, prev: p })
+    })
+    return out.sort((a, b) => b.value - a.value || b.prev - a.prev).slice(0, 10)
+  }, [invData, site, per.from, per.to, per.pf, per.pt])
   const vendorRows = useMemo(() => {
     const g = [...group(cur.filter((r) => r.vendor), (r) => r.vendor).values()].sort((a, b) => val(b) - val(a))
     const top = g.slice(0, 7).map((x) => ({ label: x.label, value: val(x) }))
@@ -338,6 +359,9 @@ export default function SupplyStats({ embedded = false }) {
             </Card>
             <Card title="현장별 (진한 막대 = 이번 기간, 회색 = 이전 기간)"><RankBars rows={siteRank} metric={metric} unit="개" /></Card>
             <Card title="품목별 TOP 10 (진한 막대 = 이번 기간, 회색 = 이전 기간)"><RankBars rows={itemRank} metric={metric} unit="개" /></Card>
+            <Card title="재고에서 실제로 쓴 양 TOP 10 (앱 재고 기록 기준)">
+              {stockUse.length ? <RankBars rows={stockUse} metric="qty" unit="" /> : <div className="py-10 text-center text-sm text-base-500">이 기간에 앱에서 재고 수량을 줄인 기록이 없어요</div>}
+            </Card>
             <Card title={`구매처별 ${metric === 'amount' ? '금액' : '수량'} 비율`}>
               {vendorRows.length ? <Donut rows={vendorRows} metric={metric} /> : <div className="py-10 text-center text-sm text-base-500">구매처가 입력된 내역이 없어요</div>}
             </Card>
