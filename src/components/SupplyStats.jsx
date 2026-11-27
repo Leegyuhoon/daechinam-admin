@@ -190,7 +190,7 @@ function group(rows, keyFn) {
 }
 const norm = (s) => s.replace(/\s+/g, '').toLowerCase()
 
-export default function SupplyStats() {
+export default function SupplyStats({ embedded = false }) {
   const navigate = useNavigate()
   const [all, setAll] = useState(null)
   const [error, setError] = useState('')
@@ -278,7 +278,7 @@ export default function SupplyStats() {
   return (
     <div id="print-supply-stats">
       <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold text-page-text">용품 통계</h1>
+        {embedded ? <span /> : <h1 className="text-xl font-semibold text-page-text">용품 통계</h1>}
         <div className="flex flex-wrap gap-2 print:hidden">
           <PrintButton targetId="print-supply-stats" title={`용품 통계_${per.from}_${per.to}`} />
           <button onClick={load} className="focus-ring flex items-center gap-1.5 rounded-lg border border-page-border bg-page-soft px-3 py-1.5 text-xs text-page-sub hover:text-page-text"><RefreshCw size={14} /> 새로고침</button>
