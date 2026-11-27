@@ -7,6 +7,7 @@ import Sites from './components/Sites'
 import SpotJobs from './components/SpotJobs'
 import Inventory from './components/Inventory'
 import SupplyStats from './components/SupplyStats'
+import ErrorBoundary from './components/ErrorBoundary'
 import SafetyTraining from './components/SafetyTraining'
 import Training from './components/Training'
 import ClientReports from './components/ClientReports'
@@ -16,10 +17,13 @@ import ServiceReportView from './components/ServiceReportView'
 import ClientPortal from './components/ClientPortal'
 
 function AdminLayout({ children }) {
+  const location = useLocation()
   return (
     <div className="flex min-h-screen bg-page-bg">
       <Sidebar />
-      <main className="flex-1 overflow-x-hidden px-4 pb-24 pt-6 sm:px-8 sm:pb-8">{children}</main>
+      <main className="flex-1 overflow-x-hidden px-4 pb-24 pt-6 sm:px-8 sm:pb-8">
+        <ErrorBoundary resetKey={location.pathname}>{children}</ErrorBoundary>
+      </main>
       <MobileNav />
     </div>
   )

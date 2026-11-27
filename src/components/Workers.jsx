@@ -17,7 +17,9 @@ export default function Workers() {
       .then((data) => setState({ loading: false, error: null, ...data }))
       .catch((err) => setState((s) => ({ ...s, loading: false, error: err.message })))
   }
-  useEffect(load, [])
+  useEffect(() => {
+    load()
+  }, [])
 
   const byWorker = useMemo(() => {
     const map = {}

@@ -206,7 +206,9 @@ export default function SupplyStats({ embedded = false }) {
   const today = kstToday()
 
   const load = () => { setError(''); api.getSupplyStats().then((d) => { setInvData({ inventory: d.inventory || [], invLog: d.invLog || [] }); setAll(d.rows || []) }).catch((e) => setError(e.message)) }
-  useEffect(load, [])
+  useEffect(() => {
+    load()
+  }, [])
 
   const base = useMemo(() => (all || []).filter((r) => (withDeclined || r.status !== 'declined') && (!q.trim() || norm(r.item).includes(norm(q)) || norm(r.vendor).includes(norm(q)))), [all, withDeclined, q])
   const sites = useMemo(() => ['전체', ...[...group(base, (r) => r.site).values()].sort((a, b) => b.amount - a.amount || b.count - a.count).map((g) => g.label)], [base])

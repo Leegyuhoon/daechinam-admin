@@ -347,7 +347,9 @@ export default function TripReports({ jobs = [] }) {
       .catch(() => {})
       .finally(() => setLoading(false))
   }
-  useEffect(load, [])
+  useEffect(() => {
+    load()
+  }, [])
 
   if (editing) {
     return (

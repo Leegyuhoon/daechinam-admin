@@ -118,7 +118,9 @@ export default function StockStatus() {
   const [q, setQ] = useState('')
 
   const load = () => { setError(''); api.getSupplyStats().then(setData).catch((e) => setError(e.message)) }
-  useEffect(load, [])
+  useEffect(() => {
+    load()
+  }, [])
 
   const now = useMemo(() => Date.now(), [data])
   const items = useMemo(() => (data ? analyze(data.inventory || [], data.invLog || [], data.rows || [], now) : []), [data, now])

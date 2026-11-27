@@ -152,7 +152,9 @@ export default function Inventory() {
   }
   const openAdd = () => setForm({ ...emptyForm, siteId: (data?.sites || []).find((s) => s.name === site)?.id || '' })
   const openEdit = (it) => setForm({ id: it.id, siteId: it.siteId, name: it.name, qty: String(it.qty), unit: it.unit || '', note: it.note || '' })
-  useEffect(load, [])
+  useEffect(() => {
+    load()
+  }, [])
 
   const now = useMemo(() => Date.now(), [data])
   const items = useMemo(() => (data ? analyze(data.inventory || [], data.invLog || [], data.rows || [], now) : []), [data, now])

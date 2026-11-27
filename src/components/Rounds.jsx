@@ -93,7 +93,9 @@ export default function Rounds() {
         setState((s) => ({ ...s, loading: false, error: err.message }))
       })
   }
-  useEffect(load, [])
+  useEffect(() => {
+    load()
+  }, [])
 
   // 저장 후 화면 목록을 바로 갱신 (다시 불러오지 않고)
   const upsertLocal = (collection, items) =>

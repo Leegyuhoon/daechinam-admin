@@ -296,7 +296,9 @@ function RosterManager() {
     setLoading(true)
     api.listTrainingRoster().then(({ items }) => setItems(items)).finally(() => setLoading(false))
   }
-  useEffect(load, [])
+  useEffect(() => {
+    load()
+  }, [])
 
   const submit = async (e) => {
     e.preventDefault()
@@ -595,7 +597,9 @@ export default function SafetyTraining() {
     setLoading(true)
     api.listCourses().then(({ courses }) => setCourses(courses)).finally(() => setLoading(false))
   }
-  useEffect(load, [])
+  useEffect(() => {
+    load()
+  }, [])
 
   const openNewCourse = () => {
     setEditingCourse(null)

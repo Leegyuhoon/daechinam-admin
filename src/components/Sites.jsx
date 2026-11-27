@@ -17,7 +17,9 @@ export default function Sites() {
       .then((data) => setState({ loading: false, error: null, ...data }))
       .catch((err) => setState((s) => ({ ...s, loading: false, error: err.message })))
   }
-  useEffect(load, [])
+  useEffect(() => {
+    load()
+  }, [])
 
   const bySite = useMemo(() => {
     const map = {}
