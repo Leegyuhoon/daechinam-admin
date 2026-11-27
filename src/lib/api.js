@@ -25,6 +25,9 @@ export const api = {
     return request(`/attendance${qs ? `?${qs}` : ''}`)
   },
 
+  // 용품 통계 — 어플의 용품 요청 내역(품목·수량·가격·날짜·현장) 전체
+  getSupplyStats: () => request('/supply'),
+
   // 재고 현황
   listInventory: () => request('/inventory'),
   upsertInventoryItem: (item) =>
