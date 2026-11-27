@@ -6,6 +6,7 @@ import Workers from './components/Workers'
 import Sites from './components/Sites'
 import SpotJobs from './components/SpotJobs'
 import Inventory from './components/Inventory'
+import SupplyStats from './components/SupplyStats'
 import SafetyTraining from './components/SafetyTraining'
 import Training from './components/Training'
 import ClientReports from './components/ClientReports'
@@ -86,6 +87,7 @@ export default function App() {
                 <Route path="/rounds" element={<Rounds />} />
                 <Route path="/spot-jobs" element={<SpotJobs />} />
                 <Route path="/inventory" element={<Inventory />} />
+                <Route path="/supply-stats" element={<SupplyStats />} />
                 <Route path="/safety" element={<SafetyTraining />} />
                 <Route path="/client-reports" element={<ClientReports />} />
               </Routes>
